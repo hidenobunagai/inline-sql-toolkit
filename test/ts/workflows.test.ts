@@ -159,6 +159,10 @@ describe("GitHub workflow contracts", () => {
     expect(steps[pullIndex]?.run).toContain(
       "python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
     );
+    expect(steps[inspectIndex]?.run).toContain("actual_digest");
+    expect(steps[inspectIndex]?.run).toContain(
+      "sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
+    );
     expect(steps[smokeIndex]?.run).toMatch(/python:3\.12-slim@sha256:[0-9a-f]{64}/u);
   });
 

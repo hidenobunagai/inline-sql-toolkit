@@ -303,6 +303,7 @@ def _embedded_in_sql(formatted: str, position: int) -> bool:
             if character == quote:
                 if index + 1 < position and formatted[index + 1] == quote:
                     index += 2
+                    continue
                 else:
                     quote = None
             index += 1

@@ -3,10 +3,19 @@ import itertools
 from collections.abc import Sequence
 from typing import TypeVar
 
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
+from inline_sql_helper.candidate_formatter import (
+    CandidateEdit,
+    CandidateResult,
+    CandidateUnchanged,
+    format_candidate,
+)
+from inline_sql_helper.detection import detect_sql
 from inline_sql_helper.literals import analyze_document
+from inline_sql_helper.model import FormatOptions
 from inline_sql_helper.positions import SourceMap, SourceSpan
+from inline_sql_helper.sqlparse_adapter import format_sql
 
 T = TypeVar("T")
 
@@ -101,3 +110,51 @@ def test_scanned_fields_agree_with_ast(source: str) -> None:
     analysis = analyze_document(source)
     literal = only(analysis.supported)
     assert_fields_match_formatted_values(source, literal.field_spans)
+
+
+def _apply(source: str, result: CandidateResult) -> str:
+    if isinstance(result, CandidateUnchanged):
+        return source
+    if isinstance(result, CandidateEdit):
+        return (
+            source[: result.source_span.start]
+            + result.replacement_text
+            + source[result.source_span.end :]
+        )
+    raise AssertionError("candidate was skipped")
+
+
+@given(valid_fstring_sources())
+def test_successful_format_preserves_fields_and_is_idempotent(source: str) -> None:
+    """Formatting must retain every PEP 701 field spelling and converge."""
+    analysis = analyze_document(source)
+    literal = only(analysis.supported)
+    result = format_candidate(
+        source,
+        analysis,
+        literal,
+        detect_sql(literal, analysis.source_map),
+        FormatOptions("upper", 2, 88, True),
+        nonce="33" * 16,
+        sql_formatter=format_sql,
+    )
+    assume(isinstance(result, (CandidateEdit, CandidateUnchanged)))
+    updated = _apply(source, result)
+    ast.parse(updated)
+    updated_analysis = analyze_document(updated)
+    updated_literal = only(updated_analysis.supported)
+    assert tuple(
+        updated_analysis.source_map.slice(span) for span in updated_literal.field_spans
+    ) == tuple(analysis.source_map.slice(span) for span in literal.field_spans)
+    second_analysis = analyze_document(updated)
+    second_literal = only(second_analysis.supported)
+    second = format_candidate(
+        updated,
+        second_analysis,
+        second_literal,
+        detect_sql(second_literal, second_analysis.source_map),
+        FormatOptions("upper", 2, 88, True),
+        nonce="33" * 16,
+        sql_formatter=format_sql,
+    )
+    assert isinstance(second, CandidateUnchanged)

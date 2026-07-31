@@ -1,0 +1,20 @@
+[
+  {"id":"plain-single","input":"query = 'select 1'","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = 'SELECT 1'","reason":null},
+  {"id":"plain-double","input":"query = \"select 1\"","options":{"keywordCase":"lower","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"select 1\"","reason":null},
+  {"id":"plain-triple-single","input":"query = '''select 1'''","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = '''SELECT 1'''","reason":null},
+  {"id":"plain-triple-double","input":"query = \"\"\"select 1\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"\"\"SELECT 1\"\"\"","reason":null},
+  {"id":"raw-single","input":"query = r'select 1'","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = r'SELECT 1'","reason":null},
+  {"id":"raw-double","input":"query = r\"select 1\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = r\"SELECT 1\"","reason":null},
+  {"id":"raw-triple-single","input":"query = r'''select 1'''","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = r'''SELECT 1'''","reason":null},
+  {"id":"raw-triple-double","input":"query = r\"\"\"select 1\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = r\"\"\"SELECT 1\"\"\"","reason":null},
+  {"id":"f-single","input":"query = f'select {value}'","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f'SELECT {value}'","reason":null},
+  {"id":"f-double","input":"query = f\"select {value}\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f\"SELECT {value}\"","reason":null},
+  {"id":"f-triple-single","input":"query = f'''select {value}'''","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f'''SELECT {value}'''","reason":null},
+  {"id":"f-triple-double","input":"query = f\"\"\"select {value}\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f\"\"\"SELECT {value}\"\"\"","reason":null},
+  {"id":"raw-f-single","input":"query = rf'select {value}'","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = rf'SELECT {value}'","reason":null},
+  {"id":"raw-f-double","input":"query = fr\"select {value}\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = fr\"SELECT {value}\"","reason":null},
+  {"id":"raw-f-triple-single","input":"query = rf'''select {value}'''","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = rf'''SELECT {value}'''","reason":null},
+  {"id":"raw-f-triple-double","input":"query = fr\"\"\"select {value}\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = fr\"\"\"SELECT {value}\"\"\"","reason":null},
+  {"id":"marker-crlf","input":"query = \"\"\"--sql\r\nselect 1\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"\"\"--sql\r\nSELECT 1\"\"\"","reason":null},
+  {"id":"unicode-comments-statements","input":"query = \"\"\"select '犬' as name -- keep\nfrom users; select 2\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":null,"reason":"FORMATTER_FAILED"}
+]

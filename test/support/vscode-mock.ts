@@ -245,6 +245,34 @@ export class CancellationTokenSource {
   }
 }
 
+export class SemanticTokensLegend {
+  constructor(
+    readonly tokenTypes: readonly string[],
+    readonly tokenModifiers: readonly string[] = [],
+  ) {}
+}
+
+export interface MockSemanticToken {
+  readonly range: vscode.Range;
+  readonly tokenType: string;
+}
+
+export class SemanticTokens {
+  constructor(readonly tokens: readonly MockSemanticToken[]) {}
+}
+
+export class SemanticTokensBuilder {
+  private readonly tokens: MockSemanticToken[] = [];
+  constructor(readonly legend: SemanticTokensLegend) {}
+  push(range: vscode.Range, tokenType: string, tokenModifiers?: readonly string[]): void {
+    void tokenModifiers;
+    this.tokens.push({ range, tokenType });
+  }
+  build(): SemanticTokens {
+    return new SemanticTokens([...this.tokens]);
+  }
+}
+
 export class WorkspaceEdit {
   private readonly edits = new Map<
     string,
@@ -327,6 +355,7 @@ const state: {
   reads: Map<string, number>;
   commandRegistrations: CommandRegistration[];
   codeActionRegistrations: CodeActionRegistration[];
+  semanticTokenRegistrations: SemanticTokenRegistration[];
 } = {
   activeEditor: undefined,
   activeNotebook: undefined,
@@ -336,6 +365,7 @@ const state: {
   reads: new Map(),
   commandRegistrations: [],
   codeActionRegistrations: [],
+  semanticTokenRegistrations: [],
 };
 
 function failUnimplemented(name: string): never {
@@ -469,6 +499,11 @@ interface CodeActionRegistration {
   readonly selector: vscode.DocumentSelector;
   readonly provider: vscode.CodeActionProvider;
 }
+interface SemanticTokenRegistration {
+  readonly selector: vscode.DocumentSelector;
+  readonly provider: vscode.DocumentSemanticTokensProvider;
+  readonly legend: vscode.SemanticTokensLegend;
+}
 
 export const window = new Proxy(
   {},
@@ -519,6 +554,21 @@ export const languages = new Proxy(
             dispose: () => {
               const index = state.codeActionRegistrations.indexOf(registration);
               if (index >= 0) state.codeActionRegistrations.splice(index, 1);
+            },
+          };
+        };
+      if (property === "registerDocumentSemanticTokensProvider")
+        return (
+          selector: vscode.DocumentSelector,
+          provider: vscode.DocumentSemanticTokensProvider,
+          legend: vscode.SemanticTokensLegend,
+        ) => {
+          const registration = { selector, provider, legend };
+          state.semanticTokenRegistrations.push(registration);
+          return {
+            dispose: () => {
+              const index = state.semanticTokenRegistrations.indexOf(registration);
+              if (index >= 0) state.semanticTokenRegistrations.splice(index, 1);
             },
           };
         };
@@ -600,6 +650,7 @@ export const __mock: VscodeMockControl = {
     state.reads.clear();
     state.commandRegistrations.length = 0;
     state.codeActionRegistrations.length = 0;
+    state.semanticTokenRegistrations.length = 0;
     windowState.onDidChangeActiveTextEditor.dispose();
     workspaceState.onDidOpenNotebookDocument.dispose();
     workspaceState.onDidGrantWorkspaceTrust.dispose();

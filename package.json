@@ -119,6 +119,91 @@
           "meta.embedded.inline.python": "python"
         }
       }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "inlineSqlKeyword",
+        "superType": "keyword",
+        "description": "%semanticTokenTypes.inlineSqlKeyword.description%"
+      },
+      {
+        "id": "inlineSqlString",
+        "superType": "string",
+        "description": "%semanticTokenTypes.inlineSqlString.description%"
+      },
+      {
+        "id": "inlineSqlNumber",
+        "superType": "number",
+        "description": "%semanticTokenTypes.inlineSqlNumber.description%"
+      },
+      {
+        "id": "inlineSqlOperator",
+        "superType": "operator",
+        "description": "%semanticTokenTypes.inlineSqlOperator.description%"
+      },
+      {
+        "id": "inlineSqlComment",
+        "superType": "comment",
+        "description": "%semanticTokenTypes.inlineSqlComment.description%"
+      },
+      {
+        "id": "inlineSqlIdentifier",
+        "description": "%semanticTokenTypes.inlineSqlIdentifier.description%"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "python",
+        "scopes": {
+          "inlineSqlKeyword": [
+            "keyword.other.sql"
+          ],
+          "inlineSqlString": [
+            "string.quoted.sql",
+            "string.quoted.double.sql",
+            "string.quoted.single.sql"
+          ],
+          "inlineSqlNumber": [
+            "constant.numeric.sql"
+          ],
+          "inlineSqlOperator": [
+            "keyword.operator.sql"
+          ],
+          "inlineSqlComment": [
+            "comment.line.double-dash.sql",
+            "comment.block.sql"
+          ],
+          "inlineSqlIdentifier": [
+            "source.sql"
+          ]
+        }
+      },
+      {
+        "language": "mo-python",
+        "scopes": {
+          "inlineSqlKeyword": [
+            "keyword.other.sql"
+          ],
+          "inlineSqlString": [
+            "string.quoted.sql",
+            "string.quoted.double.sql",
+            "string.quoted.single.sql"
+          ],
+          "inlineSqlNumber": [
+            "constant.numeric.sql"
+          ],
+          "inlineSqlOperator": [
+            "keyword.operator.sql"
+          ],
+          "inlineSqlComment": [
+            "comment.line.double-dash.sql",
+            "comment.block.sql"
+          ],
+          "inlineSqlIdentifier": [
+            "source.sql"
+          ]
+        }
+      }
     ]
   },
   "packageManager": "bun@1.3.8",

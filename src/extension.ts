@@ -9,6 +9,7 @@ import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
 import { DefaultHelperClient } from "./vscode/helper-client.js";
 import { createPythonResolver } from "./vscode/python-resolver.js";
+import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
 
 interface ActiveExtensionState {
@@ -70,6 +71,16 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   );
 
   for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
+
+  const semanticTokens = createInlineSqlSemanticTokensProvider();
+  const semanticRegistration = own(
+    vscode.languages.registerDocumentSemanticTokensProvider(
+      INLINE_SQL_SELECTOR,
+      semanticTokens.provider,
+      semanticTokens.legend,
+    ),
+  );
+  context.subscriptions.push(semanticRegistration);
 
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,

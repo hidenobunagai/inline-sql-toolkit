@@ -107,6 +107,10 @@ def main() -> int:
         output = serialize_response(
             error_response("unknown", ReasonCode.RESOURCE_LIMIT_EXCEEDED)
         )
+    except Exception:
+        output = serialize_response(
+            error_response("unknown", ReasonCode.PROCESS_FAILED)
+        )
     else:
         output = run(payload)
     sys.stdout.buffer.write(output)

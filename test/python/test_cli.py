@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+from io import BytesIO
 from pathlib import Path
 from typing import cast
 
@@ -119,3 +120,25 @@ def test_input_and_output_limits_are_source_free() -> None:
 def test_read_bounded_reads_at_most_one_extra_byte() -> None:
     with pytest.raises(cli.InputTooLarge):
         cli.read_bounded(__import__("io").BytesIO(b"abcd"), 3)
+
+
+def test_unexpected_stdin_error_is_a_complete_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Output:
+        buffer = BytesIO()
+
+    monkeypatch.setattr(cli.sys, "stdout", Output())
+
+    def fail(*args: object, **kwargs: object) -> bytes:
+        raise OSError("private stdin detail")
+
+    monkeypatch.setattr(cli, "read_bounded", fail)
+    assert cli.main() == 0
+    value = json.loads(Output.buffer.getvalue())
+    assert value == {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": False,
+        "error": {"code": ReasonCode.PROCESS_FAILED.value},
+    }

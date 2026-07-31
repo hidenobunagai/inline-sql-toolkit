@@ -16,5 +16,10 @@
   {"id":"raw-f-triple-single","input":"query = rf'''select {value}'''","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = rf'''SELECT {value}'''","reason":null},
   {"id":"raw-f-triple-double","input":"query = fr\"\"\"select {value}\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = fr\"\"\"SELECT {value}\"\"\"","reason":null},
   {"id":"marker-crlf","input":"query = \"\"\"--sql\r\nselect 1\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"\"\"--sql\r\nSELECT 1\"\"\"","reason":null},
+  {"id":"preserve-keywords","input":"query = \"select MixedCase\"","options":{"keywordCase":"preserve","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"select MixedCase\"","reason":null},
+  {"id":"operator-spacing-off","input":"query = \"select x=1\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":false},"output":"query = \"SELECT x=1\"","reason":null},
+  {"id":"triple-indentation","input":"query = \"\"\"\n    select a from t\n    \"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = \"\"\"\n    SELECT a\n    FROM t\n    \"\"\"","reason":null},
+  {"id":"f-debug-conversion-spec","input":"query = f\"select {value=} {value!r} {value:{width}}\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f\"SELECT {value=} {value!r} {value:{width}}\"","reason":null},
+  {"id":"f-indexing","input":"query = f\"select {items[key]}\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":"query = f\"SELECT {items[key]}\"","reason":null},
   {"id":"unicode-comments-statements","input":"query = \"\"\"select '犬' as name -- keep\nfrom users; select 2\"\"\"","options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true},"output":null,"reason":"FORMATTER_FAILED"}
 ]

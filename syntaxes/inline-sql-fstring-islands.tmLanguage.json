@@ -1,0 +1,35 @@
+{
+  "name": "Inline SQL FString Islands Injection",
+  "scopeName": "inline-sql.fstring-islands.injection",
+  "injectionSelector": "L:meta.embedded.inline.sql",
+  "patterns": [
+    {
+      "include": "#replacementField"
+    }
+  ],
+  "repository": {
+    "replacementField": {
+      "begin": "(?<!\\{)\\{(?!\\{)",
+      "beginCaptures": {
+        "0": {
+          "name": "meta.embedded.inline.python source.python"
+        }
+      },
+      "end": "(?<!\\})\\}(?!\\})",
+      "endCaptures": {
+        "0": {
+          "name": "meta.embedded.inline.python source.python"
+        }
+      },
+      "contentName": "meta.embedded.inline.python source.python",
+      "patterns": [
+        {
+          "include": "#replacementField"
+        },
+        {
+          "include": "source.python"
+        }
+      ]
+    }
+  }
+}

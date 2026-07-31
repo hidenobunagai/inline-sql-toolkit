@@ -1,0 +1,147 @@
+{
+  "name": "Inline SQL Python Injection",
+  "scopeName": "inline-sql.python.injection",
+  "injectionSelector": "L:source.python -comment, L:source.mo-python -comment",
+  "patterns": [
+    {
+      "include": "#fTripleDoubleSql"
+    },
+    {
+      "include": "#fTripleSingleSql"
+    },
+    {
+      "include": "#fDoubleSql"
+    },
+    {
+      "include": "#fSingleSql"
+    },
+    {
+      "include": "#plainTripleSql"
+    },
+    {
+      "include": "#plainSingleSql"
+    }
+  ],
+  "repository": {
+    "plainTripleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])r?(?<quote>'''|\\\"\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\k<quote>)))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "\\k<quote>",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "plainSingleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])r?(?<quote>'|\\\")(?!\\k<quote>\\k<quote>)(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\k<quote>))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?<!\\\\)\\k<quote>",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "fTripleDoubleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)\\\"\\\"\\\"(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\\"\\\"\\\")))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "\\\"\\\"\\\"",
+      "patterns": [
+        {
+          "include": "inline-sql.fstring-islands.injection"
+        },
+        {
+          "include": "#sqlCaptureBeforeTripleDouble"
+        }
+      ]
+    },
+    "fTripleSingleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)'''(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=''')))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "'''",
+      "patterns": [
+        {
+          "include": "inline-sql.fstring-islands.injection"
+        },
+        {
+          "include": "#sqlCaptureBeforeTripleSingle"
+        }
+      ]
+    },
+    "fDoubleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\\"))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?<!\\\\)\\\"",
+      "patterns": [
+        {
+          "include": "inline-sql.fstring-islands.injection"
+        },
+        {
+          "include": "#sqlCaptureBeforeDouble"
+        }
+      ]
+    },
+    "fSingleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?='))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?<!\\\\)'",
+      "patterns": [
+        {
+          "include": "inline-sql.fstring-islands.injection"
+        },
+        {
+          "include": "#sqlCaptureBeforeSingle"
+        }
+      ]
+    },
+    "sqlCaptureBeforeTripleDouble": {
+      "match": "(?:(?!\\\"\\\"\\\"|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "captures": {
+        "0": {
+          "name": "meta.embedded.inline.sql source.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ]
+        }
+      }
+    },
+    "sqlCaptureBeforeTripleSingle": {
+      "match": "(?:(?!'''|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "captures": {
+        "0": {
+          "name": "meta.embedded.inline.sql source.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ]
+        }
+      }
+    },
+    "sqlCaptureBeforeDouble": {
+      "match": "(?:(?!\\\"|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "captures": {
+        "0": {
+          "name": "meta.embedded.inline.sql source.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ]
+        }
+      }
+    },
+    "sqlCaptureBeforeSingle": {
+      "match": "(?:(?!'|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "captures": {
+        "0": {
+          "name": "meta.embedded.inline.sql source.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

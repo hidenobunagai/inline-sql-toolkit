@@ -1,0 +1,10 @@
+{
+  "marimo": {
+    "repository": "https://github.com/marimo-team/marimo-lsp",
+    "commit": "baed86d151d41b838466e6efd46ee5265e66c09f",
+    "path": "extension/syntaxes/python.tmLanguage.json",
+    "scopeName": "source.mo-python",
+    "sha256": "a5ac4625016edb96aa9001c303a54813e291bd8c482a0d086ee6e215776d9d7b",
+    "license": "Apache-2.0"
+  }
+}

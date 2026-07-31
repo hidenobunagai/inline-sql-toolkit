@@ -1,0 +1,44 @@
+[project]
+name = "inline-sql-toolkit-helper"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "hypothesis==6.160.0",
+  "pre-commit==4.6.1",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "ruff==0.15.22",
+  "ty==0.0.61",
+]
+
+[tool.uv]
+package = false
+native-tls = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+exclude = ["python/vendor", "test/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "ANN", "PT"]
+
+[tool.ty.src]
+include = [
+  "python/bootstrap.py",
+  "python/inline_sql_helper",
+  "tools",
+  "test/python",
+]
+exclude = ["python/vendor"]
+
+[tool.ty.environment]
+extra-paths = ["python", "python/vendor"]
+
+[tool.pytest.ini_options]
+pythonpath = ["python", "python/vendor"]
+testpaths = ["test/python"]
+addopts = ["--strict-config", "--strict-markers"]

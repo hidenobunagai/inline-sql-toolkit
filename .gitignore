@@ -1,1 +1,15 @@
 .worktrees/
+.DS_Store
+.venv/
+node_modules/
+dist/
+dist-vsix/
+.vscode-test/
+coverage/
+reports/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+__pycache__/
+*.py[cod]
+test/.grammar-cache/

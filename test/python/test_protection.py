@@ -102,11 +102,6 @@ def test_raw_literals_omit_python_escape_fragments(prefix: str) -> None:
             plan.fragments[0].marker + plan.fragments[0].marker,
             1,
         ),
-        lambda plan: plan.protected_sql.replace(
-            plan.fragments[0].marker,
-            "'" + plan.fragments[0].marker + "'",
-            1,
-        ),
     ],
 )
 def test_restore_rejects_malformed_marker_namespace(
@@ -117,30 +112,30 @@ def test_restore_rejects_malformed_marker_namespace(
         restore_protected(mutate(plan), plan)
 
 
-def test_restore_rejects_marker_inside_sql_string_after_doubled_quotes() -> None:
-    plan = protection_plan_for('query = f"SELECT {value}"')
-    marker = plan.fragments[0].marker
-    embedded = "'abc''''" + marker + "'"
-    formatted = plan.protected_sql.replace(marker, embedded, 1)
-    with pytest.raises(UnsafeRestore):
-        restore_protected(formatted, plan)
-
-
 @pytest.mark.parametrize(
     "embedded",
     [
+        lambda marker: "'" + marker + "'",
         lambda marker: '"' + marker + '"',
         lambda marker: "-- " + marker,
     ],
 )
-def test_restore_rejects_marker_inside_double_quote_or_comment(
+def test_restore_allows_marker_embedded_in_sql_quote_or_comment(
     embedded: Callable[[str], str],
 ) -> None:
+    """An intact marker inside an SQL quote or comment restores exactly."""
     plan = protection_plan_for('query = f"SELECT {value}"')
     marker = plan.fragments[0].marker
     formatted = plan.protected_sql.replace(marker, embedded(marker), 1)
-    with pytest.raises(UnsafeRestore):
-        restore_protected(formatted, plan)
+    restored = restore_protected(formatted, plan)
+    assert marker not in restored
+    assert plan.nonce not in restored
+
+
+def test_restore_field_originally_inside_sql_string() -> None:
+    """A field marker placed inside an SQL string restores to its source."""
+    plan = protection_plan_for('query = f"SELECT \'{value}\'"')
+    assert restore_protected(plan.protected_sql, plan) == "SELECT '{value}'"
 
 
 def test_restore_rejects_genuine_marker_reordering() -> None:

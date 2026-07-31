@@ -161,6 +161,28 @@ def test_zero_candidate_contract() -> None:
     assert formatted.error.code is ReasonCode.NO_SQL_CANDIDATE
 
 
+def test_fstring_field_inside_sql_string_is_formatted() -> None:
+    source = (
+        'user_status = "active"\n'
+        "min_age = 20\n"
+        "\n"
+        'query = f"""--sql\n'
+        "SELECT id, {col_name} FROM {table_name} "
+        "WHERE status = '{user_status}' AND age > {min_age};\n"
+        '"""\n'
+    )
+    result = format_success(format_request(request(source), deps()))
+    assert result.ok is True
+    assert result.summary.selected == 1
+    assert result.summary.skipped == 0
+    assert len(result.edits) == 1
+    edit = result.edits[0]
+    assert "{col_name}" in edit.new_text
+    assert "{table_name}" in edit.new_text
+    assert "'{user_status}'" in edit.new_text
+    assert "{min_age}" in edit.new_text
+
+
 def test_marker_only_candidate_is_unchanged() -> None:
     source = 'value = "-- sql"'
     result = format_success(format_request(request(source), deps()))

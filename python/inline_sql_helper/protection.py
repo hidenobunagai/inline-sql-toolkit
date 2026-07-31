@@ -275,53 +275,6 @@ def _marker_token(marker: str, nonce: str) -> str:
     return match.group(0).removeprefix("-- ").removesuffix("\n")
 
 
-def _embedded_in_sql(formatted: str, position: int) -> bool:
-    """Return whether a token position is inside an SQL quote/comment."""
-    quote: str | None = None
-    line_comment = False
-    block_comment = False
-    index = 0
-    while index < position:
-        character = formatted[index]
-        following = formatted[index + 1] if index + 1 < position else ""
-        if line_comment:
-            if character in "\r\n":
-                line_comment = False
-            index += 1
-            continue
-        if block_comment:
-            if character == "*" and following == "/":
-                block_comment = False
-                index += 2
-            else:
-                index += 1
-            continue
-        if quote is not None:
-            if character == "\\":
-                index += 2
-                continue
-            if character == quote:
-                if index + 1 < position and formatted[index + 1] == quote:
-                    index += 2
-                    continue
-                else:
-                    quote = None
-            index += 1
-            continue
-        if character in "'\"`":
-            quote = character
-            index += 1
-        elif character == "-" and following == "-":
-            line_comment = True
-            index += 2
-        elif character == "/" and following == "*":
-            block_comment = True
-            index += 2
-        else:
-            index += 1
-    return quote is not None or line_comment or block_comment
-
-
 def restore_protected(formatted: str, plan: ProtectionPlan) -> str:
     """Restore all protected fragments in one validated ordered scan."""
     if not re.fullmatch(r"[0-9a-f]{32}", plan.nonce):
@@ -353,10 +306,6 @@ def restore_protected(formatted: str, plan: ProtectionPlan) -> str:
             != expected_token
         ):
             raise UnsafeRestore("protected marker identity changed")
-        if fragment.kind is not ProtectedKind.SQL_MARKER and _embedded_in_sql(
-            formatted, token_position
-        ):
-            raise UnsafeRestore("protected marker embedded in SQL")
         if (
             fragment.required_offset is not None
             and position != fragment.required_offset

@@ -182,7 +182,9 @@ def analyze_document(source: str) -> DocumentAnalysis:
             for _index, bundle in owned
             if (surface := _content_span(bundle, source_map)) is not None
         ]
-        detection_span = surfaces[0][2] if surfaces else None
+        detection_span = (
+            surfaces[0][2] if surfaces and surfaces[0][0].casefold() != "u" else None
+        )
         if below_addition or len(owned) != 1:
             unsupported.append(_unsupported(node_span, detection_span))
             continue

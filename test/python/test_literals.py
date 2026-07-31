@@ -156,6 +156,45 @@ def test_implicit_concatenation_is_one_unsupported_literal_unit() -> None:
     assert unsupported.reason == ReasonCode.UNSUPPORTED_LITERAL
 
 
+@pytest.mark.parametrize("prefix", ["u", "U"])
+def test_u_string_below_addition_has_no_detection_span(prefix: str) -> None:
+    """Catch shape classification exposing a prohibited u-string content span."""
+    source = f'query = {prefix}"SELECT 1" + "x"'
+    analysis = analyze_document(source)
+    assert analysis.supported == ()
+    assert tuple(item.span for item in analysis.unsupported) == (
+        SourceSpan(8, 19),
+        SourceSpan(22, 25),
+    )
+    assert tuple(item.detection_content_span for item in analysis.unsupported) == (
+        None,
+        SourceSpan(23, 24),
+    )
+
+
+@pytest.mark.parametrize(
+    ("surface", "detection_span"),
+    [
+        ('u"SELECT 1" "x"', None),
+        ('U"SELECT 1" "x"', None),
+        ('"SELECT 1" u"x"', SourceSpan(9, 17)),
+        ('"SELECT 1" U"x"', SourceSpan(9, 17)),
+    ],
+)
+def test_u_string_in_implicit_concatenation_is_never_the_detection_surface(
+    surface: str,
+    detection_span: SourceSpan | None,
+) -> None:
+    """Catch selecting a u-prefixed body from a multi-token AST envelope."""
+    analysis = analyze_document(f"query = {surface}")
+    assert analysis.supported == ()
+    assert len(analysis.unsupported) == 1
+    unsupported = analysis.unsupported[0]
+    assert unsupported.span == SourceSpan(8, 23)
+    assert unsupported.detection_content_span == detection_span
+    assert unsupported.reason == ReasonCode.UNSUPPORTED_LITERAL
+
+
 def test_nested_additions_mark_every_literal_unsupported_in_source_order() -> None:
     """Catch resetting addition state before visiting a nested Add expression."""
     source = 'query = "SELECT 1" + ("SELECT 2" + "SELECT 3")'

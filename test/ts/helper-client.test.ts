@@ -112,6 +112,7 @@ function setup(
     readonly process?: FakeChild;
     readonly trusted?: boolean;
     readonly resolve?: PythonResolver["resolve"];
+    readonly processWillSpawn?: (kind: "helper") => void;
     readonly spawn?: HelperClientDependencies["spawn"];
   } = {},
 ): {
@@ -145,6 +146,9 @@ function setup(
     extensionUri: vscode.Uri.file("/private/extension-sentinel"),
     resolver,
     isWorkspaceTrusted: () => overrides.trusted ?? true,
+    ...(overrides.processWillSpawn === undefined
+      ? {}
+      : { processWillSpawn: overrides.processWillSpawn }),
     spawn,
   });
   return {
@@ -171,6 +175,18 @@ beforeEach(() => {
 });
 
 describe("bounded helper process", () => {
+  it("signals exactly once immediately before a helper spawn", async () => {
+    const processWillSpawn = vi.fn();
+    const result = setup({ processWillSpawn });
+    const pending = result.client.locate(snapshot(), target, options, resource(), source().token);
+    await vi.waitFor(() => {
+      expect(processWillSpawn).toHaveBeenCalledWith("helper");
+    });
+    expect(processWillSpawn).toHaveBeenCalledTimes(1);
+    complete(result.process, "locate");
+    await expect(pending).resolves.toEqual(success("locate"));
+  });
+
   it("collects bytes up to the limit and becomes inert after sealing", () => {
     const bytes = new BoundedBytes(4);
     expect(bytes.push(Buffer.from("1234"))).toBe(true);

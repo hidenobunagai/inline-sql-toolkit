@@ -49,6 +49,7 @@ export interface HelperClientDependencies {
   readonly extensionUri: vscode.Uri;
   readonly resolver: PythonResolver;
   readonly isWorkspaceTrusted: () => boolean;
+  readonly processWillSpawn?: (kind: "helper") => void;
   readonly spawn: typeof import("node:child_process").spawn;
 }
 
@@ -142,6 +143,9 @@ function runHelperProcess<T extends LocateResponse | FormatResponse>(
     return Promise.resolve({ ok: false, code: "WORKSPACE_UNTRUSTED" });
   }
 
+  // Keep this sentinel directly adjacent to the final trust check and spawn.
+  // It is intentionally the only integration-visible process signal.
+  dependencies.processWillSpawn?.("helper");
   const extensionRoot = dependencies.extensionUri.fsPath;
   const bootstrapPath = vscode.Uri.joinPath(
     dependencies.extensionUri,

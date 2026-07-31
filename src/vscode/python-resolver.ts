@@ -29,6 +29,7 @@ export type ResolvedPythonResult =
 
 export interface PythonResolverDependencies {
   readonly isWorkspaceTrusted: () => boolean;
+  readonly processWillSpawn?: (kind: "version") => void;
   readonly getPythonExtension: () => vscode.Extension<unknown> | undefined;
   readonly getPythonApi: typeof PythonExtension.api;
   readonly spawn: typeof import("node:child_process").spawn;
@@ -85,6 +86,9 @@ export function probeVersion(
       return;
     }
 
+    // This is the final check/sentinel pair before the process is created. A
+    // cache hit and every rejected/cancelled path return above without a signal.
+    dependencies.processWillSpawn?.("version");
     let child: import("node:child_process").ChildProcessWithoutNullStreams;
     try {
       child = dependencies.spawn(executable, [...VERSION_ARGUMENTS], {

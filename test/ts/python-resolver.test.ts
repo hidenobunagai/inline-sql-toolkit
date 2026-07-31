@@ -201,6 +201,30 @@ describe("Python resolver priority", () => {
 });
 
 describe("bounded version probe", () => {
+  it("signals only real version-process spawns, not cache hits or rejected calls", async () => {
+    const processWillSpawn = vi.fn();
+    const deps = dependencies({ processWillSpawn });
+    const resolver = createPythonResolver(deps);
+    const first = resolver.resolve(target(), tokenSource().token);
+    await vi.waitFor(() => {
+      expect(processWillSpawn).toHaveBeenCalledWith("version");
+    });
+    finish(deps.process);
+    await expect(first).resolves.toMatchObject({ ok: true });
+    await expect(resolver.resolve(target(), tokenSource().token)).resolves.toMatchObject({
+      ok: true,
+    });
+    expect(processWillSpawn).toHaveBeenCalledTimes(1);
+    const cancelled = tokenSource();
+    cancelled.cancel();
+    await expect(resolver.resolve(target(), cancelled.token)).resolves.toEqual({
+      ok: false,
+      reason: "PROCESS_CANCELLED",
+    });
+    expect(processWillSpawn).toHaveBeenCalledTimes(1);
+    resolver.dispose();
+  });
+
   it.each(["3.11.9\n", "3.12", "3.12.0\nextra\n", "3.12.0\u0000\n"])(
     "rejects malformed or unsupported output %j",
     async (output) => {

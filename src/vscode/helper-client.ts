@@ -81,8 +81,7 @@ export class BoundedBytes {
 }
 
 type ProcessResult<T> =
-  | { readonly ok: true; readonly response: T }
-  | { readonly ok: false; readonly code: ReasonCode };
+  { readonly ok: true; readonly response: T } | { readonly ok: false; readonly code: ReasonCode };
 
 function requestError(operation: ProtocolOperation, code: ReasonCode): ErrorResponse {
   return {
@@ -110,6 +109,11 @@ function helperRequest(
 
 function asBuffer(chunk: Buffer | string | Uint8Array): Buffer {
   return Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+}
+
+/** Keep an error sink attached after settlement so late stream events cannot throw. */
+function ignoreError(): void {
+  // Deliberately ignore errors after the request has already settled.
 }
 
 function killProcess(child: ChildProcessWithoutNullStreams): void {
@@ -176,9 +180,13 @@ function runHelperProcess<T extends LocateResponse | FormatResponse>(
       if (timerState.timeout !== undefined) clearTimeout(timerState.timeout);
       timerState.cancellation?.dispose();
       child.removeAllListeners();
+      child.on("error", ignoreError);
       child.stdin.removeAllListeners();
+      child.stdin.on("error", ignoreError);
       child.stdout.removeAllListeners();
+      child.stdout.on("error", ignoreError);
       child.stderr.removeAllListeners();
+      child.stderr.on("error", ignoreError);
       resolve(result);
     };
 
@@ -193,6 +201,10 @@ function runHelperProcess<T extends LocateResponse | FormatResponse>(
       }
     };
 
+    const failForStreamError = (): void => {
+      terminate("PROCESS_FAILED");
+    };
+
     child.stdout.on("data", (chunk: Buffer | string) => {
       if (!stdout.push(asBuffer(chunk))) {
         terminate("RESOURCE_LIMIT_EXCEEDED");
@@ -203,12 +215,10 @@ function runHelperProcess<T extends LocateResponse | FormatResponse>(
         terminate("RESOURCE_LIMIT_EXCEEDED");
       }
     });
-    child.once("error", () => {
-      finish({ ok: false, code: "PROCESS_FAILED" });
-    });
-    child.stdin.once("error", () => {
-      terminate("PROCESS_FAILED");
-    });
+    child.stdout.on("error", failForStreamError);
+    child.stderr.on("error", failForStreamError);
+    child.stdin.on("error", failForStreamError);
+    child.on("error", failForStreamError);
     child.once("close", (exitCode, signal) => {
       if (settled) return;
       if (exitCode !== 0 || signal !== null || stderr.length !== 0) {
@@ -266,7 +276,8 @@ export class DefaultHelperClient implements HelperClient {
     }
     if (!resolution.ok) return requestError(operation, resolution.reason);
     if (token.isCancellationRequested) return requestError(operation, "PROCESS_CANCELLED");
-    if (!this.dependencies.isWorkspaceTrusted()) return requestError(operation, "WORKSPACE_UNTRUSTED");
+    if (!this.dependencies.isWorkspaceTrusted())
+      return requestError(operation, "WORKSPACE_UNTRUSTED");
 
     let requestBytes: Uint8Array;
     try {
@@ -292,7 +303,14 @@ export class DefaultHelperClient implements HelperClient {
     resource: SupportedDocument,
     token: vscode.CancellationToken,
   ): Promise<LocateResponse> {
-    return this.invoke("locate", snapshot, target, configuration, resource, token) as Promise<LocateResponse>;
+    return this.invoke(
+      "locate",
+      snapshot,
+      target,
+      configuration,
+      resource,
+      token,
+    ) as Promise<LocateResponse>;
   }
 
   format(
@@ -302,6 +320,13 @@ export class DefaultHelperClient implements HelperClient {
     resource: SupportedDocument,
     token: vscode.CancellationToken,
   ): Promise<FormatResponse> {
-    return this.invoke("format", snapshot, target, configuration, resource, token) as Promise<FormatResponse>;
+    return this.invoke(
+      "format",
+      snapshot,
+      target,
+      configuration,
+      resource,
+      token,
+    ) as Promise<FormatResponse>;
   }
 }

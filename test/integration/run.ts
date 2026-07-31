@@ -27,9 +27,9 @@ export function scenarioTests(scenario: IntegrationScenario): readonly (() => Pr
     case "trusted":
       return [
         testStandaloneFormatting,
+        testNotebookFormatting,
         testSemanticTokenIsolation,
         testApplyRaces,
-        testNotebookFormatting,
       ];
     case "untrusted":
       return [testUntrustedHighlightOnly];

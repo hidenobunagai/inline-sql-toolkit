@@ -17,6 +17,7 @@ import { INTEGRATION_TEST_TIMEOUT_MS, runIntegrationTest } from "../integration/
 import { assertNoSemanticSqlOverlap, decodeSemanticTokens } from "../support/semantic-tokens.js";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 

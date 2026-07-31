@@ -222,9 +222,12 @@ def test_vendor_tree_replacement_retains_backup_for_rollback(tmp_path: Path) -> 
     assert (target / "old.py").read_bytes() == b"old"
 
 
-def test_malformed_wheel_text_is_rejected_as_vendor_error(tmp_path: Path) -> None:
+@pytest.mark.parametrize("member", ["sqlparse/__init__.py", f"{DIST_INFO}/METADATA"])
+def test_malformed_wheel_text_is_rejected_as_vendor_error(
+    tmp_path: Path, member: str
+) -> None:
     members = valid_members()
-    members["sqlparse/__init__.py"] = b"\xff"
+    members[member] = b"\xff"
     wheel = write_synthetic_wheel(tmp_path, members)
     with zipfile.ZipFile(wheel) as archive:
         with pytest.raises(VendorError):

@@ -15,6 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path("tools").resolve()))
 
+import vendor_sqlparse as vendor_module  # noqa: E402  # ty: ignore[unresolved-import]
 from vendor_sqlparse import (  # ty: ignore[unresolved-import]
     DIST_INFO,
     EXPECTED_DIST_FILES,
@@ -231,6 +232,33 @@ def test_fixed_provenance_parent_rejects_symlink_escape(tmp_path: Path) -> None:
         pytest.skip("symlinks unavailable")
     with pytest.raises(VendorError):
         fixed_provenance_root(tmp_path)
+
+
+def test_vendor_validates_provenance_before_replacement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "extension"
+    tools_root = root / "tools"
+    vendor_root = root / "python" / "vendor" / "sqlparse"
+    tools_root.mkdir(parents=True)
+    vendor_root.mkdir(parents=True)
+    shutil.copy2(ROOT / "tools/sqlparse-vendor.lock", tools_root)
+    (vendor_root / "old.py").write_bytes(b"old")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (root / "third_party").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    monkeypatch.setattr(
+        vendor_module,
+        "__file__",
+        str(tools_root / "vendor_sqlparse.py"),
+    )
+    with pytest.raises(VendorError):
+        vendor_module.vendor(tools_root / "sqlparse-vendor.lock")
+    assert (vendor_root / "old.py").read_bytes() == b"old"
+    assert not list((root / "python" / "vendor").glob(".sqlparse*"))
 
 
 def test_vendor_tree_replacement_retains_backup_for_rollback(tmp_path: Path) -> None:

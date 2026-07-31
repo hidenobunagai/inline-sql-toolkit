@@ -345,6 +345,7 @@ def vendor(lock_path: Path) -> None:
     lock = read_lock(lock_path)
     root = Path(__file__).resolve().parents[1]
     vendor_parent = fixed_vendor_root(root)
+    third_party = fixed_provenance_root(root)
     target = vendor_parent / "sqlparse"
     vendor_parent.mkdir(parents=True, exist_ok=True)
     license_bytes: bytes
@@ -386,7 +387,6 @@ def vendor(lock_path: Path) -> None:
         finally:
             if staged.exists():
                 shutil.rmtree(staged)
-    third_party = fixed_provenance_root(root)
     artifact_paths = {
         name: third_party / name
         for name in ("LICENSE", "AUTHORS", "files.sha256", "SOURCE.json")

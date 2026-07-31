@@ -28,10 +28,20 @@ def verify(root: Path) -> None:
     vendor_root = fixed_vendor_root(root) / "sqlparse"
     lock = read_lock(lock_path)
     validate_lock_projection(lock_path, requirements_path)
-    source = json.loads((third_party / "SOURCE.json").read_text(encoding="utf-8"))
-    if not isinstance(source, dict):
-        raise VendorError("invalid source provenance")
-    if set(source) != EXPECTED_SOURCE_KEYS:
+    for name in ("LICENSE", "AUTHORS", "files.sha256", "SOURCE.json"):
+        path = third_party / name
+        if path.is_symlink() or path.is_dir() or not path.is_file():
+            raise VendorError("invalid third-party notice")
+    if (
+        not (third_party / "LICENSE").is_file()
+        or not (third_party / "AUTHORS").is_file()
+    ):
+        raise VendorError("missing third-party notices")
+    try:
+        source = json.loads((third_party / "SOURCE.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise VendorError("invalid source provenance") from exc
+    if not isinstance(source, dict) or set(source) != EXPECTED_SOURCE_KEYS:
         raise VendorError("invalid source provenance")
     for key in (
         "name",
@@ -55,15 +65,6 @@ def verify(root: Path) -> None:
         )
         if source.get(key) != expected:
             raise VendorError("source provenance disagrees with vendor lock")
-    for name in ("LICENSE", "AUTHORS", "files.sha256", "SOURCE.json"):
-        path = third_party / name
-        if path.is_symlink() or path.is_dir() or not path.is_file():
-            raise VendorError("invalid third-party notice")
-    if (
-        not (third_party / "LICENSE").is_file()
-        or not (third_party / "AUTHORS").is_file()
-    ):
-        raise VendorError("missing third-party notices")
     if sha256_file(third_party / "LICENSE") != REQUIRED_LICENSE_SHA256:
         raise VendorError("license notice hash mismatch")
     if sha256_file(third_party / "AUTHORS") != REQUIRED_AUTHORS_SHA256:

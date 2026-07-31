@@ -1,8 +1,113 @@
 {
   "name": "inline-sql-toolkit",
+  "displayName": "Inline SQL Toolkit",
+  "publisher": "hidenobunagai",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:inlineSql.formatAtCursor",
+    "onCommand:inlineSql.formatSelection",
+    "onCommand:inlineSql.formatAll",
+    "onLanguage:python",
+    "onLanguage:mo-python"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "restrictedConfigurations": [
+        "inlineSql.pythonPath"
+      ]
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "inlineSql.formatAtCursor",
+        "title": "%command.formatAtCursor.title%"
+      },
+      {
+        "command": "inlineSql.formatSelection",
+        "title": "%command.formatSelection.title%"
+      },
+      {
+        "command": "inlineSql.formatAll",
+        "title": "%command.formatAll.title%"
+      }
+    ],
+    "configuration": {
+      "title": "%configuration.title%",
+      "properties": {
+        "inlineSql.format.keywordCase": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower",
+            "preserve"
+          ],
+          "default": "upper",
+          "scope": "resource",
+          "description": "%configuration.format.keywordCase.description%"
+        },
+        "inlineSql.format.indentWidth": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 8,
+          "scope": "resource",
+          "description": "%configuration.format.indentWidth.description%"
+        },
+        "inlineSql.format.wrapAfter": {
+          "type": "integer",
+          "default": 88,
+          "minimum": 20,
+          "maximum": 500,
+          "scope": "resource",
+          "description": "%configuration.format.wrapAfter.description%"
+        },
+        "inlineSql.format.useSpaceAroundOperators": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "%configuration.format.useSpaceAroundOperators.description%"
+        },
+        "inlineSql.pythonPath": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "%configuration.pythonPath.description%"
+        }
+      }
+    },
+    "grammars": [
+      {
+        "scopeName": "inline-sql.python.injection",
+        "path": "./syntaxes/inline-sql-python.tmLanguage.json",
+        "injectTo": [
+          "source.python",
+          "source.mo-python"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.inline.sql": "sql"
+        }
+      },
+      {
+        "scopeName": "inline-sql.fstring-islands.injection",
+        "path": "./syntaxes/inline-sql-fstring-islands.tmLanguage.json",
+        "injectTo": [
+          "source.python",
+          "source.mo-python"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.inline.python": "python"
+        }
+      }
+    ]
+  },
   "packageManager": "bun@1.3.8",
   "scripts": {
     "build": "bun tools/build.ts",

@@ -1,0 +1,11 @@
+{
+  "command.formatAtCursor.title": "Inline SQL: Format at Cursor",
+  "command.formatSelection.title": "Inline SQL: Format Selection",
+  "command.formatAll.title": "Inline SQL: Format All in Document/Cell",
+  "configuration.title": "Inline SQL Toolkit",
+  "configuration.format.keywordCase.description": "Controls the letter case used for SQL keywords.",
+  "configuration.format.indentWidth.description": "Controls the number of spaces used for SQL indentation.",
+  "configuration.format.wrapAfter.description": "Sets the preferred line length for wrapping SQL in triple-quoted strings.",
+  "configuration.format.useSpaceAroundOperators.description": "Controls whether spaces are inserted around SQL operators.",
+  "configuration.pythonPath.description": "Overrides the Python interpreter used by Inline SQL Toolkit."
+}

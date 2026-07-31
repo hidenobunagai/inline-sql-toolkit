@@ -4,6 +4,18 @@
   "injectionSelector": "L:source.python -comment -string, L:source.mo-python -comment -string",
   "patterns": [
     {
+      "include": "#leadingNewlineTripleDoubleSql"
+    },
+    {
+      "include": "#leadingNewlineTripleSingleSql"
+    },
+    {
+      "include": "#leadingNewlineDoubleSql"
+    },
+    {
+      "include": "#leadingNewlineSingleSql"
+    },
+    {
       "include": "#fTripleDoubleSql"
     },
     {
@@ -16,7 +28,10 @@
       "include": "#fSingleSql"
     },
     {
-      "include": "#plainTripleSql"
+      "include": "#plainTripleDoubleSql"
+    },
+    {
+      "include": "#plainTripleSingleSql"
     },
     {
       "include": "#plainDoubleSql"
@@ -26,9 +41,95 @@
     }
   ],
   "repository": {
-    "plainTripleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])r?(?<quote>'''|\\\"\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\k<quote>)))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
-      "end": "\\k<quote>",
+    "leadingNewlineTripleDoubleSql": {
+      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?\\\"\\\"\\\"(?=[ \\t]*$)",
+      "end": "\\\"\\\"\\\"",
+      "patterns": [
+        {
+          "include": "#sqlAfterLeadingNewlineTripleDouble"
+        }
+      ]
+    },
+    "leadingNewlineTripleSingleSql": {
+      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?'''(?=[ \\t]*$)",
+      "end": "'''",
+      "patterns": [
+        {
+          "include": "#sqlAfterLeadingNewlineTripleSingle"
+        }
+      ]
+    },
+    "leadingNewlineDoubleSql": {
+      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?\\\"(?!\\\"\\\")(?=[ \\t]*$)",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
+      "patterns": [
+        {
+          "include": "#sqlAfterLeadingNewlineDouble"
+        }
+      ]
+    },
+    "leadingNewlineSingleSql": {
+      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?'(?!'')(?=[ \\t]*$)",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
+      "patterns": [
+        {
+          "include": "#sqlAfterLeadingNewlineSingle"
+        }
+      ]
+    },
+    "sqlAfterLeadingNewlineTripleDouble": {
+      "begin": "(?ix)^(?=[ \\t]*(?:(?:--(?:sql|[ ]sql)[ \\t]*$)|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?=\\\"\\\"\\\")",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "sqlAfterLeadingNewlineTripleSingle": {
+      "begin": "(?ix)^(?=[ \\t]*(?:(?:--(?:sql|[ ]sql)[ \\t]*$)|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?=''')",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "sqlAfterLeadingNewlineDouble": {
+      "begin": "(?ix)^(?=[ \\t]*(?:(?:--(?:sql|[ ]sql)[ \\t]*$)|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?=\\\")",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "sqlAfterLeadingNewlineSingle": {
+      "begin": "(?ix)^(?=[ \\t]*(?:(?:--(?:sql|[ ]sql)[ \\t]*$)|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?=')",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "plainTripleDoubleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])r?\\\"\\\"\\\"(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\\"\\\"\\\")))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "\\\"\\\"\\\"",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
+    "plainTripleSingleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])r?'''(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=''')))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "'''",
       "contentName": "meta.embedded.inline.sql source.sql",
       "patterns": [
         {
@@ -37,7 +138,7 @@
       ]
     },
     "plainDoubleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])r?\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\\"))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "begin": "(?ix)(?<![[:alnum:]_])r?\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\\")))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
       "contentName": "meta.embedded.inline.sql source.sql",
       "patterns": [
@@ -47,7 +148,7 @@
       ]
     },
     "plainSingleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])r?'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?='))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "begin": "(?ix)(?<![[:alnum:]_])r?'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=')))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
       "contentName": "meta.embedded.inline.sql source.sql",
       "patterns": [
@@ -81,7 +182,7 @@
       ]
     },
     "fDoubleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\\"))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=\\\")))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
       "patterns": [
         {
@@ -93,7 +194,7 @@
       ]
     },
     "fSingleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?='))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?:\\r\\n|\\r|\\n|(?=')))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
       "patterns": [
         {

@@ -1,0 +1,449 @@
+[
+  {
+    "id": "select-upper",
+    "kind": "content",
+    "content": "SELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "select-lower",
+    "kind": "content",
+    "content": "select 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "with-upper",
+    "kind": "content",
+    "content": "WITH values AS (SELECT 1) SELECT * FROM values",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "with-lower",
+    "kind": "content",
+    "content": "with values as (select 1) select * from values",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "insert-upper",
+    "kind": "content",
+    "content": "INSERT INTO values_table VALUES (1)",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "insert-lower",
+    "kind": "content",
+    "content": "insert into values_table values (1)",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "update-upper",
+    "kind": "content",
+    "content": "UPDATE values_table SET value = 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "update-lower",
+    "kind": "content",
+    "content": "update values_table set value = 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "delete-upper",
+    "kind": "content",
+    "content": "DELETE FROM values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "delete-lower",
+    "kind": "content",
+    "content": "delete from values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "merge-upper",
+    "kind": "content",
+    "content": "MERGE INTO target USING source ON target.id = source.id",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "merge-lower",
+    "kind": "content",
+    "content": "merge into target using source on target.id = source.id",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "create-upper",
+    "kind": "content",
+    "content": "CREATE TABLE values_table (value INTEGER)",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "create-lower",
+    "kind": "content",
+    "content": "create table values_table (value integer)",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "alter-upper",
+    "kind": "content",
+    "content": "ALTER TABLE values_table ADD COLUMN other INTEGER",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "alter-lower",
+    "kind": "content",
+    "content": "alter table values_table add column other integer",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "drop-upper",
+    "kind": "content",
+    "content": "DROP TABLE values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "drop-lower",
+    "kind": "content",
+    "content": "drop table values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "truncate-upper",
+    "kind": "content",
+    "content": "TRUNCATE TABLE values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "truncate-lower",
+    "kind": "content",
+    "content": "truncate table values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "explain-upper",
+    "kind": "content",
+    "content": "EXPLAIN SELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "explain-lower",
+    "kind": "content",
+    "content": "explain select 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword"
+  },
+  {
+    "id": "marker-compact-lf",
+    "kind": "content",
+    "content": "--sql\nSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-spaced-lf",
+    "kind": "content",
+    "content": "-- sql\nselect 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-compact-crlf-case",
+    "kind": "content",
+    "content": "--SQL\r\nSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-spaced-crlf-case",
+    "kind": "content",
+    "content": "-- Sql\r\nSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-compact-cr-case",
+    "kind": "content",
+    "content": "--sQl\rSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-spaced-cr-case",
+    "kind": "content",
+    "content": "-- sQl\rSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker"
+  },
+  {
+    "id": "marker-horizontal-whitespace",
+    "kind": "content",
+    "content": " \t-- SQL\t \nSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "marker-whitespace"
+  },
+  {
+    "id": "keyword-leading-horizontal-whitespace",
+    "kind": "content",
+    "content": " \tSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword-whitespace"
+  },
+  {
+    "id": "keyword-leading-newline",
+    "kind": "content",
+    "content": "\nSELECT 1",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword-whitespace"
+  },
+  {
+    "id": "keyword-word-boundary",
+    "kind": "content",
+    "content": "SELECT(1)",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "keyword-word-boundary"
+  },
+  {
+    "id": "marker-double-space",
+    "kind": "content",
+    "content": "--  sql\nselect 1",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "invalid-marker-spacing"
+  },
+  {
+    "id": "marker-tab-internal",
+    "kind": "content",
+    "content": "--\tsql\nselect 1",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "invalid-marker-spacing"
+  },
+  {
+    "id": "marker-trailing-text",
+    "kind": "content",
+    "content": "--sql later\nSELECT 1",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "invalid-marker-boundary"
+  },
+  {
+    "id": "non-sql-prose",
+    "kind": "content",
+    "content": "Please select one of these values",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "non-sql"
+  },
+  {
+    "id": "selected-word",
+    "kind": "content",
+    "content": "SELECTED values are cached",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "keyword-word-boundary"
+  },
+  {
+    "id": "keyword-underscore-suffix",
+    "kind": "content",
+    "content": "SELECT_value",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "keyword-word-boundary"
+  },
+  {
+    "id": "comment-before-keyword",
+    "kind": "content",
+    "content": "-- explanatory comment\nSELECT 1",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "comment-before-keyword"
+  },
+  {
+    "id": "bytes-single",
+    "kind": "source",
+    "source": "query = b\"SELECT 1\"",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "bytes-uppercase",
+    "kind": "source",
+    "source": "query = B'SELECT 1'",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "bytes-raw-prefix",
+    "kind": "source",
+    "source": "query = br\"SELECT 1\"",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "raw-bytes-prefix-case",
+    "kind": "source",
+    "source": "query = rB'''SELECT 1'''",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "template-string",
+    "kind": "source",
+    "source": "query = t\"SELECT 1\"",
+    "detectionExpected": false,
+    "formatExpectation": "parse-error",
+    "formatExpectationByPython": {
+      "3.14": "ignored"
+    },
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "raw-template-string",
+    "kind": "source",
+    "source": "query = Tr'''SELECT 1'''",
+    "detectionExpected": false,
+    "formatExpectation": "parse-error",
+    "formatExpectationByPython": {
+      "3.14": "ignored"
+    },
+    "grammarExpectation": "none",
+    "reason": "unsupported-prefix"
+  },
+  {
+    "id": "implicit-concatenation",
+    "kind": "source",
+    "source": "query = \"SELECT \" \"1\"",
+    "detectionExpected": true,
+    "formatExpectation": "unsupported-skip",
+    "grammarExpectation": "sql",
+    "reason": "unsupported-literal-shape"
+  },
+  {
+    "id": "binop-add",
+    "kind": "source",
+    "source": "query = \"SELECT \" + \"1\"",
+    "detectionExpected": true,
+    "formatExpectation": "unsupported-skip",
+    "grammarExpectation": "sql",
+    "reason": "unsupported-literal-shape"
+  },
+  {
+    "id": "invalid-python-after-literal",
+    "kind": "source",
+    "source": "query = \"SELECT 1\"\nif",
+    "detectionExpected": true,
+    "formatExpectation": "parse-error",
+    "grammarExpectation": "implementation-defined",
+    "reason": "invalid-python"
+  },
+  {
+    "id": "incomplete-f-string",
+    "kind": "source",
+    "source": "query = f\"SELECT {value\"",
+    "detectionExpected": true,
+    "formatExpectation": "parse-error",
+    "grammarExpectation": "implementation-defined",
+    "reason": "invalid-python"
+  }
+]

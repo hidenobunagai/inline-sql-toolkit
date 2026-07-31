@@ -1,0 +1,16 @@
+{
+  "components": [
+    {
+      "name": "@vscode/python-extension",
+      "version": "1.0.5",
+      "ecosystem": "npm",
+      "license": "MIT"
+    },
+    {
+      "name": "sqlparse",
+      "version": "0.5.5",
+      "ecosystem": "PyPI",
+      "license": "BSD-3-Clause"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@vscode/python-extension",
+  "version": "1.0.5",
+  "license": "MIT",
+  "url": "https://www.npmjs.com/package/@vscode/python-extension",
+  "repository": "https://github.com/microsoft/vscode-python/tree/main/pythonExtensionApi",
+  "source": "npm package bundled by esbuild"
+}

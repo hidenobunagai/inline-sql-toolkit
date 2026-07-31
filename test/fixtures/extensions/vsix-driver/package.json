@@ -1,0 +1,10 @@
+{
+  "name": "inline-sql-vsix-driver",
+  "displayName": "Inline SQL Toolkit VSIX smoke driver",
+  "version": "0.0.1",
+  "publisher": "inline-sql-tests",
+  "engines": { "vscode": "^1.95.0" },
+  "main": "./extension.js",
+  "activationEvents": ["*"],
+  "extensionKind": ["workspace"]
+}

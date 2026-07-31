@@ -452,5 +452,187 @@
         "embeddedLanguage": "python"
       }
     ]
+  },
+  {
+    "id": "f-double-even-backslash-close",
+    "language": "python",
+    "source": "query = f\"SELECT \\\\\"",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-single-even-backslash-close",
+    "language": "python",
+    "source": "query = f'SELECT \\\\'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "plain-double-even-backslash-close",
+    "language": "python",
+    "source": "query = \"SELECT \\\\\"",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "plain-single-even-backslash-close",
+    "language": "python",
+    "source": "query = 'SELECT \\\\'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-double-escaped-delimiter",
+    "language": "python",
+    "source": "query = f\"SELECT \\\"quoted\\\" FROM users\"",
+    "segments": [
+      {
+        "text": "\\\"quoted\\\"",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-single-escaped-delimiter",
+    "language": "python",
+    "source": "query = f'SELECT \\'quoted\\' FROM users'",
+    "segments": [
+      {
+        "text": "\\'quoted\\'",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "ordinary-string-containing-sql-fstring-text",
+    "language": "python",
+    "source": "text = 'f\"SELECT * FROM users\"'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["source.python", "string"],
+        "forbiddenScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "embeddedLanguage": "python"
+      }
+    ]
+  },
+  {
+    "id": "f-double-even-backslash-close",
+    "language": "mo-python",
+    "source": "query = f\"SELECT \\\\\"",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-single-even-backslash-close",
+    "language": "mo-python",
+    "source": "query = f'SELECT \\\\'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "plain-double-even-backslash-close",
+    "language": "mo-python",
+    "source": "query = \"SELECT \\\\\"",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "plain-single-even-backslash-close",
+    "language": "mo-python",
+    "source": "query = 'SELECT \\\\'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql", "keyword"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-double-escaped-delimiter",
+    "language": "mo-python",
+    "source": "query = f\"SELECT \\\"quoted\\\" FROM users\"",
+    "segments": [
+      {
+        "text": "\\\"quoted\\\"",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "f-single-escaped-delimiter",
+    "language": "mo-python",
+    "source": "query = f'SELECT \\'quoted\\' FROM users'",
+    "segments": [
+      {
+        "text": "\\'quoted\\'",
+        "requiredScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "forbiddenScopes": ["meta.embedded.inline.python"],
+        "embeddedLanguage": "sql"
+      }
+    ]
+  },
+  {
+    "id": "ordinary-string-containing-sql-fstring-text",
+    "language": "mo-python",
+    "source": "text = 'f\"SELECT * FROM users\"'",
+    "segments": [
+      {
+        "text": "SELECT",
+        "requiredScopes": ["source.mo-python", "string"],
+        "forbiddenScopes": ["meta.embedded.inline.sql", "source.sql"],
+        "embeddedLanguage": "python"
+      }
+    ]
   }
 ]

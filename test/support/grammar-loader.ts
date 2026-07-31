@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { downloadAndUnzipVSCode } from "@vscode/test-electron";
+import { fetchStableVersions } from "@vscode/test-electron/out/download.js";
 import { createOnigScanner, createOnigString, loadWASM } from "vscode-oniguruma";
 import {
   type IGrammar,
@@ -73,6 +74,7 @@ const FENCE_IDENTIFIER = "__inline_sql_scope_fence__";
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const vscodeRoots = new Map<GrammarVersion, Promise<string>>();
 const grammars = new Map<string, Promise<IGrammar>>();
+let expectedStableVersion: Promise<string> | undefined;
 
 const onigLib = (async () => {
   const wasmPath = resolve(projectRoot, "node_modules/vscode-oniguruma/release/onig.wasm");
@@ -157,11 +159,49 @@ export function loadGrammarCases(filename: string): readonly GrammarCase[] {
   return parsed.map(parseGrammarCase);
 }
 
+export function assertDownloadedVSCodeVersion(
+  requestedVersion: GrammarVersion,
+  actualVersion: string,
+  stableVersion?: string,
+): void {
+  if (requestedVersion === "stable") {
+    if (stableVersion === undefined) {
+      throw new Error("Expected stable VS Code version was not resolved independently");
+    }
+    if (actualVersion !== stableVersion) {
+      throw new Error(
+        `Expected stable VS Code ${stableVersion}, but downloaded installation reports ${actualVersion}`,
+      );
+    }
+    return;
+  }
+  if (actualVersion !== requestedVersion) {
+    throw new Error(
+      `Requested VS Code ${requestedVersion}, but downloaded installation reports ${actualVersion}`,
+    );
+  }
+}
+
+async function resolveExpectedStableVersion(): Promise<string> {
+  expectedStableVersion ??= (async () => {
+    const versions = await fetchStableVersions(true, 30_000);
+    const version = versions[0];
+    if (version === undefined) {
+      throw new Error("VS Code stable releases API returned no released versions");
+    }
+    return version;
+  })();
+  return expectedStableVersion;
+}
+
 async function vscodeAppRoot(version: GrammarVersion): Promise<string> {
   let pending = vscodeRoots.get(version);
   if (pending === undefined) {
     pending = (async () => {
-      const executable = await downloadAndUnzipVSCode(version);
+      const [executable, stableVersion] = await Promise.all([
+        downloadAndUnzipVSCode(version),
+        version === "stable" ? resolveExpectedStableVersion() : Promise.resolve(undefined),
+      ]);
       const appRoot =
         process.platform === "darwin"
           ? resolve(executable, "../../Resources/app")
@@ -170,11 +210,7 @@ async function vscodeAppRoot(version: GrammarVersion): Promise<string> {
         readonly version?: unknown;
       };
       const actualVersion = requireString(manifest.version, "VS Code package version");
-      if (version !== "stable" && actualVersion !== version) {
-        throw new Error(
-          `Requested VS Code ${version}, but downloaded installation reports ${actualVersion}`,
-        );
-      }
+      assertDownloadedVSCodeVersion(version, actualVersion, stableVersion);
       return appRoot;
     })();
     vscodeRoots.set(version, pending);

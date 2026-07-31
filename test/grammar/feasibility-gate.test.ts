@@ -1,6 +1,7 @@
-import { test } from "vitest";
+import { expect, test } from "vitest";
 
 import {
+  assertDownloadedVSCodeVersion,
   type GrammarVersion,
   loadGrammarCases,
   verifyPep701GrammarCase,
@@ -12,6 +13,12 @@ if (requestedVersion !== "1.95.0" && requestedVersion !== "stable") {
 }
 const grammarVersion: GrammarVersion = requestedVersion;
 const grammarCases = loadGrammarCases("pep701-grammar-cases.json");
+
+test(`${grammarVersion}: stable version mismatch is rejected`, () => {
+  expect(() => {
+    assertDownloadedVSCodeVersion("stable", "1.95.0", "1.131.0");
+  }).toThrow(/expected stable/i);
+});
 
 for (const testCase of grammarCases) {
   test(`${grammarVersion}: ${testCase.language}: ${testCase.id}`, async () => {

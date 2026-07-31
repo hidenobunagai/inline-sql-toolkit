@@ -1,7 +1,7 @@
 {
   "name": "Inline SQL Python Injection",
   "scopeName": "inline-sql.python.injection",
-  "injectionSelector": "L:source.python -comment, L:source.mo-python -comment",
+  "injectionSelector": "L:source.python -comment -string, L:source.mo-python -comment -string",
   "patterns": [
     {
       "include": "#fTripleDoubleSql"
@@ -19,6 +19,9 @@
       "include": "#plainTripleSql"
     },
     {
+      "include": "#plainDoubleSql"
+    },
+    {
       "include": "#plainSingleSql"
     }
   ],
@@ -33,9 +36,19 @@
         }
       ]
     },
+    "plainDoubleSql": {
+      "begin": "(?ix)(?<![[:alnum:]_])r?\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\\"))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
+      "contentName": "meta.embedded.inline.sql source.sql",
+      "patterns": [
+        {
+          "include": "source.sql"
+        }
+      ]
+    },
     "plainSingleSql": {
-      "begin": "(?ix)(?<![[:alnum:]_])r?(?<quote>'|\\\")(?!\\k<quote>\\k<quote>)(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\k<quote>))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
-      "end": "(?<!\\\\)\\k<quote>",
+      "begin": "(?ix)(?<![[:alnum:]_])r?'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?='))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
       "contentName": "meta.embedded.inline.sql source.sql",
       "patterns": [
         {
@@ -69,7 +82,7 @@
     },
     "fDoubleSql": {
       "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)\\\"(?!\\\"\\\")(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?=\\\"))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
-      "end": "(?<!\\\\)\\\"",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
       "patterns": [
         {
           "include": "inline-sql.fstring-islands.injection"
@@ -81,7 +94,7 @@
     },
     "fSingleSql": {
       "begin": "(?ix)(?<![[:alnum:]_])(?:f|fr|rf)'(?!'')(?=[ \\t\\r\\n]*(?:(?:--(?:sql|[ ]sql)[ \\t]*(?='))|(?:(?:select|with|insert|update|delete|merge|create|alter|drop|truncate|explain)\\b)))",
-      "end": "(?<!\\\\)'",
+      "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
       "patterns": [
         {
           "include": "inline-sql.fstring-islands.injection"
@@ -118,7 +131,7 @@
       }
     },
     "sqlCaptureBeforeDouble": {
-      "match": "(?:(?!\\\"|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "match": "(?:\\{\\{|\\}\\}|(?!(?:\\\\\\\\)+\\\")\\\\[^{}]|(?!\\\"|\\{(?!\\{)|\\\\)[\\s\\S])+",
       "captures": {
         "0": {
           "name": "meta.embedded.inline.sql source.sql",
@@ -131,7 +144,7 @@
       }
     },
     "sqlCaptureBeforeSingle": {
-      "match": "(?:(?!'|\\{(?!\\{))(?:\\{\\{|\\}\\}|[\\s\\S]))+",
+      "match": "(?:\\{\\{|\\}\\}|(?!(?:\\\\\\\\)+')\\\\[^{}]|(?!'|\\{(?!\\{)|\\\\)[\\s\\S])+",
       "captures": {
         "0": {
           "name": "meta.embedded.inline.sql source.sql",

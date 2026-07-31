@@ -50,7 +50,7 @@ export async function testSemanticTokenIsolation(): Promise<void> {
     document.uri,
   );
   assert.ok(
-    legend?.tokenTypes.includes("inlineSqlKeyword"),
+    legend.tokenTypes.includes("inlineSqlKeyword"),
     "semantic token provider should match the python document",
   );
 

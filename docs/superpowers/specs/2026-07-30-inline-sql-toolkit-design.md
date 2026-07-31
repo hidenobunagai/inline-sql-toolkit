@@ -164,6 +164,10 @@ flowchart LR
 責務はSQL候補の表示だけである。
 
 - `source.python`と`source.mo-python`へ注入する。
+- outer injection selectorは
+  `L:source.python -comment -string, L:source.mo-python -comment -string`とする。
+  既存のPython文字列scope内へ再注入せず、通常文字列中に書かれた
+  `f"SELECT ..."`相当の文字列をSQLとして扱わない。
 - SQL部分へ`source.sql`と`meta.embedded.inline.sql`相当のscopeを付与する。
 - f-stringの式領域をSQLより高い優先度のislandとして扱い、Python grammarのscopeを維持する。
 - VS Codeの`embeddedLanguages`を使用し、themeが持つ既存のSQL配色を再利用する。
@@ -184,6 +188,10 @@ Python・SQL grammarと公式marimo grammarを読み込む実現性testを最初
 - PEP 701で許可される改行、コメント、同種quote、nested f-stringを含む式
 - 1つのf-stringに複数のreplacement fieldがある場合
 - `{{`、`}}`とreplacement fieldが隣接する場合
+- non-triple delimiter直前の連続backslashが偶数ならliteralを閉じ、奇数なら
+  escaped delimiterとして継続する場合
+- 通常のPython文字列内にSQLらしいf-string source textがある場合に、
+  Python/string scopeとPython language IDを維持するnegative control
 
 最低対応版VS Codeとstableの両方で1ケースでも満たせなければ、production実装へ進まない。
 その場合は、f-stringハイライトの範囲縮小、Python grammarの保守、semantic token方式の
@@ -587,7 +595,10 @@ fixture行列には次を含める。
 - f-string式部分へSQL scopeが漏れず、Python scopeが残る。
 - marker検出と全自動キーワードを認識する。
 - prefix、引用符、leading whitespaceを網羅する。
+- non-triple delimiterのeven/odd backslash parityとescaped delimiterを網羅する。
 - bytes、対象キーワードで始まらない通常の文章、対象外文字列へSQL scopeを付けない。
+- 通常のPython文字列内にあるSQLらしいf-string source textへ、SQL scopeまたは
+  SQL embedded language IDを付けない。
 - formatterと共有する検出fixtureで互換条件を満たす。
 - 5.1.1の全PEP 701ケースを最低対応版とstableの実grammarで満たす。
 

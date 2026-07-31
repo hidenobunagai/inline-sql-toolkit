@@ -135,7 +135,7 @@ PROTOCOL_ERROR
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "3.9.2",
     "@vitest/coverage-v8": "4.1.10",
-    "esbuild": "0.28.0",
+    "esbuild": "0.28.1",
     "eslint": "10.7.0",
     "eslint-plugin-simple-import-sort": "14.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
@@ -151,6 +151,9 @@ PROTOCOL_ERROR
   }
 }
 ```
+
+`esbuild`は`GHSA-g7r4-m6w7-qqqr`への対応として0.28.0から0.28.1へ改訂した。
+`bun.lock`のOSV scanはfinding 0件を必須とする。
 
 Bunとuvのtool version自体も`1.3.8`と`0.9.28`へ固定する。Task 21のすべての
 `setup-bun` stepは`bun-version: "1.3.8"`、すべての`setup-uv` stepは
@@ -719,6 +722,9 @@ export async function verifyPep701GrammarCase(
   reads that root's manifest, requires one `source.mo-python` contribution, resolves
   its grammar path below the supplied root, and rejects missing/duplicate language,
   grammar, or `marimo-notebook` contributions before tokenization.
+  The `stable` arm independently resolves and records the expected stable release,
+  validates the downloaded installation's manifest version against it, and rejects the
+  other requested build.
 
 - [ ] Run the gate against VS Code 1.95.0 and confirm it fails because the injection
   grammars do not yet define the required regions.
@@ -732,9 +738,16 @@ VSCODE_TEST_VERSION=stable bun run test:grammar-gate
   `inline-sql.python.injection` and `inline-sql.fstring-islands.injection`;
   SQL literal spans must carry `meta.embedded.inline.sql`, and replacement fields
   must carry `meta.embedded.inline.python`. The outer grammar injects into
-  `source.python` and `source.mo-python`; the island grammar injects with
+  `source.python` and `source.mo-python` with the exact safe selector
+  `L:source.python -comment -string, L:source.mo-python -comment -string`; the island grammar injects with
   `L:meta.embedded.inline.sql` priority so a field returns to the host Python grammar.
   Register embedded language IDs as `sql` and `python` in the test registry.
+- [ ] Add a negative control where SQL-looking f-string source text is contained inside
+  an ordinary Python string. It must retain Python/string scope and Python language ID
+  and must never gain SQL scope or SQL language ID.
+- [ ] For non-triple delimiters, close after an even-length run of backslashes and keep
+  an odd-length run escaped. Cover plain/f-string single and double delimiters plus an
+  escaped delimiter within f-string SQL literal text.
 - [ ] Seed the outer gate with a concrete triple-string rule using the complete approved
   detector expression; single-quote and f-string rules use the same lookahead and are
   added as separate repository entries so their end states can differ.
@@ -742,7 +755,7 @@ VSCODE_TEST_VERSION=stable bun run test:grammar-gate
 ```json
 {
   "scopeName": "inline-sql.python.injection",
-  "injectionSelector": "L:source.python -comment, L:source.mo-python -comment",
+  "injectionSelector": "L:source.python -comment -string, L:source.mo-python -comment -string",
   "patterns": [{"include": "#plainTripleSql"}],
   "repository": {
     "plainTripleSql": {

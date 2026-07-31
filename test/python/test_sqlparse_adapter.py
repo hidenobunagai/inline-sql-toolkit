@@ -101,6 +101,24 @@ def test_formatter_added_final_newline_does_not_change_quote_frame(
     )
 
 
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [("select 1", "SELECT 1"), ("select 1\n", "SELECT 1\n")],
+)
+def test_formatter_added_newline_matches_exact_short_triple_frame(
+    content: str, expected: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(sqlparse, "format", lambda _sql, **_options: "SELECT 1\n")
+    assert (
+        format_sql(
+            content,
+            triple_quoted=True,
+            options=FormatOptions("upper", 2, 88, True),
+        )
+        == expected
+    )
+
+
 def test_triple_quote_preserves_boundaries_and_outer_indent() -> None:
     content = "\n\n    select a,b from Dataset where x=1 and y=2\n      and z=3\n\n    "
     assert format_sql(

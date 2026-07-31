@@ -658,6 +658,41 @@
       }
     },
     {
+      "name": "descending-non-overlapping-edit-order",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [
+          {
+            "range": {
+              "start": { "line": 0, "character": 10 },
+              "end": { "line": 0, "character": 12 }
+            },
+            "expectedText": "aa",
+            "newText": "AA"
+          },
+          {
+            "range": {
+              "start": { "line": 0, "character": 0 },
+              "end": { "line": 0, "character": 2 }
+            },
+            "expectedText": "bb",
+            "newText": "BB"
+          }
+        ],
+        "skips": [],
+        "summary": {
+          "discovered": 2,
+          "selected": 2,
+          "changed": 2,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
       "name": "changed-count-does-not-match-edits",
       "kind": "formatResponse",
       "value": {

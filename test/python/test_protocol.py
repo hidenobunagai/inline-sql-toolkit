@@ -9,8 +9,11 @@ from inline_sql_helper.model import (
     ErrorResponse,
     FormatMode,
     FormatOptions,
+    FormatSuccess,
+    FormatSummary,
     FormatTarget,
     HelperRequest,
+    HelperResponse,
     LocateSuccess,
     Position,
     ProtocolOperation,
@@ -116,6 +119,7 @@ REQUIRED_INVALID_CASES = frozenset(
         "format-response-with-non-string-text",
         "format-response-with-empty-expected-text",
         "overlapping-edit-ranges",
+        "descending-non-overlapping-edit-order",
         "changed-count-does-not-match-edits",
         "skipped-count-does-not-match-skips",
         "summary-parts-do-not-equal-selected",
@@ -224,6 +228,76 @@ def test_response_serializers_emit_wire_names_and_compact_utf8() -> None:
         b'{"protocolVersion":1,"operation":"unknown","ok":false,'
         b'"error":{"code":"PROTOCOL_ERROR"}}'
     )
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        pytest.param(
+            LocateSuccess(
+                cast(Literal[1], 2),
+                ProtocolOperation.LOCATE,
+                True,
+                (),
+            ),
+            id="locate-version",
+        ),
+        pytest.param(
+            LocateSuccess(
+                1,
+                ProtocolOperation.LOCATE,
+                cast(Literal[True], False),
+                (),
+            ),
+            id="locate-ok",
+        ),
+        pytest.param(
+            FormatSuccess(
+                cast(Literal[1], 2),
+                ProtocolOperation.FORMAT,
+                True,
+                (),
+                (),
+                FormatSummary(0, 0, 0, 0, 0),
+            ),
+            id="format-version",
+        ),
+        pytest.param(
+            FormatSuccess(
+                1,
+                ProtocolOperation.FORMAT,
+                cast(Literal[True], False),
+                (),
+                (),
+                FormatSummary(0, 0, 0, 0, 0),
+            ),
+            id="format-ok",
+        ),
+        pytest.param(
+            ErrorResponse(
+                cast(Literal[1], 2),
+                ProtocolOperation.LOCATE,
+                False,
+                ErrorPayload(ReasonCode.PROTOCOL_ERROR),
+            ),
+            id="error-version",
+        ),
+        pytest.param(
+            ErrorResponse(
+                1,
+                ProtocolOperation.LOCATE,
+                cast(Literal[False], True),
+                ErrorPayload(ReasonCode.PROTOCOL_ERROR),
+            ),
+            id="error-ok",
+        ),
+    ],
+)
+def test_response_serializer_rejects_invalid_discriminants(
+    response: HelperResponse,
+) -> None:
+    with pytest.raises(ProtocolViolation, match="^PROTOCOL_ERROR$"):
+        serialize_response(response)
 
 
 def test_invalid_response_dataclass_is_rejected_without_leaking_text() -> None:

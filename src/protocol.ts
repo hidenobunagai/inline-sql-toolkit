@@ -296,10 +296,7 @@ function parseSummary(value: unknown): FormatSummary {
 }
 
 function validateOrderedNonOverlappingEdits(edits: readonly FormatEdit[]): void {
-  const ordered = [...edits].sort((left, right) =>
-    comparePosition(left.range.start, right.range.start),
-  );
-  const [first, ...remaining] = ordered;
+  const [first, ...remaining] = edits;
   if (first === undefined) {
     return;
   }

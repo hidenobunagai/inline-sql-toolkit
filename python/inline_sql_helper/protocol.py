@@ -327,14 +327,7 @@ def parse_format_response(value: object) -> FormatResponse:
 
 
 def validate_ordered_non_overlapping_edits(response: FormatSuccess) -> None:
-    ordered = sorted(
-        response.edits,
-        key=lambda edit: (
-            edit.range.start.line,
-            edit.range.start.character,
-        ),
-    )
-    for previous, current in itertools.pairwise(ordered):
+    for previous, current in itertools.pairwise(response.edits):
         if compare_position(current.range.start, previous.range.end) < 0:
             raise ProtocolViolation
 
@@ -428,24 +421,24 @@ def response_to_wire(response: HelperResponse) -> dict[str, object]:
     )
     if isinstance(response, ErrorResponse):
         return {
-            "protocolVersion": 1,
+            "protocolVersion": response.protocol_version,
             "operation": operation,
-            "ok": False,
+            "ok": response.ok,
             "error": {"code": response.error.code.value},
         }
     if isinstance(response, LocateSuccess):
         return {
-            "protocolVersion": 1,
-            "operation": "locate",
-            "ok": True,
+            "protocolVersion": response.protocol_version,
+            "operation": operation,
+            "ok": response.ok,
             "candidates": [
                 range_to_wire(candidate) for candidate in response.candidates
             ],
         }
     return {
-        "protocolVersion": 1,
-        "operation": "format",
-        "ok": True,
+        "protocolVersion": response.protocol_version,
+        "operation": operation,
+        "ok": response.ok,
         "edits": [
             {
                 "range": range_to_wire(edit.range),

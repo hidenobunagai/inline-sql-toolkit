@@ -36,6 +36,7 @@ const requiredInvalidCases = [
   "format-response-with-non-string-text",
   "format-response-with-empty-expected-text",
   "overlapping-edit-ranges",
+  "descending-non-overlapping-edit-order",
   "changed-count-does-not-match-edits",
   "skipped-count-does-not-match-skips",
   "summary-parts-do-not-equal-selected",

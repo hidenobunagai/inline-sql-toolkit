@@ -375,6 +375,8 @@ def vendor(lock_path: Path) -> None:
         for path in artifact_paths.values():
             if path.is_symlink():
                 raise VendorError("symlinked provenance file")
+            if path.is_dir():
+                raise VendorError("invalid provenance file")
             old_artifacts[path] = path.read_bytes() if path.exists() else None
         artifact_paths["LICENSE"].write_bytes(license_bytes)
         artifact_paths["AUTHORS"].write_bytes(authors_bytes)

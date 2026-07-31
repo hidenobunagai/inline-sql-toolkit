@@ -46,12 +46,26 @@ def self_check(runtime: RuntimeContext) -> int:
     return 0
 
 
+def dispatch(runtime: RuntimeContext) -> int:
+    """Import the helper only after the fixed runtime has been verified."""
+
+    from inline_sql_helper import cli
+
+    helper_root = (runtime.python_root / "inline_sql_helper").resolve()
+    cli_file = Path(cli.__file__).resolve()
+    if not cli_file.is_relative_to(helper_root):
+        return 70
+    return cli.main()
+
+
 def entrypoint() -> int:
     try:
         runtime = prepare_runtime()
         if sys.argv[1:] == ["--self-check"]:
             return self_check(runtime)
-        return 70
+        if sys.argv[1:]:
+            return 70
+        return dispatch(runtime)
     except BaseException:
         return 70
 

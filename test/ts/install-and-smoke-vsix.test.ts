@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildInstallCommand, buildSmokeCommand } from "../../tools/install_and_smoke_vsix.js";
+import {
+  buildInstallCommand,
+  buildSmokeCommand,
+  resolveCliScript,
+} from "../../tools/install_and_smoke_vsix.js";
 
 const input = {
   executable: "/tmp/code",
@@ -14,14 +18,31 @@ const input = {
 describe("offline VSIX install smoke command", () => {
   it("installs only the supplied VSIX into isolated directories", () => {
     expect(buildInstallCommand(input)).toEqual([
-      "/tmp/code", "--extensions-dir", "/tmp/extensions", "--user-data-dir", "/tmp/user-data",
-      "--install-extension", "/tmp/inline.vsix", "--force",
+      "/tmp/code",
+      "--extensions-dir",
+      "/tmp/extensions",
+      "--user-data-dir",
+      "/tmp/user-data",
+      "--install-extension",
+      "/tmp/inline.vsix",
+      "--force",
     ]);
   });
 
   it("uses the fixture driver as the only extension development path", () => {
     const args = buildSmokeCommand(input);
     expect(args).toContain("--extensionDevelopmentPath=/tmp/driver");
-    expect(args).not.toContain("--extensionDevelopmentPath=/Users/hidenobunagai/Projects/inline-sql-toolkit");
+    expect(args).not.toContain(
+      "--extensionDevelopmentPath=/Users/hidenobunagai/Projects/inline-sql-toolkit",
+    );
+  });
+
+  it("resolves the VS Code CLI without using a shell", () => {
+    const script = resolveCliScript("/tmp/Visual Studio Code.app/Contents/MacOS/Electron");
+    if (process.platform === "darwin") {
+      expect(script).toContain("Resources/app/out/cli.js");
+    } else {
+      expect(script).toContain("resources/app/out/cli.js");
+    }
   });
 });

@@ -45,6 +45,12 @@ export function buildSmokeCommand(input: InstallLaunchInput): readonly string[] 
   ];
 }
 
+export function resolveCliScript(executable: string): string {
+  return process.platform === "darwin"
+    ? path.resolve(executable, "../../Resources/app/out/cli.js")
+    : path.resolve(path.dirname(executable), "resources/app/out/cli.js");
+}
+
 async function runCommand(
   command: string,
   args: readonly string[],
@@ -120,7 +126,7 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
     const driver = path.join(ROOT, "test", "fixtures", "extensions", "vsix-driver");
     const input = { executable, vsix, driver, workspace, userData, extensions };
     await runCommand(
-      executable,
+      resolveCliScript(executable),
       buildInstallCommand(input).slice(1),
       { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
       120_000,

@@ -33,6 +33,7 @@ describe("offline VSIX install smoke command", () => {
   it("uses the fixture driver as the only extension development path", () => {
     const args = buildSmokeCommand(input);
     expect(args).toContain("--extensionDevelopmentPath=/tmp/driver");
+    expect(args).toContain("--disable-workspace-trust");
     expect(args).not.toContain(
       "--extensionDevelopmentPath=/Users/hidenobunagai/Projects/inline-sql-toolkit",
     );

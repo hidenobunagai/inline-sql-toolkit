@@ -39,6 +39,7 @@ export function buildSmokeCommand(input: InstallLaunchInput): readonly string[] 
     input.extensions,
     "--user-data-dir",
     input.userData,
+    "--disable-workspace-trust",
     "--disable-updates",
     "--skip-welcome",
     "--skip-release-notes",

@@ -80,6 +80,13 @@ describe("GitHub workflow contracts", () => {
         if (job.uses === undefined) continue;
         expect(job.uses).toMatch(/^[^/]+\/[^@]+@[0-9a-f]{40}$/u);
       }
+      for (const job of Object.values(jobsOf(workflow))) {
+        const permissions = job.permissions ?? {};
+        if (permissions.actions === "read" || permissions["security-events"] === "write") {
+          expect(job.uses).toContain("osv-scanner");
+          expect(job.with?.["upload-sarif"]).toBe(true);
+        }
+      }
       for (const step of allSteps(workflow)) {
         if (step.uses === undefined) continue;
         expect(step.uses).toMatch(/^[^/]+\/[^@]+@[0-9a-f]{40}$/u);

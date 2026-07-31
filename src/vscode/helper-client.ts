@@ -112,6 +112,10 @@ function asBuffer(chunk: Buffer | string | Uint8Array): Buffer {
   return Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
 }
 
+function cancellationRequested(token: vscode.CancellationToken): boolean {
+  return token.isCancellationRequested;
+}
+
 /** Keep an error sink attached after settlement so late stream events cannot throw. */
 function ignoreError(): void {
   // Deliberately ignore errors after the request has already settled.
@@ -136,22 +140,32 @@ function runHelperProcess<T extends LocateResponse | FormatResponse>(
   if (requestBytes.byteLength > MAX_STDIN_BYTES) {
     return Promise.resolve({ ok: false, code: "RESOURCE_LIMIT_EXCEEDED" });
   }
-  if (token.isCancellationRequested) {
+  if (cancellationRequested(token)) {
     return Promise.resolve({ ok: false, code: "PROCESS_CANCELLED" });
   }
   if (!dependencies.isWorkspaceTrusted()) {
     return Promise.resolve({ ok: false, code: "WORKSPACE_UNTRUSTED" });
   }
 
+  let extensionRoot: string;
+  let bootstrapPath: string;
+  try {
+    extensionRoot = dependencies.extensionUri.fsPath;
+    bootstrapPath = vscode.Uri.joinPath(dependencies.extensionUri, "python", "bootstrap.py").fsPath;
+  } catch {
+    return Promise.resolve({ ok: false, code: "PROCESS_FAILED" });
+  }
+  // Re-check the live guards after deterministic path construction. The
+  // sentinel is the last operation before the corresponding spawn attempt.
+  if (cancellationRequested(token)) {
+    return Promise.resolve({ ok: false, code: "PROCESS_CANCELLED" });
+  }
+  if (!dependencies.isWorkspaceTrusted()) {
+    return Promise.resolve({ ok: false, code: "WORKSPACE_UNTRUSTED" });
+  }
   // Keep this sentinel directly adjacent to the final trust check and spawn.
   // It is intentionally the only integration-visible process signal.
   dependencies.processWillSpawn?.("helper");
-  const extensionRoot = dependencies.extensionUri.fsPath;
-  const bootstrapPath = vscode.Uri.joinPath(
-    dependencies.extensionUri,
-    "python",
-    "bootstrap.py",
-  ).fsPath;
   let child: ChildProcessWithoutNullStreams;
   try {
     child = dependencies.spawn(

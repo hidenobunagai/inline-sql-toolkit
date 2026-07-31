@@ -113,6 +113,7 @@ function setup(
     readonly trusted?: boolean;
     readonly resolve?: PythonResolver["resolve"];
     readonly processWillSpawn?: (kind: "helper") => void;
+    readonly extensionUri?: vscode.Uri;
     readonly spawn?: HelperClientDependencies["spawn"];
   } = {},
 ): {
@@ -143,7 +144,7 @@ function setup(
   const spawn =
     overrides.spawn ?? (vi.fn(() => process) as unknown as HelperClientDependencies["spawn"]);
   const client = new DefaultHelperClient({
-    extensionUri: vscode.Uri.file("/private/extension-sentinel"),
+    extensionUri: overrides.extensionUri ?? vscode.Uri.file("/private/extension-sentinel"),
     resolver,
     isWorkspaceTrusted: () => overrides.trusted ?? true,
     ...(overrides.processWillSpawn === undefined
@@ -175,6 +176,21 @@ beforeEach(() => {
 });
 
 describe("bounded helper process", () => {
+  it("does not signal when fixed helper paths cannot be constructed", async () => {
+    const processWillSpawn = vi.fn();
+    const extensionUri = {
+      get fsPath(): string {
+        throw new Error("path-sentinel");
+      },
+    } as unknown as vscode.Uri;
+    const result = setup({ extensionUri, processWillSpawn });
+    await expect(
+      result.client.locate(snapshot(), target, options, resource(), source().token),
+    ).resolves.toMatchObject({ ok: false, error: { code: "PROCESS_FAILED" } });
+    expect(processWillSpawn).not.toHaveBeenCalled();
+    expect(result.spawn).not.toHaveBeenCalled();
+  });
+
   it("signals exactly once immediately before a helper spawn", async () => {
     const processWillSpawn = vi.fn();
     const result = setup({ processWillSpawn });

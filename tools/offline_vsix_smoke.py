@@ -9,8 +9,9 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
-from typing import Protocol, Sequence
+from typing import cast
 
 from verify_vsix import ValidatedVsix, VsixError, validate_vsix
 
@@ -19,10 +20,7 @@ class OfflineSmokeError(RuntimeError):
     """A source-free offline smoke failure."""
 
 
-class ProcessRunner(Protocol):
-    def __call__(
-        self, args: Sequence[str], **kwargs: object
-    ) -> subprocess.CompletedProcess[bytes]: ...
+ProcessRunner = Callable[..., subprocess.CompletedProcess[bytes]]
 
 
 def extract_validated_vsix(validated: ValidatedVsix, destination: Path) -> Path:
@@ -85,7 +83,7 @@ def run_offline_smoke(
     vsix: Path,
     request: bytes,
     image: str,
-    runner: ProcessRunner = subprocess.run,
+    runner: ProcessRunner | None = None,
 ) -> None:
     validated = validate_vsix(vsix)
     with tempfile.TemporaryDirectory(prefix="inline-sql-vsix-") as temporary:
@@ -110,8 +108,9 @@ def run_offline_smoke(
             "utf8",
             "/extension/python/bootstrap.py",
         ]
+        execute = runner if runner is not None else cast(ProcessRunner, subprocess.run)
         try:
-            result = runner(
+            result = execute(
                 command,
                 input=request,
                 stdout=subprocess.PIPE,

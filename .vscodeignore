@@ -3,6 +3,7 @@
 .vscode/**
 .worktrees/**
 .superpowers/**
+.github/**
 src/**
 test/**
 tools/**

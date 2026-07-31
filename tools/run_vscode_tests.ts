@@ -242,8 +242,12 @@ export async function installFixtureExtensions(
   extensionsDir: string,
   executable: string,
   root: string,
+  vscodeVersion: GrammarVersion = "stable",
 ): Promise<string | undefined> {
   if (scenario === "compatibility") {
+    if (vscodeVersion !== "stable") {
+      throw new Error("official compatibility extensions are supported on VS Code stable only");
+    }
     await installCompatibilityExtensions(executable, extensionsDir, [
       "ms-python.python",
       "ms-toolsai.jupyter",
@@ -496,6 +500,9 @@ export async function launchScenario(
   options: ScenarioOptions,
   dependencies: LaunchDependencies = {},
 ): Promise<void> {
+  if (options.scenario === "compatibility" && options.vscodeVersion !== "stable") {
+    throw new Error("official compatibility extensions are supported on VS Code stable only");
+  }
   const scenarioRoot = await fs.mkdtemp(path.join(os.tmpdir(), `inline-sql-${options.scenario}-`));
   const expectedParent = path.resolve(os.tmpdir());
   const rootParent = path.dirname(path.resolve(scenarioRoot));
@@ -523,6 +530,7 @@ export async function launchScenario(
       extensionsDir,
       executable,
       options.repositoryRoot,
+      options.vscodeVersion,
     );
     await verifyIntegrationGrammarScopes(options.vscodeVersion, officialMarimoExtensionRoot);
     const testsPath = path.join(options.repositoryRoot, "dist-test", "integration", "run.js");

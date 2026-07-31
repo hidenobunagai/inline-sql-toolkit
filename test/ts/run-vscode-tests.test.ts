@@ -7,6 +7,7 @@ import * as vscode from "vscode";
 import type { PythonResolveDependencies, SpawnRunOptions } from "../../tools/run_vscode_tests.js";
 import {
   buildLaunchCommand,
+  installFixtureExtensions,
   isAbsoluteExecutablePath,
   main,
   parseGrammarVersion,
@@ -80,6 +81,12 @@ describe("integration runner argument policy", () => {
       "/opt/uv/python3.12",
     );
     expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not install current official extensions into the pinned old host", async () => {
+    await expect(
+      installFixtureExtensions("compatibility", "/tmp/extensions", "/tmp/code", "/repo", "1.95.0"),
+    ).rejects.toThrow("stable only");
   });
 });
 

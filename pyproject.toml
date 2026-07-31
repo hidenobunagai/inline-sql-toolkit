@@ -36,7 +36,7 @@ include = [
 exclude = ["python/vendor"]
 
 [tool.ty.environment]
-extra-paths = ["python", "python/vendor"]
+extra-paths = ["python", "python/vendor", "tools"]
 
 [tool.pytest.ini_options]
 pythonpath = ["python", "python/vendor"]

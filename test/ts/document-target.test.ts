@@ -10,7 +10,9 @@ import {
 } from "../../src/vscode/document-target.js";
 import { __mock } from "../support/vscode-mock.js";
 
-beforeEach(() => { __mock.reset(); });
+beforeEach(() => {
+  __mock.reset();
+});
 
 describe("resolveSupportedDocument", () => {
   it.each(["python", "mo-python"])("resolves standalone %s", (languageId) => {
@@ -188,7 +190,9 @@ describe("VS Code unit-test mock fidelity", () => {
     expect(crlf.offsetAt(new vscode.Position(1, 0))).toBe(3);
     expect(crlf.positionAt(3)).toEqual(new vscode.Position(1, 0));
     expect(crlf.positionAt(2)).toEqual(new vscode.Position(0, 1));
-    expect(crlf.getText(new vscode.Range(new vscode.Position(0, 1), new vscode.Position(1, 1)))).toBe("\r\nb");
+    expect(
+      crlf.getText(new vscode.Range(new vscode.Position(0, 1), new vscode.Position(1, 1))),
+    ).toBe("\r\nb");
 
     const loneCr = __mock.document({ uri: "file:///cr.py", languageId: "python", text: "a\rb" });
     expect(loneCr.lineCount).toBe(2);
@@ -200,25 +204,49 @@ describe("VS Code unit-test mock fidelity", () => {
     const first = vscode.Uri.parse("file:///first.py");
     const second = vscode.Uri.parse("file:///second.py");
     const edit = new vscode.WorkspaceEdit();
-    edit.replace(first, new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)), "x");
-    edit.replace(second, new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)), "y");
+    edit.replace(
+      first,
+      new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)),
+      "x",
+    );
+    edit.replace(
+      second,
+      new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)),
+      "y",
+    );
     expect(edit.has(first)).toBe(true);
     expect(edit.has(second)).toBe(true);
     expect(edit.get(first)).toHaveLength(1);
     expect(edit.get(first)[0]?.newText).toBe("x");
-    edit.set(first, [{ range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)), newText: "z" }]);
+    edit.set(first, [
+      {
+        range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)),
+        newText: "z",
+      },
+    ]);
     expect(edit.get(first)).toHaveLength(1);
     expect(edit.get(first)[0]?.newText).toBe("z");
     expect(edit.size).toBe(2);
-    expect(edit.entries().map(([uri]) => uri.toString())).toEqual([first.toString(), second.toString()]);
+    expect(edit.entries().map(([uri]) => uri.toString())).toEqual([
+      first.toString(),
+      second.toString(),
+    ]);
   });
 
   it("routes registered commands and tracks code-action providers", async () => {
-    const command = vscode.commands.registerCommand("inlineSql.test.mock", (value: unknown) => value);
-    expect(__mock.commandRegistrations().map((item) => item.command)).toContain("inlineSql.test.mock");
+    const command = vscode.commands.registerCommand(
+      "inlineSql.test.mock",
+      (value: unknown) => value,
+    );
+    expect(__mock.commandRegistrations().map((item) => item.command)).toContain(
+      "inlineSql.test.mock",
+    );
     await expect(vscode.commands.executeCommand("inlineSql.test.mock", "ok")).resolves.toBe("ok");
     const provider = {} as vscode.CodeActionProvider;
-    const providerRegistration = vscode.languages.registerCodeActionsProvider([{ language: "python" }], provider);
+    const providerRegistration = vscode.languages.registerCodeActionsProvider(
+      [{ language: "python" }],
+      provider,
+    );
     expect(__mock.codeActionRegistrations()).toHaveLength(1);
     providerRegistration.dispose();
     command.dispose();
@@ -229,8 +257,12 @@ describe("VS Code unit-test mock fidelity", () => {
     const document = __mock.document({ uri: "file:///events.py", languageId: "python" });
     let changed = 0;
     let closed = 0;
-    vscode.workspace.onDidChangeTextDocument(() => { changed += 1; });
-    vscode.workspace.onDidCloseTextDocument(() => { closed += 1; });
+    vscode.workspace.onDidChangeTextDocument(() => {
+      changed += 1;
+    });
+    vscode.workspace.onDidCloseTextDocument(() => {
+      closed += 1;
+    });
     __mock.fireTextDocumentChange(document);
     __mock.fireTextDocumentClose(document);
     expect({ changed, closed }).toEqual({ changed: 1, closed: 1 });

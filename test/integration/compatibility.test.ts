@@ -26,6 +26,9 @@ import {
 } from "../support/vscode-harness.js";
 
 export async function testOfficialExtensionCompatibility(): Promise<void> {
+  if (vscode.extensions.getExtension("inline-sql-tests.inline-sql-semantic-probe") !== undefined) {
+    throw new Error("compatibility mode must not install the semantic test fixture");
+  }
   for (const id of ["ms-python.python", "ms-toolsai.jupyter", "marimo-team.vscode-marimo"]) {
     const extension = vscode.extensions.getExtension(id);
     if (extension === undefined) throw new Error(`missing ${id}`);

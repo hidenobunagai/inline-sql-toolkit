@@ -1,0 +1,27 @@
+name: OSV scanner (scheduled)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inline-sql-osv-scheduled
+  cancel-in-progress: true
+
+jobs:
+  osv:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2
+    with:
+      scan-args: >-
+        --lockfile=bun.lock
+        --lockfile=uv.lock
+        --lockfile=requirements.txt:tools/sqlparse-vendor.requirements.txt
+      upload-sarif: true

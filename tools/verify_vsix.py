@@ -12,7 +12,7 @@ import sys
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Mapping
+from typing import Mapping, cast
 
 MAX_VSIX_BYTES = 64 * 1024 * 1024
 MAX_EXPANDED_BYTES = 128 * 1024 * 1024
@@ -247,14 +247,15 @@ def validate_provenance(archive: zipfile.ZipFile) -> None:
         "wheel": "sqlparse-0.5.5-py3-none-any.whl",
     }:
         raise VsixError("invalid provenance record")
+    source_record = cast(dict[str, str], source)
     if (
         _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/LICENSE"))
-        != source["licenseSha256"]
+        != source_record["licenseSha256"]
     ):
         raise VsixError("invalid provenance record")
     if (
         _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/AUTHORS"))
-        != source["authorsSha256"]
+        != source_record["authorsSha256"]
     ):
         raise VsixError("invalid provenance record")
 

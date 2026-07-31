@@ -15,8 +15,8 @@ import pytest
 
 sys.path.insert(0, str(Path("tools").resolve()))
 
-import vendor_sqlparse as vendor_module  # noqa: E402  # ty: ignore[unresolved-import]
-from vendor_sqlparse import (  # ty: ignore[unresolved-import]
+import vendor_sqlparse as vendor_module  # noqa: E402
+from vendor_sqlparse import (
     DIST_INFO,
     EXPECTED_DIST_FILES,
     EXPECTED_PACKAGE_FILES,
@@ -31,7 +31,10 @@ from vendor_sqlparse import (  # ty: ignore[unresolved-import]
     validated_members,
     verify_tree_hashes,
 )
-from verify_vendor import verify  # ty: ignore[unresolved-import]
+from verify_vendor import (
+    verify,
+    verify_lock_projection,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -343,6 +346,23 @@ def test_lock_and_requirements_projection_must_agree(tmp_path: Path) -> None:
     requirements.write_text("sqlparse==0.4.0\n", encoding="utf-8")
     with pytest.raises(VendorError):
         validate_lock_projection(lock, requirements)
+
+
+def test_lock_projection_only_is_source_free_and_skips_vendor_tree(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "extension"
+    (root / "tools").mkdir(parents=True)
+    shutil.copy2(
+        ROOT / "tools/sqlparse-vendor.lock", root / "tools/sqlparse-vendor.lock"
+    )
+    shutil.copy2(
+        ROOT / "tools/sqlparse-vendor.requirements.txt",
+        root / "tools/sqlparse-vendor.requirements.txt",
+    )
+    # Projection verification must not require the vendored tree, provenance
+    # files, or any network/source metadata.
+    verify_lock_projection(root)
 
 
 def make_verification_root(tmp_path: Path) -> Path:

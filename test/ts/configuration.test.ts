@@ -1,42 +1,61 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import {
-  readConfiguredPythonPath,
-  readFormatOptions,
-} from "../../src/vscode/configuration.js";
+import { readConfiguredPythonPath, readFormatOptions } from "../../src/vscode/configuration.js";
 import { __mock } from "../support/vscode-mock.js";
 
-beforeEach(() => { __mock.reset(); });
+beforeEach(() => {
+  __mock.reset();
+});
 
 const resource = "file:///workspace/query.py";
 
 describe("readFormatOptions", () => {
   it("uses all approved defaults", () => {
-    expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual({
-      ok: true,
-      options: {
-        keywordCase: "upper",
-        indentWidth: 2,
-        wrapAfter: 88,
-        useSpaceAroundOperators: true,
+    expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual(
+      {
+        ok: true,
+        options: {
+          keywordCase: "upper",
+          indentWidth: 2,
+          wrapAfter: 88,
+          useSpaceAroundOperators: true,
+        },
       },
-    });
+    );
   });
 
   it("accepts valid boundaries", () => {
-    __mock.setConfiguration(__mock.document({ uri: resource, languageId: "python" }).uri, "format.keywordCase", "preserve");
-    __mock.setConfiguration(__mock.document({ uri: resource, languageId: "python" }).uri, "format.indentWidth", 1);
-    __mock.setConfiguration(__mock.document({ uri: resource, languageId: "python" }).uri, "format.wrapAfter", 500);
-    __mock.setConfiguration(__mock.document({ uri: resource, languageId: "python" }).uri, "format.useSpaceAroundOperators", false);
-    expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual({
-      ok: true,
-      options: {
-        keywordCase: "preserve",
-        indentWidth: 1,
-        wrapAfter: 500,
-        useSpaceAroundOperators: false,
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.keywordCase",
+      "preserve",
+    );
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.indentWidth",
+      1,
+    );
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.wrapAfter",
+      500,
+    );
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.useSpaceAroundOperators",
+      false,
+    );
+    expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual(
+      {
+        ok: true,
+        options: {
+          keywordCase: "preserve",
+          indentWidth: 1,
+          wrapAfter: 500,
+          useSpaceAroundOperators: false,
+        },
       },
-    });
+    );
   });
 
   it.each([

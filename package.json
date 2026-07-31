@@ -118,6 +118,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "ci:quality": "bun run format:check && bun run lint && bun run typecheck && bun run test:coverage",
     "test:unit": "vitest run test/ts",
     "test:coverage": "vitest run --coverage test/ts",
     "test:grammar-gate": "vitest run test/grammar/feasibility-gate.test.ts",

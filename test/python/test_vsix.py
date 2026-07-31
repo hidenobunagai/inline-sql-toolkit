@@ -350,10 +350,16 @@ def test_offline_smoke_unsafe_archive_does_not_call_runner(tmp_path: Path) -> No
     path = tmp_path / "unsafe.vsix"
     write_archive(path, members)
     calls: list[object] = []
+
+    def record_call(
+        *args: object, **kwargs: object
+    ) -> subprocess.CompletedProcess[bytes]:
+        del kwargs
+        calls.append(args)
+        return subprocess.CompletedProcess([], 0, b"", b"")
+
     with pytest.raises(VsixError):
-        run_offline_smoke(
-            path, b"{}", "image", runner=lambda *args, **kwargs: calls.append(args)
-        )
+        run_offline_smoke(path, b"{}", "image", runner=record_call)
     assert calls == []
 
 

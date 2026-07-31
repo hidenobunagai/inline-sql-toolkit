@@ -11,7 +11,9 @@ export type PythonPathResult =
   | { readonly ok: false; readonly reason: "INVALID_CONFIGURATION" | "WORKSPACE_UNTRUSTED" };
 
 function integerBetween(value: unknown, minimum: number, maximum: number): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= minimum && value <= maximum;
+  return (
+    typeof value === "number" && Number.isInteger(value) && value >= minimum && value <= maximum
+  );
 }
 
 export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult {
@@ -29,13 +31,18 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
     !integerBetween(indentWidth, 1, 8) ||
     !integerBetween(wrapAfter, 20, 500) ||
     typeof useSpaceAroundOperators !== "boolean"
-  ) return { ok: false, reason: "INVALID_CONFIGURATION" };
+  )
+    return { ok: false, reason: "INVALID_CONFIGURATION" };
   return { ok: true, options: { keywordCase, indentWidth, wrapAfter, useSpaceAroundOperators } };
 }
 
 export function readConfiguredPythonPath(resourceUri: vscode.Uri): PythonPathResult {
   if (!vscode.workspace.isTrusted) return { ok: false, reason: "WORKSPACE_UNTRUSTED" };
-  const value = vscode.workspace.getConfiguration("inlineSql", resourceUri).get<unknown>("pythonPath");
+  const value = vscode.workspace
+    .getConfiguration("inlineSql", resourceUri)
+    .get<unknown>("pythonPath");
   if (value === undefined || value === "") return { ok: true, value: undefined };
-  return typeof value === "string" ? { ok: true, value } : { ok: false, reason: "INVALID_CONFIGURATION" };
+  return typeof value === "string"
+    ? { ok: true, value }
+    : { ok: false, reason: "INVALID_CONFIGURATION" };
 }

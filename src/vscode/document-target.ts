@@ -10,7 +10,10 @@ export interface SupportedDocument {
 
 export type TargetResolution =
   | { readonly ok: true; readonly target: SupportedDocument; readonly editor: vscode.TextEditor }
-  | { readonly ok: false; readonly reason: "NO_ACTIVE_EDITOR" | "NOTEBOOK_CELL_FOCUS_REQUIRED" | "UNSUPPORTED_DOCUMENT" };
+  | {
+      readonly ok: false;
+      readonly reason: "NO_ACTIVE_EDITOR" | "NOTEBOOK_CELL_FOCUS_REQUIRED" | "UNSUPPORTED_DOCUMENT";
+    };
 
 export const INLINE_SQL_SELECTOR: vscode.DocumentSelector = [
   { language: "python" },
@@ -32,7 +35,9 @@ export function findNotebookCell(
   notebooks: readonly vscode.NotebookDocument[],
 ): { notebook: vscode.NotebookDocument; cell: vscode.NotebookCell } | undefined {
   for (const notebook of notebooks) {
-    const cell = notebook.getCells().find((item) => item.document.uri.toString() === document.uri.toString());
+    const cell = notebook
+      .getCells()
+      .find((item) => item.document.uri.toString() === document.uri.toString());
     if (cell !== undefined) return { notebook, cell };
   }
   return undefined;
@@ -44,8 +49,15 @@ export function resolveSupportedDocument(
 ): SupportedDocument | undefined {
   const member = findNotebookCell(document, notebooks);
   if (member !== undefined) {
-    if (!notebookPairs.has(`${member.notebook.notebookType}\0${document.languageId}`)) return undefined;
-    return { document, documentUri: document.uri, resourceUri: member.notebook.uri, notebook: member.notebook, cell: member.cell };
+    if (!notebookPairs.has(`${member.notebook.notebookType}\0${document.languageId}`))
+      return undefined;
+    return {
+      document,
+      documentUri: document.uri,
+      resourceUri: member.notebook.uri,
+      notebook: member.notebook,
+      cell: member.cell,
+    };
   }
   if (!standaloneLanguages.has(document.languageId)) return undefined;
   return { document, documentUri: document.uri, resourceUri: document.uri };
@@ -53,7 +65,9 @@ export function resolveSupportedDocument(
 
 export function resolveEditorTarget(editor: vscode.TextEditor): TargetResolution {
   const target = resolveSupportedDocument(editor.document, vscode.workspace.notebookDocuments);
-  return target === undefined ? { ok: false, reason: "UNSUPPORTED_DOCUMENT" } : { ok: true, target, editor };
+  return target === undefined
+    ? { ok: false, reason: "UNSUPPORTED_DOCUMENT" }
+    : { ok: true, target, editor };
 }
 
 export function resolveActiveEditorTarget(): TargetResolution {
@@ -65,5 +79,7 @@ export function resolveActiveEditorTarget(): TargetResolution {
     }
     return resolveEditorTarget(editor);
   }
-  return editor === undefined ? { ok: false, reason: "NO_ACTIVE_EDITOR" } : resolveEditorTarget(editor);
+  return editor === undefined
+    ? { ok: false, reason: "NO_ACTIVE_EDITOR" }
+    : resolveEditorTarget(editor);
 }

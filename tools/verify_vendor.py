@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -73,9 +74,25 @@ def verify(root: Path) -> None:
     verify_tree_hashes(vendor_root, inventory)
 
 
-def main() -> int:
+def verify_lock_projection(root: Path) -> None:
+    """Validate only the source-free requirements projection used by OSV."""
+
+    validate_lock_projection(
+        root / "tools" / "sqlparse-vendor.lock",
+        root / "tools" / "sqlparse-vendor.requirements.txt",
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--lock-projection-only", action="store_true")
+    args = parser.parse_args(argv)
+    root = Path(__file__).resolve().parents[1]
     try:
-        verify(Path(__file__).resolve().parents[1])
+        if args.lock_projection_only:
+            verify_lock_projection(root)
+        else:
+            verify(root)
     except BaseException as exc:
         sys.stderr.write(f"vendor verification failed: {exc}\n")
         return 1

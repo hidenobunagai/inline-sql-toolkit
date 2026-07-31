@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -14,12 +14,19 @@ interface PackageManifest {
   readonly capabilities?: unknown;
   readonly extensionDependencies?: unknown;
   readonly contributes?: unknown;
+  readonly repository?: unknown;
+  readonly homepage?: unknown;
+  readonly bugs?: unknown;
 }
 
 function loadPackageJson(): PackageManifest {
   return JSON.parse(
     readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
   ) as PackageManifest;
+}
+
+function readProjectDocument(relativePath: string): string {
+  return readFileSync(resolve(process.cwd(), relativePath), "utf8");
 }
 
 describe("extension manifest", () => {
@@ -139,5 +146,132 @@ describe("extension manifest", () => {
     expect(fixture.contributes?.notebooks).toEqual([
       expect.objectContaining({ type: "marimo-notebook" }),
     ]);
+  });
+
+  it("documents every public command, setting, and safety boundary", () => {
+    const readme = readProjectDocument("README.md");
+
+    for (const command of [
+      "inlineSql.formatAtCursor",
+      "inlineSql.formatSelection",
+      "inlineSql.formatAll",
+    ]) {
+      expect(readme).toContain(command);
+    }
+    for (const setting of [
+      "inlineSql.format.keywordCase",
+      "inlineSql.format.indentWidth",
+      "inlineSql.format.wrapAfter",
+      "inlineSql.format.useSpaceAroundOperators",
+      "inlineSql.pythonPath",
+    ]) {
+      expect(readme).toContain(setting);
+    }
+
+    for (const assertion of [
+      "Python 3.12",
+      "first logical line",
+      "-- sql",
+      "--sql",
+      "SELECT",
+      "WITH",
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "MERGE",
+      "CREATE",
+      "ALTER",
+      "DROP",
+      "TRUNCATE",
+      "EXPLAIN",
+      "word boundary",
+      "ASCII space",
+      "tab",
+      "CR",
+      "LF",
+      ".py",
+      "Jupyter",
+      "marimo",
+      "plain",
+      "raw",
+      "f-string",
+      "rf",
+      "fr",
+      "triple",
+      "SQL-language cells",
+      "%sql",
+      "%%sql",
+      "bytes",
+      "concatenat",
+      "t-string",
+      "invalid Python",
+      "manual-only",
+      "never executed",
+      "never validated",
+      "sqlparse",
+      "dialect",
+      "unsafe",
+      "untrusted",
+      "highlighting only",
+      "WorkspaceEdit",
+      "document version",
+      "atomic",
+      "privacy",
+      "offline",
+      "troubleshoot",
+    ]) {
+      expect(readme.toLowerCase()).toContain(assertion.toLowerCase());
+    }
+  });
+
+  it("keeps manifest links on files retained in the VSIX", () => {
+    const manifest = loadPackageJson();
+    const contributes = (manifest.contributes ?? {}) as {
+      readonly grammars?: readonly { readonly path?: unknown }[];
+    };
+    const main = manifest.main;
+    expect(typeof main).toBe("string");
+    if (typeof main === "string") {
+      expect(existsSync(resolve(process.cwd(), main))).toBe(true);
+      expect(main.startsWith("./")).toBe(true);
+      expect(main.endsWith(".ts")).toBe(false);
+    }
+    for (const grammar of contributes.grammars ?? []) {
+      expect(typeof grammar.path).toBe("string");
+      if (typeof grammar.path === "string") {
+        expect(existsSync(resolve(process.cwd(), grammar.path))).toBe(true);
+        expect(grammar.path.startsWith("./")).toBe(true);
+        expect(grammar.path.endsWith(".tmLanguage.json")).toBe(true);
+      }
+    }
+
+    for (const packagedDocument of [
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE",
+      "SECURITY.md",
+      "SUPPORT.md",
+      "THIRD_PARTY_NOTICES.md",
+    ]) {
+      expect(existsSync(resolve(process.cwd(), packagedDocument))).toBe(true);
+    }
+
+    expect(manifest.repository).toEqual({
+      type: "git",
+      url: "https://github.com/hidenobunagai/inline-sql-toolkit.git",
+    });
+    expect(manifest.homepage).toBe("https://github.com/hidenobunagai/inline-sql-toolkit#readme");
+    expect(manifest.bugs).toEqual({
+      url: "https://github.com/hidenobunagai/inline-sql-toolkit/issues",
+    });
+
+    const localReadmeLinks = Array.from(
+      readProjectDocument("README.md").matchAll(/\]\(([^)]+)\)/g),
+      ({ 1: link }) => link,
+    ).filter((link): link is string => link !== undefined && !/^[a-z]+:/i.test(link));
+    for (const link of localReadmeLinks) {
+      expect(link.startsWith("docs/")).toBe(false);
+      expect(existsSync(resolve(process.cwd(), link))).toBe(true);
+    }
   });
 });

@@ -1,7 +1,16 @@
 {
   "name": "inline-sql-toolkit",
   "displayName": "Inline SQL Toolkit",
+  "description": "Highlight and manually format safe inline SQL in Python.",
   "publisher": "hidenobunagai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hidenobunagai/inline-sql-toolkit.git"
+  },
+  "homepage": "https://github.com/hidenobunagai/inline-sql-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/hidenobunagai/inline-sql-toolkit/issues"
+  },
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -120,6 +129,7 @@
     "typecheck": "tsc --noEmit",
     "ci:quality": "bun run format:check && bun run lint && bun run typecheck && bun run test:coverage",
     "test:unit": "vitest run test/ts",
+    "test:docs": "vitest run test/ts/manifest.test.ts",
     "test:coverage": "vitest run --coverage test/ts",
     "test:grammar-gate": "vitest run test/grammar/feasibility-gate.test.ts",
     "test:grammar": "vitest run test/grammar",

@@ -2,7 +2,17 @@
 
 ## 0.1.0 - 2026-07-31
 
-- Initial release with inline SQL highlighting and manual formatting for Python,
-  marimo, and Jupyter notebook Python cells.
-- Bundles `sqlparse` 0.5.5 and runs the helper without network access, database
-  access, or telemetry.
+Initial release.
+
+- Highlights SQL embedded in supported Python strings and in Jupyter and
+  marimo Python cells.
+- Provides the manual commands `Format at Cursor`, `Format Selection`, and
+  `Format All`; it does not register format-on-save or another formatter
+  provider.
+- Formats with the bundled, offline `sqlparse` 0.5.5 engine without executing
+  or validating SQL or inferring a dialect.
+- Preserves Python source and f-string replacement fields, skips unsafe or
+  unsupported literal shapes, and shows highlighting only in untrusted
+  workspaces.
+- Includes the project MIT license and third-party sqlparse BSD-3-Clause and
+  Microsoft Python Extension API facade MIT notices.

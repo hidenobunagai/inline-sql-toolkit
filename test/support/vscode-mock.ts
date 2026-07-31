@@ -196,18 +196,25 @@ export class CancellationTokenSource {
 }
 
 export class WorkspaceEdit {
-  private readonly edits: vscode.TextEdit[] = [];
+  private readonly edits = new Map<string, { readonly uri: vscode.Uri; readonly edits: vscode.TextEdit[] }>();
+  private bucket(uri: vscode.Uri): vscode.TextEdit[] {
+    const key = uri.toString();
+    const existing = this.edits.get(key);
+    if (existing !== undefined) return existing.edits;
+    const created = { uri, edits: [] };
+    this.edits.set(key, created);
+    return created.edits;
+  }
   replace(uri: vscode.Uri, range: vscode.Range, newText: string): boolean {
-    this.edits.push({ range, newText });
-    void uri;
+    this.bucket(uri).push({ range, newText });
     return true;
   }
   insert(uri: vscode.Uri, position: vscode.Position, newText: string): boolean { return this.replace(uri, new Range(position, position), newText); }
   delete(uri: vscode.Uri, range: vscode.Range): boolean { return this.replace(uri, range, ""); }
-  set(uri: vscode.Uri, edits: readonly vscode.TextEdit[]): void { this.edits.push(...edits); void uri; }
-  get(uri: vscode.Uri): vscode.TextEdit[] { void uri; return this.edits; }
-  has(uri: vscode.Uri): boolean { void uri; return this.edits.length > 0; }
-  entries(): [vscode.Uri, vscode.TextEdit[]][] { return []; }
+  set(uri: vscode.Uri, edits: readonly vscode.TextEdit[]): void { this.bucket(uri).push(...edits); }
+  get(uri: vscode.Uri): vscode.TextEdit[] { return this.edits.get(uri.toString())?.edits ?? []; }
+  has(uri: vscode.Uri): boolean { return this.get(uri).length > 0; }
+  entries(): [vscode.Uri, vscode.TextEdit[]][] { return [...this.edits.values()].map(({ uri, edits }) => [uri, edits]); }
   createFile(): never { return failUnimplemented("WorkspaceEdit.createFile"); }
   deleteFile(): never { return failUnimplemented("WorkspaceEdit.deleteFile"); }
   renameFile(): never { return failUnimplemented("WorkspaceEdit.renameFile"); }
@@ -240,6 +247,8 @@ const state: {
   trusted: boolean;
   configurations: Map<string, Map<string, unknown>>;
   reads: Map<string, number>;
+  commandRegistrations: CommandRegistration[];
+  codeActionRegistrations: CodeActionRegistration[];
 } = {
   activeEditor: undefined,
   activeNotebook: undefined,
@@ -247,6 +256,8 @@ const state: {
   trusted: true,
   configurations: new Map(),
   reads: new Map(),
+  commandRegistrations: [],
+  codeActionRegistrations: [],
 };
 
 function failUnimplemented(name: string): never {
@@ -260,8 +271,21 @@ function uriKey(resource: vscode.Uri | undefined): string {
 function makeDocument(input: { uri: string; languageId: string; text?: string; version?: number }): vscode.TextDocument {
   const uri = MockUri.parse(input.uri);
   const text = input.text ?? "";
-  const lines = text.split(/\r?\n/);
-  const lineOffset = (line: number): number => lines.slice(0, line).reduce((sum, value) => sum + value.length + 1, 0);
+  const lines: string[] = [];
+  const terminators: string[] = [];
+  const starts = [0];
+  let cursor = 0;
+  const newlinePattern = /\r\n|\r|\n/g;
+  for (const match of text.matchAll(newlinePattern)) {
+    const index = match.index;
+    const terminator = match[0];
+    lines.push(text.slice(cursor, index));
+    terminators.push(terminator);
+    cursor = index + terminator.length;
+    starts.push(cursor);
+  }
+  lines.push(text.slice(cursor));
+  terminators.push("");
   const document: MockTextDocument = {
     uri,
     fileName: uri.fsPath,
@@ -270,30 +294,38 @@ function makeDocument(input: { uri: string; languageId: string; text?: string; v
     isDirty: false,
     isClosed: false,
     save: () => Promise.resolve(true),
-    eol: 1,
+    eol: text.includes("\r\n") ? 2 : 1,
     lineCount: lines.length,
     getText: (range?: vscode.Range) => range === undefined ? text : text.slice(offsetAt(range.start), offsetAt(range.end)),
     getWordRangeAtPosition: () => undefined,
     lineAt: (lineOrPosition: number | vscode.Position) => {
       const line = typeof lineOrPosition === "number" ? lineOrPosition : lineOrPosition.line;
       const value = lines[line] ?? "";
-      return { lineNumber: line, text: value, range: new Range(new Position(line, 0), new Position(line, value.length)), rangeIncludingLineBreak: new Range(new Position(line, 0), new Position(line + 1, 0)), firstNonWhitespaceCharacterIndex: value.search(/\S|$/), isEmptyOrWhitespace: /^\s*$/.test(value) };
+      const lineStart = starts[line] ?? text.length;
+      const lineEnd = lineStart + value.length;
+      const terminator = terminators[line] ?? "";
+      const includingBreakEnd = lineEnd + terminator.length;
+      return { lineNumber: line, text: value, range: new Range(new Position(line, 0), new Position(line, value.length)), rangeIncludingLineBreak: terminator === "" ? new Range(new Position(line, 0), new Position(line, value.length)) : new Range(new Position(line, 0), new Position(line + 1, 0)), firstNonWhitespaceCharacterIndex: value.search(/\S|$/), isEmptyOrWhitespace: /^\s*$/.test(value), lineBreak: terminator, _offset: lineStart, _endOffset: includingBreakEnd } as unknown as vscode.TextLine;
     },
     offsetAt,
     positionAt,
     languageId: input.languageId,
   } as unknown as MockTextDocument;
   function offsetAt(position: vscode.Position): number {
-    return lineOffset(position.line) + position.character;
+    const lineStart = starts[position.line] ?? text.length;
+    return Math.min(text.length, Math.max(0, lineStart + position.character));
   }
   function positionAt(offset: number): vscode.Position {
-    let remaining = offset;
-    for (let line = 0; line < lines.length; line += 1) {
-      const length = lines[line]?.length ?? 0;
-      if (remaining <= length) return new Position(line, Math.max(0, remaining));
-      remaining -= length + 1;
+    const clamped = Math.min(text.length, Math.max(0, offset));
+    let low = 0;
+    let high = starts.length - 1;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if ((starts[middle] ?? 0) <= clamped) low = middle;
+      else high = middle - 1;
     }
-    return new Position(lines.length - 1, lines.at(-1)?.length ?? 0);
+    const lineStart = starts[low] ?? 0;
+    return new Position(low, Math.min(clamped - lineStart, lines[low]?.length ?? 0));
   }
   return document;
 }
@@ -319,7 +351,12 @@ const windowState = {
 const workspaceState = {
   onDidGrantWorkspaceTrust: new EventEmitter<void>(),
   onDidChangeConfiguration: new EventEmitter<vscode.ConfigurationChangeEvent>(),
+  onDidChangeTextDocument: new EventEmitter<vscode.TextDocumentChangeEvent>(),
+  onDidCloseTextDocument: new EventEmitter<vscode.TextDocument>(),
 };
+
+interface CommandRegistration { readonly command: string; readonly callback: (...args: unknown[]) => unknown; }
+interface CodeActionRegistration { readonly selector: vscode.DocumentSelector; readonly provider: vscode.CodeActionProvider; }
 
 export const window = new Proxy({}, {
   get(_target, property: string | symbol) {
@@ -339,27 +376,41 @@ export const workspace = new Proxy({}, {
     if (property === "onDidGrantWorkspaceTrust") return workspaceState.onDidGrantWorkspaceTrust.event;
     if (property === "onDidChangeConfiguration") return workspaceState.onDidChangeConfiguration.event;
     if (property === "applyEdit") return () => Promise.resolve(true);
+    if (property === "onDidChangeTextDocument") return workspaceState.onDidChangeTextDocument.event;
+    if (property === "onDidCloseTextDocument") return workspaceState.onDidCloseTextDocument.event;
     return failUnimplemented(`workspace.${String(property)}`);
   },
 }) as typeof vscode.workspace;
 
 export const languages = new Proxy({}, {
   get(_target, property: string | symbol) {
-    if (property === "registerCodeActionsProvider") return () => ({ dispose() {} });
+    if (property === "registerCodeActionsProvider") return (selector: vscode.DocumentSelector, provider: vscode.CodeActionProvider) => {
+      const registration = { selector, provider };
+      state.codeActionRegistrations.push(registration);
+      return { dispose: () => { const index = state.codeActionRegistrations.indexOf(registration); if (index >= 0) state.codeActionRegistrations.splice(index, 1); } };
+    };
     return failUnimplemented(`languages.${String(property)}`);
   },
 }) as typeof vscode.languages;
 
 export const commands = new Proxy({}, {
   get(_target, property: string | symbol) {
-    if (property === "registerCommand") return () => ({ dispose() {} });
-    if (property === "executeCommand") return () => Promise.resolve(undefined);
+    if (property === "registerCommand") return (command: string, callback: (...args: unknown[]) => unknown) => {
+      const registration = { command, callback };
+      state.commandRegistrations.push(registration);
+      return { dispose: () => { const index = state.commandRegistrations.indexOf(registration); if (index >= 0) state.commandRegistrations.splice(index, 1); } };
+    };
+    if (property === "executeCommand") return async <T>(command: string, ...args: unknown[]): Promise<T | undefined> => {
+      const registration = state.commandRegistrations.find((item) => item.command === command);
+      return registration === undefined ? undefined : await registration.callback(...args) as T;
+    };
     return failUnimplemented(`commands.${String(property)}`);
   },
 }) as typeof vscode.commands;
 
 export const ProgressLocation = { Notification: 15 } as typeof vscode.ProgressLocation;
 export const ExtensionMode = { Test: 3 } as typeof vscode.ExtensionMode;
+export const EndOfLine = { LF: 1, CRLF: 2 } as typeof vscode.EndOfLine;
 
 export interface VscodeMockControl {
   reset(): void;
@@ -373,6 +424,10 @@ export interface VscodeMockControl {
   configurationReads(key: string): number;
   setTrusted(trusted: boolean): void;
   fireTrustGrant(): void;
+  fireTextDocumentChange(document: vscode.TextDocument): void;
+  fireTextDocumentClose(document: vscode.TextDocument): void;
+  commandRegistrations(): readonly CommandRegistration[];
+  codeActionRegistrations(): readonly CodeActionRegistration[];
 }
 
 export const __mock: VscodeMockControl = {
@@ -383,9 +438,13 @@ export const __mock: VscodeMockControl = {
     state.trusted = true;
     state.configurations.clear();
     state.reads.clear();
+    state.commandRegistrations.length = 0;
+    state.codeActionRegistrations.length = 0;
     windowState.onDidChangeActiveTextEditor.dispose();
     workspaceState.onDidGrantWorkspaceTrust.dispose();
     workspaceState.onDidChangeConfiguration.dispose();
+    workspaceState.onDidChangeTextDocument.dispose();
+    workspaceState.onDidCloseTextDocument.dispose();
   },
   document: makeDocument,
   editor(document) {
@@ -410,4 +469,8 @@ export const __mock: VscodeMockControl = {
   configurationReads(key) { return state.reads.get(key) ?? 0; },
   setTrusted(trusted) { state.trusted = trusted; },
   fireTrustGrant() { state.trusted = true; workspaceState.onDidGrantWorkspaceTrust.fire(undefined); },
+  fireTextDocumentChange(document) { workspaceState.onDidChangeTextDocument.fire({ document, contentChanges: [], reason: undefined }); },
+  fireTextDocumentClose(document) { workspaceState.onDidCloseTextDocument.fire(document); },
+  commandRegistrations() { return state.commandRegistrations; },
+  codeActionRegistrations() { return state.codeActionRegistrations; },
 };

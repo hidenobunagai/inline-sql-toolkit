@@ -215,6 +215,36 @@ def test_rejects_forbidden_content(tmp_path: Path, name: str) -> None:
         validate_vsix(path)
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"/etc/passwd",
+        b"/root/key",
+        b"/usr/local/bin/tool",
+        b"/srv/data/file",
+        b"C:\\Users\\secret\\key",
+        b"\\\\server\\share\\secret",
+        b"api_key=abcdefghijklmnop",
+        b"AWS_SECRET_ACCESS_KEY=abcdefghijklmnop",
+        b"-----BEGIN PRIVATE KEY-----",
+    ],
+)
+def test_rejects_general_paths_and_secret_like_values(
+    tmp_path: Path, payload: bytes
+) -> None:
+    members = valid_members()
+    members["extension/dist/extension.js"] = payload
+    path = tmp_path / "bad.vsix"
+    write_archive(path, members)
+    with pytest.raises(VsixError):
+        validate_vsix(path)
+
+
+def test_allows_urls_in_runtime_and_vendor_notices(tmp_path: Path) -> None:
+    path = make_valid(tmp_path)
+    assert validate_vsix(path).vendor_hashes
+
+
 def test_rejects_oversized_archive_member_and_total(tmp_path: Path) -> None:
     members = valid_members()
     members["extension/dist/extension.js"] = b"x" * (MAX_MEMBER_BYTES + 1)
@@ -349,6 +379,10 @@ def test_extract_rejects_existing_target(tmp_path: Path) -> None:
 def test_parse_vendor_inventory_rejects_invalid() -> None:
     with pytest.raises(VsixError):
         parse_vendor_inventory(b"not-a-hash foo.py\n")
+    first = "a" * 64
+    second = "b" * 64
+    with pytest.raises(VsixError):
+        parse_vendor_inventory(f"{second} z.py\n{first} a.py\n".encode())
 
 
 def test_built_bundle_and_provenance_are_present(tmp_path: Path) -> None:

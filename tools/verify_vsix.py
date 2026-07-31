@@ -128,6 +128,7 @@ def parse_vendor_inventory(payload: bytes) -> dict[str, str]:
     except UnicodeDecodeError as exc:
         raise VsixError("invalid vendor inventory") from exc
     result: dict[str, str] = {}
+    relatives: list[str] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
@@ -145,7 +146,8 @@ def parse_vendor_inventory(payload: bytes) -> dict[str, str]:
         ):
             raise VsixError("invalid vendor inventory")
         result[relative] = fields[0]
-    if not result:
+        relatives.append(relative)
+    if not result or relatives != sorted(relatives):
         raise VsixError("invalid vendor inventory")
     return result
 
@@ -186,10 +188,15 @@ _FORBIDDEN_COMPONENTS = {
 }
 _FORBIDDEN_SUFFIXES = (".ts", ".map", ".lock", ".pyc")
 _ABSOLUTE_PATH = re.compile(
-    rb"(?:\b[A-Za-z]:[\\/]|/(?:Users|home|private|tmp|opt|var|workspace)/)"
+    rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)+|"
+    rb"\\\\[A-Za-z0-9._-]+[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
+    rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+)"
 )
 _SECRET_LIKE = re.compile(
-    rb"(?:AKIA[0-9A-Z]{16}|(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}|(?:password|passwd|secret|api[_-]?key|access[_-]?token)\s*[=:]\s*[\"'][A-Za-z0-9_./+=-]{8,}[\"'])",
+    rb"(?:AKIA[0-9A-Z]{16}|(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}|"
+    rb"(?:aws[_-]?(?:access[_-]?key|secret[_-]?access[_-]?key|session[_-]?token)|"
+    rb"password|passwd|secret|api[_-]?key|access[_-]?token)\s*[=:]\s*[\"']?"
+    rb"[A-Za-z0-9_./+=-]{12,}[\"']?|-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----)",
     re.IGNORECASE,
 )
 

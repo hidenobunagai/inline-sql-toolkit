@@ -114,8 +114,9 @@ without changing Python source is reported as unsafe and is not edited.
 
 ## Trust, privacy, and offline behavior
 
-In an untrusted workspace the extension provides highlighting only. It does not
-start Python, expose formatting commands or Code Actions, or apply edits until
+In an untrusted workspace the extension provides highlighting only. The three
+formatting commands remain visible, but formatting is disabled: no Python
+process starts, no Code Actions are offered, and no edits are applied until
 the workspace is trusted. In a trusted workspace the helper is launched with a
 fixed isolated command and receives only the protocol request on standard
 input. SQL is not written to disk, logged, telemetered, sent over the network,

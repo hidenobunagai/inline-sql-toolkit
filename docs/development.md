@@ -15,8 +15,9 @@ runtime privacy boundary; it does not describe Marketplace publishing.
   Code build for compatibility checks.
 
 Do not use a user-site Python package or `PYTHONPATH` to satisfy the helper's
-runtime imports. The helper uses the checked-in vendor tree and the frozen uv
-environment only.
+runtime imports. The packaged helper runs with its isolated `-I -S` command and
+the checked-in vendor tree; it does not depend on the repository uv environment.
+The frozen uv environment is for development tools and tests only.
 
 ## Frozen setup
 

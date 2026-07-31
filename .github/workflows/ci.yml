@@ -242,7 +242,9 @@ jobs:
       - name: Pull pinned offline image
         run: docker pull python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
       - name: Inspect pinned image digest
-        run: docker image inspect python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de --format '{{json .RepoDigests}}' | tee image-repodigests.json
+        run: |
+          docker image inspect python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de --format '{{index .RepoDigests 0}}' | tee image-repodigest.txt
+          test "$(cat image-repodigest.txt)" = "python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de"
       - name: Run offline Docker smoke
         run: uv run python tools/offline_vsix_smoke.py --vsix package-artifact/inline-sql-toolkit-0.1.0.vsix --request test/fixtures/helper/offline-request.json --image python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
 

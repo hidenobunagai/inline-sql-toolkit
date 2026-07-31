@@ -19,6 +19,7 @@ describe("readFormatOptions", () => {
           indentWidth: 2,
           wrapAfter: 88,
           useSpaceAroundOperators: true,
+          expandSelectList: false,
         },
       },
     );
@@ -53,6 +54,7 @@ describe("readFormatOptions", () => {
           indentWidth: 1,
           wrapAfter: 500,
           useSpaceAroundOperators: false,
+          expandSelectList: false,
         },
       },
     );

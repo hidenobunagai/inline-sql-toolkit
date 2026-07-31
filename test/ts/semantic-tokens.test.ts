@@ -7,7 +7,7 @@ import {
   type SqlLiteralSpan,
   tokenizeSqlLiteral,
 } from "../../src/vscode/semantic-tokens.js";
-import { __mock,type MockSemanticToken } from "../support/vscode-mock.js";
+import { __mock, type MockSemanticToken } from "../support/vscode-mock.js";
 
 beforeEach(() => {
   __mock.reset();
@@ -43,9 +43,7 @@ describe("findSqlLiterals", () => {
   it("detects an f-string starting with a keyword", () => {
     const source = 'query = f"SELECT id, name FROM users"';
     const literal = singleLiteral(source);
-    expect(source.slice(literal.start, literal.end)).toBe(
-      "SELECT id, name FROM users",
-    );
+    expect(source.slice(literal.start, literal.end)).toBe("SELECT id, name FROM users");
     expect(literal.expressions).toEqual([]);
   });
 
@@ -69,17 +67,13 @@ describe("findSqlLiterals", () => {
   it("detects a marker comment literal", () => {
     const source = 'query = """-- sql\nSELECT 1"""';
     const literal = singleLiteral(source);
-    expect(source.slice(literal.start, literal.end)).toBe(
-      "-- sql\nSELECT 1",
-    );
+    expect(source.slice(literal.start, literal.end)).toBe("-- sql\nSELECT 1");
   });
 
   it("detects an rf-string and marks expression ranges", () => {
     const source = 'query = rf"SELECT {column} FROM users"';
     const literal = singleLiteral(source);
-    expect(source.slice(literal.start, literal.end)).toBe(
-      "SELECT {column} FROM users",
-    );
+    expect(source.slice(literal.start, literal.end)).toBe("SELECT {column} FROM users");
     expect(literal.expressions).toEqual([{ start: 7, end: 15 }]);
   });
 
@@ -99,9 +93,7 @@ describe("findSqlLiterals", () => {
   it("respects escaped quotes inside the literal", () => {
     const source = String.raw`x = "SELECT 'a' FROM t"`;
     const literal = singleLiteral(source);
-    expect(source.slice(literal.start, literal.end)).toBe(
-      "SELECT 'a' FROM t",
-    );
+    expect(source.slice(literal.start, literal.end)).toBe("SELECT 'a' FROM t");
   });
 
   it("does not treat a comment after a literal as SQL", () => {
@@ -111,8 +103,7 @@ describe("findSqlLiterals", () => {
   });
 
   it("detects multiple literals in one document", () => {
-    const source =
-      'a = "SELECT 1"\nb = f"WITH x AS (SELECT 1) SELECT * FROM x"';
+    const source = 'a = "SELECT 1"\nb = f"WITH x AS (SELECT 1) SELECT * FROM x"';
     expect(findSqlLiterals(source)).toHaveLength(2);
   });
 
@@ -145,7 +136,7 @@ describe("tokenizeSqlLiteral", () => {
   });
 
   it("classifies strings and numbers", () => {
-    const tokens = tokenize('query = f"SELECT 1, \'text\' FROM t WHERE x = 2.5"');
+    const tokens = tokenize("query = f\"SELECT 1, 'text' FROM t WHERE x = 2.5\"");
     expect(tokens).toEqual([
       { text: "SELECT", type: "inlineSqlKeyword" },
       { text: "1", type: "inlineSqlNumber" },
@@ -172,9 +163,10 @@ describe("tokenizeSqlLiteral", () => {
     const source = 'query = f"SELECT {column} FROM {table_name}"';
     const literal = singleLiteral(source);
     const tokens = tokenizeSqlLiteral(literal, source);
-    expect(tokens.map((token) => source.slice(token.start, token.start + token.length))).toEqual(
-      ["SELECT", "FROM"],
-    );
+    expect(tokens.map((token) => source.slice(token.start, token.start + token.length))).toEqual([
+      "SELECT",
+      "FROM",
+    ]);
   });
 
   it("matches keywords case-insensitively", () => {
@@ -184,12 +176,7 @@ describe("tokenizeSqlLiteral", () => {
 
   it("leaves plain identifiers as identifiers", () => {
     const tokens = tokenize('query = "SELECT selecting FROM selected"');
-    expect(tokens.map((token) => token.text)).toEqual([
-      "SELECT",
-      "selecting",
-      "FROM",
-      "selected",
-    ]);
+    expect(tokens.map((token) => token.text)).toEqual(["SELECT", "selecting", "FROM", "selected"]);
     expect(tokens.map((token) => token.type)).toEqual([
       "inlineSqlKeyword",
       "inlineSqlIdentifier",

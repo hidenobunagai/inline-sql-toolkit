@@ -76,6 +76,7 @@ const options: FormatOptions = {
   indentWidth: 2,
   wrapAfter: 88,
   useSpaceAroundOperators: true,
+  expandSelectList: false,
 };
 
 function success(operation: "locate" | "format"): LocateResponse | FormatResponse {

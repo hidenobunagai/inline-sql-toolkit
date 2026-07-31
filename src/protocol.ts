@@ -21,6 +21,7 @@ export interface FormatOptions {
   readonly indentWidth: number;
   readonly wrapAfter: number;
   readonly useSpaceAroundOperators: boolean;
+  readonly expandSelectList: boolean;
 }
 
 export interface FormatTarget {
@@ -186,6 +187,7 @@ function parseOptions(value: unknown): FormatOptions {
     "indentWidth",
     "wrapAfter",
     "useSpaceAroundOperators",
+    "expandSelectList",
   ]);
   const indentWidth = requireNonNegativeInteger(record.indentWidth);
   const wrapAfter = requireNonNegativeInteger(record.wrapAfter);
@@ -197,6 +199,7 @@ function parseOptions(value: unknown): FormatOptions {
     indentWidth,
     wrapAfter,
     useSpaceAroundOperators: requireBoolean(record.useSpaceAroundOperators),
+    expandSelectList: requireBoolean(record.expandSelectList),
   };
 }
 

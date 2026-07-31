@@ -57,12 +57,19 @@
     "options": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["keywordCase", "indentWidth", "wrapAfter", "useSpaceAroundOperators"],
+      "required": [
+        "keywordCase",
+        "indentWidth",
+        "wrapAfter",
+        "useSpaceAroundOperators",
+        "expandSelectList"
+      ],
       "properties": {
         "keywordCase": { "enum": ["upper", "lower", "preserve"] },
         "indentWidth": { "type": "integer", "minimum": 1, "maximum": 8 },
         "wrapAfter": { "type": "integer", "minimum": 20, "maximum": 500 },
-        "useSpaceAroundOperators": { "type": "boolean" }
+        "useSpaceAroundOperators": { "type": "boolean" },
+        "expandSelectList": { "type": "boolean" }
       }
     },
     "reason": {

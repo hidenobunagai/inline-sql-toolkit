@@ -12,7 +12,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -31,7 +32,8 @@
           "keywordCase": "lower",
           "indentWidth": 1,
           "wrapAfter": 20,
-          "useSpaceAroundOperators": false
+          "useSpaceAroundOperators": false,
+          "expandSelectList": false
         }
       }
     },
@@ -53,7 +55,8 @@
           "keywordCase": "preserve",
           "indentWidth": 8,
           "wrapAfter": 500,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -159,7 +162,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         },
         "extra": true
       }
@@ -177,6 +181,7 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
+          "expandSelectList": false,
           "extra": true
         }
       }
@@ -193,7 +198,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -209,7 +215,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -228,7 +235,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -250,7 +258,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -272,7 +281,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -288,7 +298,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -304,7 +315,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -323,7 +335,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -339,7 +352,8 @@
           "keywordCase": "upper",
           "indentWidth": 0,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -355,7 +369,8 @@
           "keywordCase": "upper",
           "indentWidth": 9,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -371,7 +386,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 19,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -387,7 +403,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 501,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -403,7 +420,8 @@
           "keywordCase": "upper",
           "indentWidth": true,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -441,7 +459,8 @@
           "keywordCase": "upper",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },
@@ -457,7 +476,8 @@
           "keywordCase": "uppercase",
           "indentWidth": 2,
           "wrapAfter": 88,
-          "useSpaceAroundOperators": true
+          "useSpaceAroundOperators": true,
+          "expandSelectList": false
         }
       }
     },

@@ -66,6 +66,7 @@ class FormatOptions:
     indent_width: int
     wrap_after: int
     use_space_around_operators: bool
+    expand_select_list: bool = False
 
 
 @dataclass(frozen=True, slots=True)

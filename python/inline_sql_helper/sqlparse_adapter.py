@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import sqlparse
+from sqlparse import sql as sqltypes
+from sqlparse.tokens import Keyword, Punctuation
 
 from inline_sql_helper.model import FormatOptions
 
@@ -112,6 +114,74 @@ def _format_with_sqlparse(sql: str, options: dict[str, object]) -> str:
         raise SqlFormattingError("sqlparse formatting failed") from None
 
 
+_SELECT_LIST_STOP_KEYWORDS = frozenset(
+    {
+        "FROM",
+        "INTO",
+        "WHERE",
+        "GROUP",
+        "ORDER",
+        "HAVING",
+        "LIMIT",
+        "OFFSET",
+        "WINDOW",
+        "UNION",
+        "EXCEPT",
+        "INTERSECT",
+        "FOR",
+    }
+)
+
+
+def _expand_identifier_list(list_token: sqltypes.IdentifierList, indent: str) -> str:
+    """Flatten one top-level column list onto one line per column."""
+    parts: list[str] = []
+    current: list[str] = []
+    for token in list_token.tokens:
+        if token.ttype is Punctuation and token.value == ",":
+            parts.append("".join(str(item) for item in current).strip())
+            current = []
+        else:
+            current.append(token)
+    parts.append("".join(str(item) for item in current).strip())
+    return f",\n{indent}".join(parts)
+
+
+def expand_select_lists(statement: sqltypes.Statement, indent: str) -> str:
+    """Expand SELECT column lists in place, one column per line."""
+    tokens = statement.tokens
+    pieces: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if not (token.ttype is Keyword.DML and token.value.upper() == "SELECT"):
+            pieces.append(str(token))
+            index += 1
+            continue
+        cursor = index + 1
+        while cursor < len(tokens) and tokens[cursor].is_whitespace:
+            cursor += 1
+        if cursor >= len(tokens) or not isinstance(
+            tokens[cursor], sqltypes.IdentifierList
+        ):
+            pieces.append(str(token))
+            index += 1
+            continue
+        pieces.append(f"SELECT\n{indent}")
+        pieces.append(_expand_identifier_list(tokens[cursor], indent))
+        index = cursor + 1
+        while index < len(tokens) and tokens[index].is_whitespace:
+            index += 1
+        pieces.append("\n")
+    return "".join(pieces)
+
+
+def expand_select_lists_in_text(sql_text: str, indent: str) -> str:
+    """Expand every SELECT column list in a formatted SQL body."""
+    statements = sqlparse.parse(sql_text)
+    return "".join(expand_select_lists(statement, indent) for statement in statements)
+
+
 def format_sql(
     protected_sql: str,
     *,
@@ -133,6 +203,8 @@ def format_sql(
     # formatter may nevertheless append one; discard terminal line endings so
     # the original boundary remains the sole owner of that text.
     formatted = formatted.rstrip("\r\n")
+    if options.expand_select_list:
+        formatted = expand_select_lists_in_text(formatted, " " * options.indent_width)
     indented = "".join(
         frame.outer_indent + line if not _is_blank(line) else line
         for line in formatted.splitlines(keepends=True)

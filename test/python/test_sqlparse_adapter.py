@@ -186,3 +186,80 @@ def test_split_preserves_multiple_blank_boundaries(line_ending: str) -> None:
     assert frame.trailing_boundary == line_ending + line_ending + "  "
     assert frame.outer_indent == "  "
     assert frame.sql_body == "select 1"
+
+
+def test_expand_select_list_places_each_column_on_its_own_line() -> None:
+    source = "select id, name, 1, 2, 3 from users where id = 1"
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True, True),
+    )
+    assert result == (
+        "SELECT\n"
+        "  id,\n"
+        "  name,\n"
+        "  1,\n"
+        "  2,\n"
+        "  3\n"
+        "FROM users\n"
+        "WHERE id = 1"
+    )
+
+
+def test_expand_select_list_is_disabled_by_default() -> None:
+    source = "select id, name from users"
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True),
+    )
+    assert result == "SELECT id, name\nFROM users"
+
+
+def test_expand_select_list_is_idempotent() -> None:
+    options = FormatOptions("upper", 2, 88, True, True)
+    source = "select id, name from users where x = 1"
+    first = format_sql(source, triple_quoted=True, options=options)
+    second = format_sql(first, triple_quoted=True, options=options)
+    assert first == second
+
+
+def test_expand_select_list_skips_star_and_single_column() -> None:
+    assert (
+        format_sql(
+            "select * from t",
+            triple_quoted=True,
+            options=FormatOptions("upper", 2, 88, True, True),
+        )
+        == "SELECT *\nFROM t"
+    )
+    assert (
+        format_sql(
+            "select id from t",
+            triple_quoted=True,
+            options=FormatOptions("upper", 2, 88, True, True),
+        )
+        == "SELECT id\nFROM t"
+    )
+
+
+def test_expand_select_list_handles_multiple_statements() -> None:
+    source = "select a, b from t1;\nselect c, d from t2"
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True, True),
+    )
+    assert result == (
+        "SELECT\n"
+        "  a,\n"
+        "  b\n"
+        "FROM t1;\n"
+        "\n"
+        "\n"
+        "SELECT\n"
+        "  c,\n"
+        "  d\n"
+        "FROM t2"
+    )

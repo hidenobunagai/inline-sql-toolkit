@@ -223,6 +223,7 @@ def test_golden_fixtures_cover_the_formatter_surface() -> None:
             cast(int, raw_options["indentWidth"]),
             cast(int, raw_options["wrapAfter"]),
             cast(bool, raw_options["useSpaceAroundOperators"]),
+            cast(bool, raw_options.get("expandSelectList", False)),
         )
         analysis = analyze_document(source)
         literal = analysis.supported[0]

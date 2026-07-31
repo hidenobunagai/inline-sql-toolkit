@@ -48,7 +48,8 @@ const SQL_START_KEYWORDS = [
 
 const SQL_MARKERS = new Set(["-- sql", "--sql"]);
 
-const LITERAL_BEGIN_PATTERN = /(?<![A-Za-z0-9_])(rf|rF|Rf|RF|fr|fR|Fr|FR|r|R|f|F)?("""|'''|"(?!")|'(?!'))/g;
+const LITERAL_BEGIN_PATTERN =
+  /(?<![A-Za-z0-9_])(rf|rF|Rf|RF|fr|fR|Fr|FR|r|R|f|F)?("""|'''|"(?!")|'(?!'))/g;
 
 function isIdentifierContinue(character: string | undefined): boolean {
   return character !== undefined && /[A-Za-z0-9_]/.test(character);
@@ -77,8 +78,7 @@ function detectSqlInLiteral(content: string): boolean {
   let lineStart = 0;
   while (lineStart < content.length) {
     const lineEnd = content.indexOf("\n", lineStart);
-    const line =
-      lineEnd === -1 ? content.slice(lineStart) : content.slice(lineStart, lineEnd);
+    const line = lineEnd === -1 ? content.slice(lineStart) : content.slice(lineStart, lineEnd);
     const trimmed = line.trim();
     if (trimmed !== "") {
       if (SQL_MARKERS.has(trimmed.toLowerCase())) return true;
@@ -135,9 +135,7 @@ export function findSqlLiterals(text: string): readonly SqlLiteralSpan[] {
     const contentEnd = findLiteralEnd(text, contentStart, quote);
     const content = text.slice(contentStart, contentEnd);
     if (!detectSqlInLiteral(content)) continue;
-    const expressions = isFStringPrefix(prefix)
-      ? findExpressionRanges(content)
-      : [];
+    const expressions = isFStringPrefix(prefix) ? findExpressionRanges(content) : [];
     literals.push({ start: contentStart, end: contentEnd, expressions });
   }
   return literals;
@@ -230,10 +228,7 @@ const SQL_KEYWORDS = new Set([
 const SQL_TOKEN_PATTERN =
   /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|[<>!=+\-*/%,.;:(){}]+|\[|\]/g;
 
-function isInsideExpression(
-  expressions: readonly SqlExpressionSpan[],
-  offset: number,
-): boolean {
+function isInsideExpression(expressions: readonly SqlExpressionSpan[], offset: number): boolean {
   for (const expression of expressions) {
     if (offset >= expression.start && offset < expression.end) return true;
   }
@@ -282,10 +277,7 @@ function computeLineStarts(text: string): readonly number[] {
   return starts;
 }
 
-function offsetToPosition(
-  offset: number,
-  lineStarts: readonly number[],
-): vscode.Position {
+function offsetToPosition(offset: number, lineStarts: readonly number[]): vscode.Position {
   let low = 0;
   let high = lineStarts.length - 1;
   while (low < high) {

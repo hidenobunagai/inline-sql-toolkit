@@ -78,6 +78,7 @@ test("rejects non-finite direct numeric values", () => {
           indentWidth: 2,
           wrapAfter,
           useSpaceAroundOperators: true,
+          expandSelectList: false,
         },
       }),
     ).toThrow(new ProtocolViolation("PROTOCOL_ERROR"));
@@ -97,6 +98,7 @@ test.each(["SELECT '日本語'", "SELECT '𝄞'", "SELECT 'e\u0301'"])(
         indentWidth: 2,
         wrapAfter: 88,
         useSpaceAroundOperators: true,
+        expandSelectList: false,
       },
     };
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -128,6 +130,7 @@ test("returns only a stable reason code for a private invalid source", () => {
         indentWidth: 0,
         wrapAfter: 88,
         useSpaceAroundOperators: true,
+        expandSelectList: false,
       },
     });
   } catch (error: unknown) {
@@ -150,6 +153,7 @@ test("constructs fresh values without retaining decoded input objects", () => {
       indentWidth: 2,
       wrapAfter: 88,
       useSpaceAroundOperators: true,
+      expandSelectList: false,
     },
   };
   const parsed = parseProtocolValue("request", decoded);

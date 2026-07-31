@@ -14,3 +14,4 @@ reports/
 __pycache__/
 *.py[cod]
 test/.grammar-cache/
+.headroom/

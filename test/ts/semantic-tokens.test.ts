@@ -1,16 +1,42 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import * as vscode from "vscode";
 
 import {
+  createInlineSqlSemanticTokensProvider,
   findSqlLiterals,
   type SqlLiteralSpan,
   tokenizeSqlLiteral,
 } from "../../src/vscode/semantic-tokens.js";
+import { __mock,type MockSemanticToken } from "../support/vscode-mock.js";
+
+beforeEach(() => {
+  __mock.reset();
+});
 
 function singleLiteral(source: string): SqlLiteralSpan {
   const literals = findSqlLiterals(source);
   const literal = literals[0];
   if (literal === undefined) throw new Error("expected exactly one SQL literal");
   return literal;
+}
+
+function tokensForSource(source: string): readonly { text: string; type: string }[] {
+  const document = __mock.document({
+    uri: "file:///query.py",
+    languageId: "python",
+    text: source,
+  });
+  const { provider } = createInlineSqlSemanticTokensProvider();
+  const token = new vscode.CancellationTokenSource().token;
+  const semantic = provider.provideDocumentSemanticTokens(document, token);
+  if (semantic === null || semantic === undefined) {
+    throw new Error("expected semantic tokens to be provided");
+  }
+  const tokens = (semantic as unknown as { readonly tokens: readonly MockSemanticToken[] }).tokens;
+  return tokens.map((item) => ({
+    text: source.slice(item.range.start.character, item.range.end.character),
+    type: item.tokenType,
+  }));
 }
 
 describe("findSqlLiterals", () => {
@@ -170,5 +196,26 @@ describe("tokenizeSqlLiteral", () => {
       "inlineSqlKeyword",
       "inlineSqlIdentifier",
     ]);
+  });
+});
+
+describe("semantic tokens provider", () => {
+  it("provides SQL keyword and number tokens inside the literal", () => {
+    const tokens = tokensForSource('query = "SELECT 1"');
+    expect(tokens).toEqual([
+      { text: "SELECT", type: "inlineSqlKeyword" },
+      { text: "1", type: "inlineSqlNumber" },
+    ]);
+  });
+
+  it("provides no tokens for a non-SQL document", () => {
+    expect(() => tokensForSource('greeting = "hello"')).toThrow(
+      "expected semantic tokens to be provided",
+    );
+  });
+
+  it("skips f-string expressions in the token stream", () => {
+    const tokens = tokensForSource('query = f"SELECT {column} FROM users"');
+    expect(tokens.map((token) => token.text)).toEqual(["SELECT", "FROM", "users"]);
   });
 });

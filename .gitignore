@@ -3,6 +3,7 @@
 .venv/
 node_modules/
 dist/
+dist-test/
 dist-vsix/
 .vscode-test/
 coverage/

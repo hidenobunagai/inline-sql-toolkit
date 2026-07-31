@@ -9,6 +9,7 @@ export default tseslint.config(
     ignores: [
       "coverage/**",
       "dist/**",
+      "dist-test/**",
       "dist-vsix/**",
       "docs/superpowers/**",
       ".superpowers/**",

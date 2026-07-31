@@ -84,8 +84,9 @@ later atomic precondition.
 - `inlineSql.format.useSpaceAroundOperators`: add spaces around operators
   (default `true`).
 - `inlineSql.pythonPath`: optional absolute path to a Python 3.12+ interpreter.
-  The path is read only in a trusted workspace and is checked against the
-  workspace/restricted-resource rules.
+  The path is read only in a trusted workspace; invalid or non-string values
+  are rejected. VS Code marks this setting restricted in untrusted workspaces,
+  but the extension does not claim to validate path containment.
 
 ## Detection and supported syntax
 
@@ -99,7 +100,7 @@ is found when either condition holds:
 2. After removing only physically present ASCII space, tab, CR, and LF
    characters, the source starts with one of `SELECT`, `WITH`, `INSERT`,
    `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, or
-   `EXPLAIN`, followed by a word boundary. The two source characters `\\n` are
+   `EXPLAIN`, followed by a word boundary. The two source characters `\n` are
    not treated as whitespace.
 
 Standalone plain and raw strings, f-strings, and raw f-strings (`f`, `rf`, and

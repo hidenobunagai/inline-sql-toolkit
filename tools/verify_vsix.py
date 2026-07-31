@@ -188,9 +188,11 @@ _FORBIDDEN_COMPONENTS = {
 }
 _FORBIDDEN_SUFFIXES = (".ts", ".map", ".lock", ".pyc")
 _ABSOLUTE_PATH = re.compile(
-    rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)+|"
+    rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
     rb"\\\\[A-Za-z0-9._-]+[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
-    rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+)"
+    rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+|"
+    rb"(?<![A-Za-z0-9_/:.!-])/(?:tmp|etc|root|home|Users|private|var|opt|srv|workspace)"
+    rb"(?=$|[\s\"'<>),;]))"
 )
 _SECRET_LIKE = re.compile(
     rb"(?:AKIA[0-9A-Z]{16}|(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}|"

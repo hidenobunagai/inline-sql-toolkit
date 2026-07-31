@@ -76,6 +76,10 @@ describe("GitHub workflow contracts", () => {
     for (const name of workflowNames) {
       const workflow = await loadWorkflow(name);
       expect(workflow.permissions).toMatchObject({ contents: "read" });
+      for (const job of Object.values(jobsOf(workflow))) {
+        if (job.uses === undefined) continue;
+        expect(job.uses).toMatch(/^[^/]+\/[^@]+@[0-9a-f]{40}$/u);
+      }
       for (const step of allSteps(workflow)) {
         if (step.uses === undefined) continue;
         expect(step.uses).toMatch(/^[^/]+\/[^@]+@[0-9a-f]{40}$/u);

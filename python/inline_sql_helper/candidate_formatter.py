@@ -200,6 +200,11 @@ def format_candidate(
     sql_formatter: SqlFormatter,
 ) -> CandidateResult:
     """Return a changed, unchanged, or safely skipped candidate state."""
+    # The analysis and source are a matched snapshot.  Never derive an edit
+    # from a stale source map: doing so could report an unchanged candidate or
+    # an edit whose expected text is not present in the caller's document.
+    if analysis.source_map.text != source:
+        return CandidateSkip(literal.span, ReasonCode.FORMATTER_FAILED)
     expected = analysis.source_map.slice(literal.span)
     if not detection.matched:
         return CandidateSkip(literal.span, ReasonCode.NO_SQL_CANDIDATE)

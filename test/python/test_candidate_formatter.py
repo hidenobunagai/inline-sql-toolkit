@@ -64,6 +64,22 @@ def test_already_formatted_is_unchanged() -> None:
     assert isinstance(result, CandidateUnchanged)
 
 
+def test_stale_analysis_is_safely_skipped() -> None:
+    analysis = analyze_document('query = "SELECT 1"')
+    literal = analysis.supported[0]
+    result = format_candidate(
+        'query = "select 1"',
+        analysis,
+        literal,
+        detect_sql(literal, analysis.source_map),
+        OPTIONS,
+        nonce=NONCE,
+        sql_formatter=format_sql,
+    )
+    assert isinstance(result, CandidateSkip)
+    assert result.reason is ReasonCode.FORMATTER_FAILED
+
+
 def test_format_returns_guarded_edit() -> None:
     source = 'query = "select a from table where x=1"'
     result = format_only_candidate(source)

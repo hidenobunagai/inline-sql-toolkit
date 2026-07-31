@@ -28,7 +28,7 @@ The extension bundles Microsoft's Python Extension API facade through esbuild.
 It is distributed under the MIT license. Exact provenance links are:
 
 - npm package: <https://www.npmjs.com/package/@vscode/python-extension>
-- Source repository path: <https://github.com/microsoft/vscode/tree/main/pythonExtensionApi>
+- Source repository path: <https://github.com/microsoft/vscode-python/tree/main/pythonExtensionApi>
 - Version: `1.0.5`
 
 The complete MIT notice and source record are in

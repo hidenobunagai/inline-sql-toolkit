@@ -70,8 +70,9 @@ The command IDs are shown for keybindings and automation integrations:
 Each invocation checks the document version and the expected source text before
 creating one `WorkspaceEdit`, so the operation is one undo step. VS Code does
 not provide an atomic, versioned precondition for an edit that happens after
-that check; if the document changes during the operation, the extension
-rejects the stale result instead of applying it.
+that check. Changes observed before the edit are rejected as stale; a change
+that races after the check can still be applied because VS Code provides no
+later atomic precondition.
 
 ## Settings
 

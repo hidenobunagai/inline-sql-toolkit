@@ -1,14 +1,46 @@
+import ast
 import sys
+import token
+from collections.abc import Sequence
+from dataclasses import replace
+from typing import TypeVar
 
 import pytest
 from inline_sql_helper.literals import (
     LiteralKind,
+    SupportedLiteral,
+    UnsupportedLiteral,
     UnsupportedStringSyntax,
     analyze_document,
+    classify_fstring,
     split_plain_string,
 )
 from inline_sql_helper.model import ReasonCode
-from inline_sql_helper.positions import SourceSpan
+from inline_sql_helper.positions import SourceMap, SourceSpan
+from inline_sql_helper.token_bundles import (
+    SourceToken,
+    StringTokenBundle,
+    scan_string_bundles,
+    tokenize_source,
+)
+
+T = TypeVar("T")
+
+
+def only(values: Sequence[T]) -> T:
+    """Return the sole value, rejecting missing or ambiguous results."""
+    assert len(values) == 1
+    return values[0]
+
+
+def _fstring_parts(
+    source: str,
+) -> tuple[ast.expr, StringTokenBundle, SourceMap]:
+    source_map = SourceMap.from_text(source)
+    tree = ast.parse(source)
+    assignment = only(tuple(node for node in tree.body if isinstance(node, ast.Assign)))
+    bundles = scan_string_bundles(tokenize_source(source, source_map))
+    return assignment.value, only(bundles), source_map
 
 
 @pytest.mark.parametrize("prefix", ["", "r", "R"])
@@ -127,18 +159,209 @@ def test_bytes_only_document_is_consumed_once() -> None:
     assert analysis.unsupported[0].span == SourceSpan(0, 14)
 
 
-def test_fstring_is_deferred_as_one_consumed_bundle() -> None:
-    """Catch premature Task 6 publication or duplicate unsupported reporting."""
-    analysis = analyze_document('query = f"SELECT {value}"')
-    assert analysis.supported == ()
+@pytest.mark.parametrize(
+    "prefix",
+    ["f", "F", "rf", "rF", "Rf", "RF", "fr", "fR", "Fr", "FR"],
+)
+@pytest.mark.parametrize("delimiter", ["'", '"', "'''", '"""'])
+def test_supported_fstring_prefix_and_delimiter(
+    prefix: str,
+    delimiter: str,
+) -> None:
+    """Catch rejecting an approved f-string spelling or delimiter."""
+    analysis = analyze_document(
+        f"query = {prefix}{delimiter}SELECT {{value}}{delimiter}"
+    )
+    literal = only(analysis.supported)
+    assert analysis.source_map.slice(literal.span) == (
+        f"{prefix}{delimiter}SELECT {{value}}{delimiter}"
+    )
+    assert analysis.source_map.slice(literal.content_span) == "SELECT {value}"
+    assert tuple(analysis.source_map.slice(span) for span in literal.field_spans) == (
+        "{value}",
+    )
+    assert literal.prefix == prefix
+    assert literal.delimiter == delimiter
+    assert literal.kind is (
+        LiteralKind.FSTRING if prefix.casefold() == "f" else LiteralKind.RAW_FSTRING
+    )
     assert analysis.unsupported == ()
 
 
-def test_nested_plain_string_inside_fstring_is_not_published_separately() -> None:
-    """Catch generic-visiting JoinedStr internals or double-consuming its bundle."""
-    analysis = analyze_document("query = f\"SELECT {lookup['column']}\"")
-    assert analysis.supported == ()
+@pytest.mark.parametrize(
+    ("literal_source", "fields"),
+    [
+        ('f"SELECT {value}"', ("{value}",)),
+        ('f"SELECT {value=}"', ("{value=}",)),
+        ('f"SELECT {value!s}"', ("{value!s}",)),
+        ('f"SELECT {value!r:>{width}}"', ("{value!r:>{width}}",)),
+        ('f"SELECT {value!a}"', ("{value!a}",)),
+        ('f"SELECT {{x}}, {items[{key}]}"', ("{items[{key}]}",)),
+        ('f"""SELECT {(\nvalue\n)}"""', ("{(\nvalue\n)}",)),
+        (
+            'f"""SELECT {value  # expression comment\n}"""',
+            ("{value  # expression comment\n}",),
+        ),
+        ('f"SELECT {mapping["key"]}"', ('{mapping["key"]}',)),
+        ('f"SELECT {f"{value}"}"', ('{f"{value}"}',)),
+        ('f"SELECT {left}, {right}"', ("{left}", "{right}")),
+        ('f"SELECT {{{value}}}"', ("{value}",)),
+    ],
+)
+def test_exact_top_level_field_spans(
+    literal_source: str,
+    fields: tuple[str, ...],
+) -> None:
+    """Catch reconstructing or truncating any PEP 701 replacement field."""
+    source = f"query = {literal_source}"
+    analysis = analyze_document(source)
+    literal = only(analysis.supported)
+    assert (
+        tuple(analysis.source_map.slice(span) for span in literal.field_spans) == fields
+    )
     assert analysis.unsupported == ()
+
+
+def test_nested_plain_string_inside_fstring_stays_in_the_outer_field() -> None:
+    """Catch publishing a field's plain string as a separate literal."""
+    source = "query = f\"SELECT {lookup['column']}\""
+    analysis = analyze_document(source)
+    literal = only(analysis.supported)
+    assert tuple(analysis.source_map.slice(span) for span in literal.field_spans) == (
+        "{lookup['column']}",
+    )
+    assert analysis.unsupported == ()
+
+
+def test_fieldless_fstring_is_supported_with_no_replacement_spans() -> None:
+    """Catch requiring at least one replacement field for safe promotion."""
+    analysis = analyze_document('query = f"SELECT 1"')
+    literal = only(analysis.supported)
+    assert literal.kind is LiteralKind.FSTRING
+    assert literal.field_spans == ()
+    assert analysis.unsupported == ()
+
+
+def test_classification_rejects_a_non_joined_ast_node_as_one_skip() -> None:
+    """Catch promoting a token bundle without one matching JoinedStr owner."""
+    source = 'query = f"SELECT {value}"'
+    _node, bundle, source_map = _fstring_parts(source)
+    result = classify_fstring(ast.Constant(value="not joined"), bundle, source_map)
+    assert result == UnsupportedLiteral(
+        span=bundle.span,
+        detection_content_span=None,
+        reason=ReasonCode.UNSUPPORTED_LITERAL,
+    )
+
+
+def test_classification_rejects_a_non_fstring_bundle_as_one_skip() -> None:
+    """Catch promoting a token unit that is not classified as an f-string."""
+    source = 'query = f"SELECT {value}"'
+    node, bundle, source_map = _fstring_parts(source)
+    plain_bundle = StringTokenBundle("string", bundle.span, bundle.tokens)
+    result = classify_fstring(node, plain_bundle, source_map)
+    assert result == UnsupportedLiteral(
+        span=bundle.span,
+        detection_content_span=None,
+        reason=ReasonCode.UNSUPPORTED_LITERAL,
+    )
+
+
+def test_classification_rejects_a_surface_mismatch_as_one_skip() -> None:
+    """Catch guessing content boundaries from an incomplete token envelope."""
+    source = 'query = f"SELECT {value}"'
+    node, bundle, source_map = _fstring_parts(source)
+    incomplete = replace(
+        bundle,
+        span=SourceSpan(bundle.span.start, bundle.span.end - 1),
+    )
+    result = classify_fstring(node, incomplete, source_map)
+    assert result == UnsupportedLiteral(
+        span=incomplete.span,
+        detection_content_span=None,
+        reason=ReasonCode.UNSUPPORTED_LITERAL,
+    )
+
+
+def test_classification_rejects_an_unsupported_prefix_without_detection() -> None:
+    """Catch widening f-string prefixes or exposing guessed content."""
+    valid_source = 'query = f"SELECT {value}"'
+    node, bundle, _source_map = _fstring_parts(valid_source)
+    unsupported_source = 'query = xf"SELECT {value}"'
+    unsupported_map = SourceMap.from_text(unsupported_source)
+    unsupported_bundle = replace(
+        bundle,
+        span=SourceSpan(bundle.span.start, len(unsupported_source)),
+    )
+    result = classify_fstring(node, unsupported_bundle, unsupported_map)
+    assert result == UnsupportedLiteral(
+        span=unsupported_bundle.span,
+        detection_content_span=None,
+        reason=ReasonCode.UNSUPPORTED_LITERAL,
+    )
+
+
+def test_classification_turns_scanner_failure_into_one_safe_skip() -> None:
+    """Catch partially promoting fields after token state becomes unsafe."""
+    source = 'query = f"SELECT {private_customer}"'
+    node, bundle, source_map = _fstring_parts(source)
+    broken_tokens = tuple(
+        item for item in bundle.tokens if item.exact_type != token.RBRACE
+    )
+    broken_bundle = replace(bundle, tokens=broken_tokens)
+    result = classify_fstring(node, broken_bundle, source_map)
+    assert result == UnsupportedLiteral(
+        span=bundle.span,
+        detection_content_span=SourceSpan(10, len(source) - 1),
+        reason=ReasonCode.UNSAFE_FSTRING_RESTORE,
+    )
+
+
+def test_classification_turns_ast_envelope_mismatch_into_one_safe_skip() -> None:
+    """Catch accepting token spans that differ from the parser's exact envelope."""
+    source = 'query = f"SELECT {private_customer}"'
+    node, bundle, source_map = _fstring_parts(source)
+    changed_tokens: list[SourceToken] = []
+    for item in bundle.tokens:
+        if item.exact_type == token.RBRACE:
+            changed_tokens.append(
+                replace(item, span=SourceSpan(item.span.start, item.span.end - 1))
+            )
+        else:
+            changed_tokens.append(item)
+    changed_bundle = replace(bundle, tokens=tuple(changed_tokens))
+    result = classify_fstring(node, changed_bundle, source_map)
+    assert result == UnsupportedLiteral(
+        span=bundle.span,
+        detection_content_span=SourceSpan(10, len(source) - 1),
+        reason=ReasonCode.UNSAFE_FSTRING_RESTORE,
+    )
+
+
+def test_classification_promotes_multiple_fields_without_reordering() -> None:
+    """Catch returning only one field or changing source order."""
+    source = 'query = f"SELECT {left}, {right}"'
+    node, bundle, source_map = _fstring_parts(source)
+    result = classify_fstring(node, bundle, source_map)
+    assert isinstance(result, SupportedLiteral)
+    assert tuple(source_map.slice(span) for span in result.field_spans) == (
+        "{left}",
+        "{right}",
+    )
+
+
+def test_implicitly_concatenated_fstrings_are_one_unsupported_unit() -> None:
+    """Catch promoting one bundle from a JoinedStr that owns two surfaces."""
+    source = 'query = f"SELECT {left}" f", {right}"'
+    analysis = analyze_document(source)
+    assert analysis.supported == ()
+    assert analysis.unsupported == (
+        UnsupportedLiteral(
+            span=SourceSpan(8, len(source)),
+            detection_content_span=SourceSpan(10, 23),
+            reason=ReasonCode.UNSUPPORTED_LITERAL,
+        ),
+    )
 
 
 def test_implicit_concatenation_is_one_unsupported_literal_unit() -> None:

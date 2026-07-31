@@ -10,7 +10,9 @@ from inline_sql_helper.model import ReasonCode
 from inline_sql_helper.positions import SourceMap, SourceSpan
 from inline_sql_helper.token_bundles import (
     StringTokenBundle,
+    UnsafeFieldScan,
     UnsupportedStringSyntax,
+    scan_fstring_field_spans,
     scan_string_bundles,
     tokenize_source,
 )
@@ -154,6 +156,88 @@ def _unsupported(
     )
 
 
+def fstring_kind(prefix: str) -> LiteralKind:
+    """Classify one supported case-insensitive f-string prefix."""
+    normalized = prefix.casefold()
+    if normalized == "f":
+        return LiteralKind.FSTRING
+    if normalized in {"rf", "fr"}:
+        return LiteralKind.RAW_FSTRING
+    raise UnsupportedStringSyntax
+
+
+def direct_ast_field_spans(
+    node: ast.JoinedStr,
+    source_map: SourceMap,
+) -> tuple[SourceSpan, ...]:
+    """Return parser-provided top-level replacement-field envelopes."""
+    fields: list[SourceSpan] = []
+    for value in node.values:
+        if not isinstance(value, ast.FormattedValue):
+            continue
+        end_lineno = value.end_lineno
+        end_col_offset = value.end_col_offset
+        if end_lineno is None or end_col_offset is None:
+            raise UnsafeFieldScan("AST field has no source envelope")
+        fields.append(
+            SourceSpan(
+                source_map.offset_from_ast(value.lineno, value.col_offset),
+                source_map.offset_from_ast(end_lineno, end_col_offset),
+            )
+        )
+    return tuple(fields)
+
+
+def checked_field_spans(
+    node: ast.JoinedStr,
+    scanned: tuple[SourceSpan, ...],
+    source_map: SourceMap,
+) -> tuple[SourceSpan, ...]:
+    """Accept scanned fields only when their parser envelopes are identical."""
+    if direct_ast_field_spans(node, source_map) != scanned:
+        raise UnsafeFieldScan("AST and token field spans differ")
+    return scanned
+
+
+def classify_fstring(
+    node: ast.expr,
+    bundle: StringTokenBundle,
+    source_map: SourceMap,
+) -> SupportedLiteral | UnsupportedLiteral:
+    """Promote one exactly reconciled f-string or return one safe skip unit."""
+    surface = _content_span(bundle, source_map)
+    if (
+        bundle.kind != "fstring"
+        or surface is None
+        or not isinstance(node, ast.JoinedStr)
+    ):
+        return _unsupported(bundle.span, None)
+    prefix, delimiter, content_span = surface
+    try:
+        kind = fstring_kind(prefix)
+        scanned = scan_fstring_field_spans(bundle, source_map)
+        fields = checked_field_spans(node, scanned, source_map)
+    except UnsupportedStringSyntax:
+        return _unsupported(bundle.span, None)
+    except UnsafeFieldScan:
+        return UnsupportedLiteral(
+            span=bundle.span,
+            detection_content_span=content_span,
+            reason=ReasonCode.UNSAFE_FSTRING_RESTORE,
+        )
+    return SupportedLiteral(
+        span=bundle.span,
+        content_span=content_span,
+        prefix=prefix,
+        delimiter=cast(
+            Literal["'", '"', "'''", '"""'],
+            delimiter,
+        ),
+        kind=kind,
+        field_spans=fields,
+    )
+
+
 def analyze_document(source: str) -> DocumentAnalysis:
     """Parse one complete document and collect plain-string syntax units."""
     source_map = SourceMap.from_text(source)
@@ -190,6 +274,11 @@ def analyze_document(source: str) -> DocumentAnalysis:
             continue
         bundle = owned[0][1]
         if bundle.kind == "fstring":
+            classified = classify_fstring(node, bundle, source_map)
+            if isinstance(classified, SupportedLiteral):
+                supported.append(classified)
+            else:
+                unsupported.append(classified)
             continue
         surface = _content_span(bundle, source_map)
         if surface is None:

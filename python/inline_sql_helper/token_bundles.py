@@ -47,17 +47,36 @@ def tokenize_source(
         index + 1 for index, character in enumerate(source) if character == "\n"
     )
 
-    def offset(row: int, column: int) -> int:
-        """Map tokenize's LF-only rows, falling back for lone CR in strings."""
+    def tokenizer_offset(row: int, column: int) -> int:
+        """Map tokenize's LF-only row and code-point column strictly."""
+        if row < 1 or row > len(tokenizer_line_starts):
+            raise PositionMappingError("token row is outside the document")
+        start = tokenizer_line_starts[row - 1]
+        line_end = (
+            tokenizer_line_starts[row]
+            if row < len(tokenizer_line_starts)
+            else len(source)
+        )
+        if column < 0 or start + column > line_end:
+            raise PositionMappingError("token column is outside the physical line")
+        return start + column
+
+    def token_span(item: tokenize.TokenInfo) -> SourceSpan:
+        """Map one token, rejecting coordinates whose source text disagrees."""
         try:
-            return source_map.offset_from_token(row, column)
-        except PositionMappingError:
-            if row < 1 or row > len(tokenizer_line_starts):
-                raise
-            result = tokenizer_line_starts[row - 1] + column
-            if result < 0 or result > len(source):
-                raise
-            return result
+            start = source_map.offset_from_token(*item.start)
+            end = source_map.offset_from_token(*item.end)
+            candidate = SourceSpan(start, end)
+            if source_map.slice(candidate) == item.string:
+                return candidate
+        except (PositionMappingError, ValueError):
+            pass
+        start = tokenizer_offset(*item.start)
+        end = tokenizer_offset(*item.end)
+        candidate = SourceSpan(start, end)
+        if source_map.slice(candidate) != item.string:
+            raise PositionMappingError("token coordinates do not match source text")
+        return candidate
 
     result: list[SourceToken] = []
     for item in tokenize.generate_tokens(io.StringIO(source).readline):
@@ -77,10 +96,7 @@ def tokenize_source(
                 token_type=item.type,
                 exact_type=item.exact_type,
                 text=item.string,
-                span=SourceSpan(
-                    offset(*item.start),
-                    offset(*item.end),
-                ),
+                span=token_span(item),
             )
         )
     return tuple(result)

@@ -149,6 +149,19 @@ def test_marker_boundaries(content: str, matched: bool) -> None:
     assert detection.matched is matched
 
 
+def test_lone_cr_does_not_shift_following_token_rows() -> None:
+    source = 'query = """--sql\rSELECT 1"""\nother = "SELECT 2"'
+    analysis = analyze_document(source)
+    assert tuple(
+        analysis.source_map.slice(literal.content_span)
+        for literal in analysis.supported
+    ) == ("--sql\rSELECT 1", "SELECT 2")
+    assert all(
+        detect_sql(literal, analysis.source_map).matched
+        for literal in analysis.supported
+    )
+
+
 @pytest.mark.parametrize("marker", ["--sql", "-- SQL", "-- SQL\t"])
 @pytest.mark.parametrize("terminator", ["\n", "\r\n", "\r"])
 def test_marker_span_excludes_marker_and_sql_span_starts_after_line(

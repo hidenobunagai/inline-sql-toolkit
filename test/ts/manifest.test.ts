@@ -232,7 +232,7 @@ describe("extension manifest", () => {
     const main = manifest.main;
     expect(typeof main).toBe("string");
     if (typeof main === "string") {
-      expect(existsSync(resolve(process.cwd(), main))).toBe(true);
+      expect(main).toBe("./dist/extension.js");
       expect(main.startsWith("./")).toBe(true);
       expect(main.endsWith(".ts")).toBe(false);
     }
@@ -255,6 +255,10 @@ describe("extension manifest", () => {
     ]) {
       expect(existsSync(resolve(process.cwd(), packagedDocument))).toBe(true);
     }
+
+    const vscodeignore = readProjectDocument(".vscodeignore");
+    expect(vscodeignore).toContain("!dist/extension.js");
+    expect(vscodeignore).toContain("!syntaxes/**");
 
     expect(manifest.repository).toEqual({
       type: "git",

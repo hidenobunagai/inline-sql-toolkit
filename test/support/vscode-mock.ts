@@ -211,10 +211,11 @@ export class WorkspaceEdit {
   }
   insert(uri: vscode.Uri, position: vscode.Position, newText: string): boolean { return this.replace(uri, new Range(position, position), newText); }
   delete(uri: vscode.Uri, range: vscode.Range): boolean { return this.replace(uri, range, ""); }
-  set(uri: vscode.Uri, edits: readonly vscode.TextEdit[]): void { this.bucket(uri).push(...edits); }
-  get(uri: vscode.Uri): vscode.TextEdit[] { return this.edits.get(uri.toString())?.edits ?? []; }
+  set(uri: vscode.Uri, edits: readonly vscode.TextEdit[]): void { this.edits.set(uri.toString(), { uri, edits: [...edits] }); }
+  get(uri: vscode.Uri): vscode.TextEdit[] { return [...(this.edits.get(uri.toString())?.edits ?? [])]; }
   has(uri: vscode.Uri): boolean { return this.get(uri).length > 0; }
-  entries(): [vscode.Uri, vscode.TextEdit[]][] { return [...this.edits.values()].map(({ uri, edits }) => [uri, edits]); }
+  entries(): [vscode.Uri, vscode.TextEdit[]][] { return [...this.edits.values()].map(({ uri, edits }) => [uri, [...edits]]); }
+  get size(): number { return this.edits.size; }
   createFile(): never { return failUnimplemented("WorkspaceEdit.createFile"); }
   deleteFile(): never { return failUnimplemented("WorkspaceEdit.deleteFile"); }
   renameFile(): never { return failUnimplemented("WorkspaceEdit.renameFile"); }

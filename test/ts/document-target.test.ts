@@ -206,6 +206,10 @@ describe("VS Code unit-test mock fidelity", () => {
     expect(edit.has(second)).toBe(true);
     expect(edit.get(first)).toHaveLength(1);
     expect(edit.get(first)[0]?.newText).toBe("x");
+    edit.set(first, [{ range: new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 1)), newText: "z" }]);
+    expect(edit.get(first)).toHaveLength(1);
+    expect(edit.get(first)[0]?.newText).toBe("z");
+    expect(edit.size).toBe(2);
     expect(edit.entries().map(([uri]) => uri.toString())).toEqual([first.toString(), second.toString()]);
   });
 

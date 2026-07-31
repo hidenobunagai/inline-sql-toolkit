@@ -84,6 +84,7 @@ def test_shared_detection_case(case: DetectionCase) -> None:
     matches = [literal for literal, detection in detections if detection.matched]
     assert bool(matches) is case.detection_expected
     if case.format_expectation == "supported":
+        assert case.detection_expected is True
         assert case.grammar_expectation == "sql"
         supported_matches = [
             (literal, detection)
@@ -118,6 +119,7 @@ def test_shared_detection_case(case: DetectionCase) -> None:
         assert matches
         assert all(isinstance(item, UnsupportedLiteral) for item in matches)
     elif case.format_expectation == "ignored":
+        assert case.grammar_expectation == "none"
         assert matches == []
 
 

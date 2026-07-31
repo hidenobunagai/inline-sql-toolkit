@@ -27,7 +27,7 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const indentWidth = indentWidthValue === undefined ? 2 : indentWidthValue;
   const wrapAfter = wrapAfterValue === undefined ? 88 : wrapAfterValue;
   const useSpaceAroundOperators = operatorSpacingValue === undefined ? true : operatorSpacingValue;
-  const expandSelectList = expandSelectListValue === undefined ? false : expandSelectListValue;
+  const expandSelectList = expandSelectListValue === undefined ? true : expandSelectListValue;
   if (
     (keywordCase !== "upper" && keywordCase !== "lower" && keywordCase !== "preserve") ||
     !integerBetween(indentWidth, 1, 8) ||

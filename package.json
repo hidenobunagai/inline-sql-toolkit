@@ -90,7 +90,7 @@
         },
         "inlineSql.format.expandSelectList": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "scope": "resource",
           "description": "%configuration.format.expandSelectList.description%"
         },
@@ -159,38 +159,6 @@
     ],
     "semanticTokenScopes": [
       {
-        "language": "python",
-        "scopes": {
-          "inlineSqlKeyword": [
-            "keyword.other.sql",
-            "keyword"
-          ],
-          "inlineSqlString": [
-            "string.quoted.sql",
-            "string.quoted.double.sql",
-            "string.quoted.single.sql",
-            "string"
-          ],
-          "inlineSqlNumber": [
-            "constant.numeric.sql",
-            "constant.numeric"
-          ],
-          "inlineSqlOperator": [
-            "keyword.operator.sql",
-            "keyword.operator"
-          ],
-          "inlineSqlComment": [
-            "comment.line.double-dash.sql",
-            "comment.block.sql",
-            "comment"
-          ],
-          "inlineSqlIdentifier": [
-            "source.sql"
-          ]
-        }
-      },
-      {
-        "language": "mo-python",
         "scopes": {
           "inlineSqlKeyword": [
             "keyword.other.sql",

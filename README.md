@@ -84,7 +84,7 @@ later atomic precondition.
 - `inlineSql.format.useSpaceAroundOperators`: add spaces around operators
   (default `true`).
 - `inlineSql.format.expandSelectList`: place every SELECT column on its own
-  indented line in triple-quoted SQL (default `false`).
+  indented line in triple-quoted SQL (default `true`).
 - `inlineSql.pythonPath`: optional absolute path to a Python 3.12+ interpreter.
   The path is read only in a trusted workspace; invalid or non-string values
   are rejected. VS Code marks this setting restricted in untrusted workspaces,

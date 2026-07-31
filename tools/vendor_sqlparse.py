@@ -361,19 +361,31 @@ def vendor(lock_path: Path) -> None:
         finally:
             if staged.exists():
                 shutil.rmtree(staged)
+    third_party = root / "third_party" / "sqlparse"
+    artifact_paths = {
+        name: third_party / name
+        for name in ("LICENSE", "AUTHORS", "files.sha256", "SOURCE.json")
+    }
+    old_artifacts: dict[Path, bytes | None] = {}
+    third_party_created = not third_party.exists()
     try:
-        third_party = root / "third_party" / "sqlparse"
+        if third_party.is_symlink():
+            raise VendorError("symlinked provenance root")
         third_party.mkdir(parents=True, exist_ok=True)
-        (third_party / "LICENSE").write_bytes(license_bytes)
-        (third_party / "AUTHORS").write_bytes(authors_bytes)
+        for path in artifact_paths.values():
+            if path.is_symlink():
+                raise VendorError("symlinked provenance file")
+            old_artifacts[path] = path.read_bytes() if path.exists() else None
+        artifact_paths["LICENSE"].write_bytes(license_bytes)
+        artifact_paths["AUTHORS"].write_bytes(authors_bytes)
         inventory = _inventory(target)
-        (third_party / "files.sha256").write_text(
+        artifact_paths["files.sha256"].write_text(
             "".join(
                 f"{digest}  {relative}\n" for relative, digest in inventory.items()
             ),
             encoding="utf-8",
         )
-        (third_party / "SOURCE.json").write_text(
+        artifact_paths["SOURCE.json"].write_text(
             json.dumps(
                 {
                     "name": lock["name"],
@@ -393,6 +405,18 @@ def vendor(lock_path: Path) -> None:
             encoding="utf-8",
         )
     except BaseException:
+        for path, previous in old_artifacts.items():
+            if previous is None:
+                if path.exists() or path.is_symlink():
+                    _remove_path(path)
+            else:
+                path.write_bytes(previous)
+        if (
+            third_party_created
+            and third_party.exists()
+            and not any(third_party.iterdir())
+        ):
+            third_party.rmdir()
         if installed_new_tree:
             if target.exists() or target.is_symlink():
                 _remove_path(target)

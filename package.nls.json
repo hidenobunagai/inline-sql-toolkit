@@ -1,7 +1,10 @@
 {
   "command.formatAtCursor.title": "Inline SQL: Format at Cursor",
+  "command.formatAtCursor.description": "Format the inline SQL candidate containing the cursor.",
   "command.formatSelection.title": "Inline SQL: Format Selection",
+  "command.formatSelection.description": "Format inline SQL candidates intersecting the selection.",
   "command.formatAll.title": "Inline SQL: Format All in Document/Cell",
+  "command.formatAll.description": "Format all inline SQL candidates in the current document or cell.",
   "configuration.title": "Inline SQL Toolkit",
   "configuration.format.keywordCase.description": "Controls the letter case used for SQL keywords.",
   "configuration.format.indentWidth.description": "Controls the number of spaces used for SQL indentation.",

@@ -1,7 +1,10 @@
 {
   "command.formatAtCursor.title": "Inline SQL: カーソル位置をフォーマット",
+  "command.formatAtCursor.description": "カーソルを含むインライン SQL 候補をフォーマットします。",
   "command.formatSelection.title": "Inline SQL: 選択範囲をフォーマット",
+  "command.formatSelection.description": "選択範囲と交差するインライン SQL 候補をフォーマットします。",
   "command.formatAll.title": "Inline SQL: ドキュメントまたはセル全体をフォーマット",
+  "command.formatAll.description": "現在のドキュメントまたはセル内のすべてのインライン SQL 候補をフォーマットします。",
   "configuration.title": "Inline SQL Toolkit",
   "configuration.format.keywordCase.description": "SQL キーワードの大文字と小文字の形式を指定します。",
   "configuration.format.indentWidth.description": "SQL のインデントに使用する空白の数を指定します。",

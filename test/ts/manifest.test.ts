@@ -58,7 +58,11 @@ describe("extension manifest", () => {
   it("contributes only the approved public surface", () => {
     const manifest = loadPackageJson();
     const contributes = (manifest.contributes ?? {}) as {
-      readonly commands?: readonly { readonly command: string }[];
+      readonly commands?: readonly {
+        readonly command: string;
+        readonly title?: unknown;
+        readonly description?: unknown;
+      }[];
       readonly configuration?: {
         readonly properties?: Readonly<Record<string, unknown>>;
       };
@@ -75,7 +79,14 @@ describe("extension manifest", () => {
       "inlineSql.formatSelection",
       "inlineSql.formatAll",
     ]);
+    expect(
+      contributes.commands?.every(
+        ({ title, description }) => typeof title === "string" && typeof description === "string",
+      ),
+    ).toBe(true);
     expect(Object.keys(contributes.configuration?.properties ?? {})).toHaveLength(5);
+    expect((manifest.contributes as Record<string, unknown>).keybindings).toBeUndefined();
+    expect((manifest.contributes as Record<string, unknown>).languages).toBeUndefined();
     expect(manifest.extensionDependencies).toBeUndefined();
     expect(capabilities.untrustedWorkspaces).toEqual({
       supported: "limited",

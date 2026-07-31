@@ -29,15 +29,18 @@
     "commands": [
       {
         "command": "inlineSql.formatAtCursor",
-        "title": "%command.formatAtCursor.title%"
+        "title": "%command.formatAtCursor.title%",
+        "description": "%command.formatAtCursor.description%"
       },
       {
         "command": "inlineSql.formatSelection",
-        "title": "%command.formatSelection.title%"
+        "title": "%command.formatSelection.title%",
+        "description": "%command.formatSelection.description%"
       },
       {
         "command": "inlineSql.formatAll",
-        "title": "%command.formatAll.title%"
+        "title": "%command.formatAll.title%",
+        "description": "%command.formatAll.description%"
       }
     ],
     "configuration": {

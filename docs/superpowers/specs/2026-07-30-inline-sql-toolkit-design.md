@@ -1,7 +1,7 @@
 ---
 title: Inline SQL Toolkit 設計
 date: 2026-07-30
-status: approved-design-awaiting-written-review
+status: approved
 tags:
   - vscode-extension
   - python

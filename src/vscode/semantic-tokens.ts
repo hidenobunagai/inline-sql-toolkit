@@ -303,12 +303,22 @@ export function createInlineSqlSemanticTokensProvider(): {
       document: vscode.TextDocument,
       token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.SemanticTokens> {
+      // eslint-disable-next-line no-console
+      console.log(`[inline-sql] semantic provider called: ${document.languageId}`);
       const text = document.getText();
       if (text.length > MAX_SEMANTIC_DOCUMENT_CHARS || isCancellationRequested(token)) {
+        // eslint-disable-next-line no-console
+        console.log("[inline-sql] semantic provider returned null (limit/cancel)");
         return null;
       }
       const literals = findSqlLiterals(text);
-      if (literals.length === 0) return null;
+      if (literals.length === 0) {
+        // eslint-disable-next-line no-console
+        console.log("[inline-sql] semantic provider returned null (no SQL literal)");
+        return null;
+      }
+      // eslint-disable-next-line no-console
+      console.log(`[inline-sql] semantic provider found ${literals.length} literal(s)`);
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
       for (const literal of literals) {

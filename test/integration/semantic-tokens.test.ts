@@ -44,6 +44,25 @@ export async function testSemanticTokenIsolation(): Promise<void> {
 
   const probe = vscode.extensions.getExtension("inline-sql-tests.inline-sql-semantic-probe");
   if (probe === undefined) throw new Error("semantic probe extension was not loaded");
+
+  const legend = await vscode.commands.executeCommand<vscode.SemanticTokensLegend>(
+    "vscode.provideDocumentSemanticTokensLegend",
+    document.uri,
+  );
+  assert.ok(
+    legend?.tokenTypes.includes("inlineSqlKeyword"),
+    "semantic token provider should match the python document",
+  );
+
+  const beforeProbe = decodeSemanticTokens(
+    document,
+    await provideFullSemanticTokens(document),
+  );
+  assert.ok(
+    overlapsSql(beforeProbe, sqlRanges),
+    "extension tokens should be served while it is the only semantic token provider",
+  );
+
   await probe.activate();
   await vscode.commands.executeCommand("inlineSql.semanticProbe.setMode", "safe");
   const served = decodeSemanticTokens(document, await provideFullSemanticTokens(document));

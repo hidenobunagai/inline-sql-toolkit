@@ -66,6 +66,7 @@ def valid_members() -> dict[str, bytes]:
         "extension/SUPPORT.md": b"Support",
         "extension/THIRD_PARTY_NOTICES.md": b"Notices",
         "extension/dist/extension.js": b"module.exports = {};",
+        "extension/dist/package.json": b'{"type":"commonjs"}',
         "extension/python/bootstrap.py": b"print('ok')",
         "extension/syntaxes/inline-sql-fstring-islands.tmLanguage.json": b"{}",
         "extension/syntaxes/inline-sql-python.tmLanguage.json": b"{}",

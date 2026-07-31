@@ -40,7 +40,6 @@ uv.lock
 !python/vendor/sqlparse/**/py.typed
 !syntaxes/**
 !third_party/**
-dist/package.json
 !README.md
 !CHANGELOG.md
 !LICENSE

@@ -33,6 +33,7 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
         "extension/SUPPORT.md",
         "extension/THIRD_PARTY_NOTICES.md",
         "extension/dist/extension.js",
+        "extension/dist/package.json",
         "extension/python/bootstrap.py",
     }
 )

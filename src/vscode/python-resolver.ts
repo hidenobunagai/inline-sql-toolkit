@@ -71,8 +71,7 @@ export function probeVersion(
   token: vscode.CancellationToken,
   dependencies: PythonResolverDependencies,
 ): Promise<VersionProbeResult> {
-  if (isCancelled(token))
-    return Promise.resolve({ ok: false, reason: "PROCESS_CANCELLED" });
+  if (isCancelled(token)) return Promise.resolve({ ok: false, reason: "PROCESS_CANCELLED" });
   if (!dependencies.isWorkspaceTrusted())
     return Promise.resolve({ ok: false, reason: "WORKSPACE_UNTRUSTED" });
 
@@ -179,7 +178,7 @@ export function probeVersion(
           return;
         }
         finish(
-          version.major === 3 && version.minor >= 12
+          version.major > 3 || (version.major === 3 && version.minor >= 12)
             ? { ok: true, version }
             : { ok: false, reason: "PYTHON_VERSION_UNSUPPORTED" },
         );

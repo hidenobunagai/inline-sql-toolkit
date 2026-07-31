@@ -216,6 +216,16 @@ describe("bounded version probe", () => {
     },
   );
 
+  it("accepts a future major Python version", async () => {
+    const deps = dependencies();
+    const pending = createPythonResolver(deps).resolve(target(), tokenSource().token);
+    finish(deps.process, "4.0.0\n");
+    await expect(pending).resolves.toMatchObject({
+      ok: true,
+      python: { version: { major: 4, minor: 0, patch: 0 } },
+    });
+  });
+
   it("maps nonzero exits and synchronous spawn errors without source text", async () => {
     const deps = dependencies({
       spawn: vi.fn(() => {

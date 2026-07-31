@@ -120,4 +120,24 @@ describe("extension manifest", () => {
       },
     ]);
   });
+
+  it("keeps notebook contributions in the test-only marimo fixture", () => {
+    const manifest = loadPackageJson();
+    const productionContributes = (manifest.contributes ?? {}) as Record<string, unknown>;
+    expect(productionContributes.notebooks).toBeUndefined();
+
+    const fixture = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), "test/fixtures/extensions/marimo-language/package.json"),
+        "utf8",
+      ),
+    ) as {
+      readonly contributes?: {
+        readonly notebooks?: readonly { readonly type?: unknown }[];
+      };
+    };
+    expect(fixture.contributes?.notebooks).toEqual([
+      expect.objectContaining({ type: "marimo-notebook" }),
+    ]);
+  });
 });

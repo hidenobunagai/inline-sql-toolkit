@@ -92,6 +92,22 @@ def test_valid_format_returns_edit_and_keeps_secret_outside_payload() -> None:
     assert result.stderr == b""
 
 
+def test_multi_candidate_wire_edits_are_source_ordered() -> None:
+    source = 'first = "select 1"\nsecond = "select 2"\n'
+    result = run_bootstrap(request("format", source))
+    value = response(result)
+    assert result.returncode == 0
+    assert value["ok"] is True
+    edits = cast(list[dict[str, object]], value["edits"])
+    assert len(edits) == 2
+    first_range = cast(dict[str, object], edits[0]["range"])
+    second_range = cast(dict[str, object], edits[1]["range"])
+    first_start = cast(dict[str, object], first_range["start"])
+    second_start = cast(dict[str, object], second_range["start"])
+    assert first_start["line"] == 0
+    assert second_start["line"] == 1
+
+
 def test_helper_exception_becomes_process_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

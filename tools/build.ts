@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,6 +6,12 @@ import { build, type Metafile } from "esbuild";
 
 export async function buildExtension(): Promise<Metafile> {
   await mkdir("dist", { recursive: true });
+  // The repository uses ESM for TypeScript tooling, while VS Code loads the
+  // bundled extension through require(). Scope the generated bundle as
+  // CommonJS without changing the source package's module mode.
+  await writeFile("dist/package.json", JSON.stringify({ type: "commonjs" }), {
+    encoding: "utf8",
+  });
   const result = await build({
     entryPoints: ["src/extension.ts"],
     outfile: "dist/extension.js",

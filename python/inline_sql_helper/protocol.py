@@ -435,6 +435,15 @@ def response_to_wire(response: HelperResponse) -> dict[str, object]:
                 range_to_wire(candidate) for candidate in response.candidates
             ],
         }
+    # Candidate formatting applies edits from the end of the source backwards
+    # so source offsets remain stable. The wire protocol, however, requires
+    # edits in source order. Sort only this serialized view: the internal
+    # FormatSuccess contract remains descending for the atomic applicator and
+    # malformed descending payloads are still rejected by the parser.
+    ordered_edits = sorted(
+        response.edits,
+        key=lambda edit: (edit.range.start.line, edit.range.start.character),
+    )
     return {
         "protocolVersion": response.protocol_version,
         "operation": operation,
@@ -445,7 +454,7 @@ def response_to_wire(response: HelperResponse) -> dict[str, object]:
                 "expectedText": edit.expected_text,
                 "newText": edit.new_text,
             }
-            for edit in response.edits
+            for edit in ordered_edits
         ],
         "skips": [
             {

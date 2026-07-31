@@ -1,0 +1,25 @@
+{
+  "name": "marimo-language",
+  "publisher": "inline-sql-tests",
+  "version": "0.0.1",
+  "engines": {"vscode": "^1.95.0"},
+  "contributes": {
+    "languages": [
+      {"id": "mo-python", "aliases": ["Marimo Python"]}
+    ],
+    "grammars": [
+      {
+        "language": "mo-python",
+        "scopeName": "source.mo-python",
+        "path": "./syntaxes/python.tmLanguage.json"
+      }
+    ],
+    "notebooks": [
+      {
+        "type": "marimo-notebook",
+        "displayName": "Marimo Test Notebook",
+        "selector": [{"filenamePattern": "*.marimo-test"}]
+      }
+    ]
+  }
+}

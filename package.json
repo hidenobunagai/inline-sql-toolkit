@@ -124,6 +124,7 @@
     "test:grammar": "vitest run test/grammar",
     "test:integration:trusted": "bun tools/run_vscode_tests.ts trusted",
     "test:integration:untrusted": "bun tools/run_vscode_tests.ts untrusted",
+    "test:integration:compatibility": "bun tools/run_vscode_tests.ts compatibility",
     "package:vsix": "bun run build && vsce package --no-dependencies --out dist-vsix/inline-sql-toolkit-0.1.0.vsix",
     "test:vsix-install": "bun tools/install_and_smoke_vsix.ts"
   },

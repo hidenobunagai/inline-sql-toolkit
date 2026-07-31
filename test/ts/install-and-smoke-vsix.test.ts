@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildInstallCommand,
+  buildInstallInvocation,
   buildSmokeCommand,
   resolveCliScript,
 } from "../../tools/install_and_smoke_vsix.js";
@@ -44,5 +45,12 @@ describe("offline VSIX install smoke command", () => {
     } else {
       expect(script).toContain("resources/app/out/cli.js");
     }
+  });
+
+  it("passes the non-executable CLI script as an Electron argv", () => {
+    const invocation = buildInstallInvocation(input);
+    expect(invocation.command).toBe(input.executable);
+    expect(invocation.args[0]).toBe(resolveCliScript(input.executable));
+    expect(invocation.args).toContain("--install-extension");
   });
 });

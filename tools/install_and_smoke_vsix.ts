@@ -51,6 +51,16 @@ export function resolveCliScript(executable: string): string {
     : path.resolve(path.dirname(executable), "resources/app/out/cli.js");
 }
 
+export function buildInstallInvocation(input: InstallLaunchInput): {
+  readonly command: string;
+  readonly args: readonly string[];
+} {
+  return {
+    command: input.executable,
+    args: [resolveCliScript(input.executable), ...buildInstallCommand(input).slice(1)],
+  };
+}
+
 async function runCommand(
   command: string,
   args: readonly string[],
@@ -125,9 +135,10 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
     const executable = await downloadAndUnzipVSCode("1.95.0");
     const driver = path.join(ROOT, "test", "fixtures", "extensions", "vsix-driver");
     const input = { executable, vsix, driver, workspace, userData, extensions };
+    const install = buildInstallInvocation(input);
     await runCommand(
-      resolveCliScript(executable),
-      buildInstallCommand(input).slice(1),
+      install.command,
+      install.args,
       { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
       120_000,
     );

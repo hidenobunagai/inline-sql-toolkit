@@ -1,0 +1,751 @@
+{
+  "valid": [
+    {
+      "name": "valid-locate-request",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "query = \"SELECT 1\"",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "valid-cursor-format-request",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "query = \"select '𝄞'\"",
+        "target": {
+          "mode": "cursor",
+          "cursor": { "line": 0, "character": 9 }
+        },
+        "options": {
+          "keywordCase": "lower",
+          "indentWidth": 1,
+          "wrapAfter": 20,
+          "useSpaceAroundOperators": false
+        }
+      }
+    },
+    {
+      "name": "valid-selection-request-at-upper-bounds",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "query = \"SELECT '日本語'\"",
+        "target": {
+          "mode": "selection",
+          "selection": {
+            "start": { "line": 0, "character": 0 },
+            "end": { "line": 1, "character": 0 }
+          }
+        },
+        "options": {
+          "keywordCase": "preserve",
+          "indentWidth": 8,
+          "wrapAfter": 500,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "valid-locate-success",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "ok": true,
+        "candidates": [
+          {
+            "start": { "line": 2, "character": 4 },
+            "end": { "line": 2, "character": 12 }
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-locate-error",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "ok": false,
+        "error": { "code": "DOCUMENT_PARSE_FAILED" }
+      }
+    },
+    {
+      "name": "valid-format-success",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [
+          {
+            "range": {
+              "start": { "line": 1, "character": 0 },
+              "end": { "line": 1, "character": 8 }
+            },
+            "expectedText": "select 1",
+            "newText": "SELECT 1"
+          },
+          {
+            "range": {
+              "start": { "line": 3, "character": 0 },
+              "end": { "line": 3, "character": 10 }
+            },
+            "expectedText": "select '𝄞'",
+            "newText": "SELECT '𝄞'"
+          }
+        ],
+        "skips": [
+          {
+            "range": {
+              "start": { "line": 5, "character": 0 },
+              "end": { "line": 5, "character": 8 }
+            },
+            "reason": "UNSAFE_RAW_STRING"
+          }
+        ],
+        "summary": {
+          "discovered": 4,
+          "selected": 4,
+          "changed": 2,
+          "unchanged": 1,
+          "skipped": 1
+        }
+      }
+    },
+    {
+      "name": "valid-format-error",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": false,
+        "error": { "code": "FORMATTER_FAILED" }
+      }
+    },
+    {
+      "name": "valid-pre-dispatch-error",
+      "kind": "preDispatchError",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": false,
+        "error": { "code": "PROTOCOL_ERROR" }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "unknown-request-key",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        },
+        "extra": true
+      }
+    },
+    {
+      "name": "unknown-nested-key",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true,
+          "extra": true
+        }
+      }
+    },
+    {
+      "name": "protocol-version-zero",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 0,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "protocol-version-two",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 2,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "negative-cursor-line",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": {
+          "mode": "cursor",
+          "cursor": { "line": -1, "character": 0 }
+        },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "reversed-selection-range",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": {
+          "mode": "selection",
+          "selection": {
+            "start": { "line": 2, "character": 0 },
+            "end": { "line": 1, "character": 0 }
+          }
+        },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "empty-selection-range",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": {
+          "mode": "selection",
+          "selection": {
+            "start": { "line": 1, "character": 2 },
+            "end": { "line": 1, "character": 2 }
+          }
+        },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "cursor-mode-missing-cursor",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "cursor" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "selection-mode-missing-selection",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": { "mode": "selection" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "all-mode-with-cursor",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": {
+          "mode": "all",
+          "cursor": { "line": 0, "character": 0 }
+        },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "indent-width-below-minimum",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 0,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "indent-width-above-maximum",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 9,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "wrap-after-below-minimum",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 19,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "wrap-after-above-maximum",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 501,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "boolean-used-as-integer",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": true,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "integer-used-as-boolean",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": 1
+        }
+      }
+    },
+    {
+      "name": "unsafe-integer-position",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "source": "",
+        "target": {
+          "mode": "cursor",
+          "cursor": {
+            "line": 9007199254740992,
+            "character": 0
+          }
+        },
+        "options": {
+          "keywordCase": "upper",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "invalid-keyword-case",
+      "kind": "request",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "source": "",
+        "target": { "mode": "all" },
+        "options": {
+          "keywordCase": "uppercase",
+          "indentWidth": 2,
+          "wrapAfter": 88,
+          "useSpaceAroundOperators": true
+        }
+      }
+    },
+    {
+      "name": "error-response-with-edits",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": false,
+        "error": { "code": "PROTOCOL_ERROR" },
+        "edits": []
+      }
+    },
+    {
+      "name": "unknown-error-key",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "ok": false,
+        "error": {
+          "code": "PROTOCOL_ERROR",
+          "message": "query = secret"
+        }
+      }
+    },
+    {
+      "name": "invalid-reason-code",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": false,
+        "error": { "code": "UNKNOWN_REASON" }
+      }
+    },
+    {
+      "name": "locate-error-with-unknown-operation",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": false,
+        "error": { "code": "PROTOCOL_ERROR" }
+      }
+    },
+    {
+      "name": "format-error-with-unknown-operation",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": false,
+        "error": { "code": "PROTOCOL_ERROR" }
+      }
+    },
+    {
+      "name": "predispatch-error-with-format-operation",
+      "kind": "preDispatchError",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": false,
+        "error": { "code": "PROTOCOL_ERROR" }
+      }
+    },
+    {
+      "name": "unknown-operation-locate-success",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": true,
+        "candidates": []
+      }
+    },
+    {
+      "name": "unknown-operation-format-success",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "unknown",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 0,
+          "selected": 0,
+          "changed": 0,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "locate-success-with-empty-range",
+      "kind": "locateResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "locate",
+        "ok": true,
+        "candidates": [
+          {
+            "start": { "line": 1, "character": 1 },
+            "end": { "line": 1, "character": 1 }
+          }
+        ]
+      }
+    },
+    {
+      "name": "format-response-with-non-string-text",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [
+          {
+            "range": {
+              "start": { "line": 1, "character": 0 },
+              "end": { "line": 1, "character": 8 }
+            },
+            "expectedText": 7,
+            "newText": "SELECT 1"
+          }
+        ],
+        "skips": [],
+        "summary": {
+          "discovered": 1,
+          "selected": 1,
+          "changed": 1,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "format-response-with-empty-expected-text",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [
+          {
+            "range": {
+              "start": { "line": 1, "character": 0 },
+              "end": { "line": 1, "character": 1 }
+            },
+            "expectedText": "",
+            "newText": "X"
+          }
+        ],
+        "skips": [],
+        "summary": {
+          "discovered": 1,
+          "selected": 1,
+          "changed": 1,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "overlapping-edit-ranges",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [
+          {
+            "range": {
+              "start": { "line": 1, "character": 0 },
+              "end": { "line": 1, "character": 8 }
+            },
+            "expectedText": "select 1",
+            "newText": "SELECT 1"
+          },
+          {
+            "range": {
+              "start": { "line": 1, "character": 4 },
+              "end": { "line": 1, "character": 12 }
+            },
+            "expectedText": "ct 1 + 2",
+            "newText": "CT 1 + 2"
+          }
+        ],
+        "skips": [],
+        "summary": {
+          "discovered": 2,
+          "selected": 2,
+          "changed": 2,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "changed-count-does-not-match-edits",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 1,
+          "selected": 1,
+          "changed": 1,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "skipped-count-does-not-match-skips",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 1,
+          "selected": 1,
+          "changed": 0,
+          "unchanged": 0,
+          "skipped": 1
+        }
+      }
+    },
+    {
+      "name": "summary-parts-do-not-equal-selected",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 2,
+          "selected": 2,
+          "changed": 0,
+          "unchanged": 1,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "selected-exceeds-discovered",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 0,
+          "selected": 1,
+          "changed": 0,
+          "unchanged": 1,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "name": "unsafe-integer-summary",
+      "kind": "formatResponse",
+      "value": {
+        "protocolVersion": 1,
+        "operation": "format",
+        "ok": true,
+        "edits": [],
+        "skips": [],
+        "summary": {
+          "discovered": 9007199254740992,
+          "selected": 0,
+          "changed": 0,
+          "unchanged": 0,
+          "skipped": 0
+        }
+      }
+    }
+  ]
+}

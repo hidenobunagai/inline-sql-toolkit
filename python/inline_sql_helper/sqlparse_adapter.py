@@ -129,6 +129,10 @@ def format_sql(
 
     frame = split_triple_quote_frame(protected_sql)
     formatted = _format_with_sqlparse(frame.sql_body, mapped)
+    # The body deliberately excludes the closing-boundary line ending.  A
+    # formatter may nevertheless append one; discard terminal line endings so
+    # the original boundary remains the sole owner of that text.
+    formatted = formatted.rstrip("\r\n")
     indented = "".join(
         frame.outer_indent + line if not _is_blank(line) else line
         for line in formatted.splitlines(keepends=True)

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from inline_sql_helper.positions import SourceMap, SourceSpan
+from inline_sql_helper.positions import PositionMappingError, SourceMap, SourceSpan
 
 
 class UnsupportedStringSyntax(ValueError):
@@ -42,6 +42,23 @@ def tokenize_source(
     source_map: SourceMap,
 ) -> tuple[SourceToken, ...]:
     """Return source-positioned Python tokens."""
+    tokenizer_line_starts = [0]
+    tokenizer_line_starts.extend(
+        index + 1 for index, character in enumerate(source) if character == "\n"
+    )
+
+    def offset(row: int, column: int) -> int:
+        """Map tokenize's LF-only rows, falling back for lone CR in strings."""
+        try:
+            return source_map.offset_from_token(row, column)
+        except PositionMappingError:
+            if row < 1 or row > len(tokenizer_line_starts):
+                raise
+            result = tokenizer_line_starts[row - 1] + column
+            if result < 0 or result > len(source):
+                raise
+            return result
+
     result: list[SourceToken] = []
     for item in tokenize.generate_tokens(io.StringIO(source).readline):
         if item.type == tokenize.ENDMARKER or (
@@ -61,8 +78,8 @@ def tokenize_source(
                 exact_type=item.exact_type,
                 text=item.string,
                 span=SourceSpan(
-                    source_map.offset_from_token(*item.start),
-                    source_map.offset_from_token(*item.end),
+                    offset(*item.start),
+                    offset(*item.end),
                 ),
             )
         )

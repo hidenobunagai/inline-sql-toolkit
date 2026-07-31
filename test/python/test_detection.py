@@ -11,9 +11,8 @@ from inline_sql_helper.literals import (
     SupportedLiteral,
     UnsupportedLiteral,
     analyze_document,
-    split_plain_string,
 )
-from inline_sql_helper.positions import PositionMappingError, SourceMap, SourceSpan
+from inline_sql_helper.positions import SourceMap, SourceSpan
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +28,8 @@ class DetectionCase:
         "ignored",
         "parse-error",
     ]
+    grammar_expectation: Literal["sql", "none", "implementation-defined"]
+    reason: str
 
 
 def load_detection_cases() -> tuple[DetectionCase, ...]:
@@ -49,23 +50,15 @@ def load_detection_cases() -> tuple[DetectionCase, ...]:
                 source=item.get("source"),
                 detection_expected=item["detectionExpected"],
                 format_expectation=expectation,
+                grammar_expectation=item["grammarExpectation"],
+                reason=item["reason"],
             )
         )
     return tuple(cases)
 
 
 def parse_only_literal(source: str) -> tuple[SupportedLiteral, SourceMap]:
-    try:
-        analysis = analyze_document(source)
-    except PositionMappingError:
-        # ``tokenize`` keeps lone-CR strings on one logical line while the AST
-        # and source map correctly treat CR as a physical line terminator.
-        literal_start = source.index('"""')
-        literal = split_plain_string(
-            source[literal_start:],
-            SourceSpan(literal_start, len(source)),
-        )
-        return literal, SourceMap.from_text(source)
+    analysis = analyze_document(source)
     assert len(analysis.supported) == 1
     return analysis.supported[0], analysis.source_map
 
@@ -79,13 +72,6 @@ def test_shared_detection_case(case: DetectionCase) -> None:
     )
     try:
         analysis = analyze_document(source)
-    except PositionMappingError:
-        literal, source_map = parse_only_literal(source)
-        detection = detect_sql(literal, source_map)
-        assert case.format_expectation == "supported"
-        assert detection.matched is case.detection_expected
-        assert detection.sql_span is not None
-        return
     except (SyntaxError, tokenize.TokenError):
         assert case.format_expectation == "parse-error"
         return
@@ -98,6 +84,7 @@ def test_shared_detection_case(case: DetectionCase) -> None:
     matches = [literal for literal, detection in detections if detection.matched]
     assert bool(matches) is case.detection_expected
     if case.format_expectation == "supported":
+        assert case.grammar_expectation == "sql"
         supported_matches = [
             (literal, detection)
             for literal, detection in detections
@@ -106,10 +93,28 @@ def test_shared_detection_case(case: DetectionCase) -> None:
         assert supported_matches
         for literal, detection in supported_matches:
             assert detection.sql_span is not None
-            assert literal.content_span.start <= detection.sql_span.start
-            assert detection.sql_span.end == literal.content_span.end
-            assert detection.reason in {"keyword", "marker"}
+            expected_reason = (
+                "marker" if case.reason.startswith("marker") else "keyword"
+            )
+            assert detection.reason == expected_reason
+            expected_start = literal.content_span.start
+            content = analysis.source_map.slice(literal.content_span)
+            if expected_reason == "marker":
+                cursor = 0
+                for line in content.splitlines(keepends=True):
+                    if line.rstrip("\r\n").strip(" \t") == "":
+                        cursor += len(line)
+                        continue
+                    expected_start += cursor + len(line)
+                    break
+            else:
+                expected_start += len(content) - len(content.lstrip(" \t\r\n"))
+            assert detection.sql_span == SourceSpan(
+                expected_start,
+                literal.content_span.end,
+            )
     elif case.format_expectation == "unsupported-skip":
+        assert case.grammar_expectation == "sql"
         assert matches
         assert all(isinstance(item, UnsupportedLiteral) for item in matches)
     elif case.format_expectation == "ignored":

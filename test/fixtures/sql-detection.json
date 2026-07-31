@@ -279,6 +279,15 @@
     "reason": "keyword-whitespace"
   },
   {
+    "id": "escaped-newline-before-select",
+    "kind": "content",
+    "content": "\\nSELECT 1",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "source-escape-is-not-whitespace"
+  },
+  {
     "id": "keyword-word-boundary",
     "kind": "content",
     "content": "SELECT(1)",
@@ -349,6 +358,24 @@
     "formatExpectation": "ignored",
     "grammarExpectation": "none",
     "reason": "comment-before-keyword"
+  },
+  {
+    "id": "physical-newline-after-multiple-spaces",
+    "kind": "source",
+    "source": "query =  \"\"\"\nSELECT 1\n\"\"\"",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "literal-layout-whitespace"
+  },
+  {
+    "id": "physical-newline-after-multiple-tabs",
+    "kind": "source",
+    "source": "query =\t\t'''\nSELECT 1\n'''",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "literal-layout-whitespace"
   },
   {
     "id": "bytes-single",

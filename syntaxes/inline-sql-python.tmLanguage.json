@@ -42,7 +42,7 @@
   ],
   "repository": {
     "leadingNewlineTripleDoubleSql": {
-      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?\\\"\\\"\\\"(?=[ \\t]*$)",
+      "begin": "(?ix)(?:^[ \\t]*|[=(:,\\[\\{][ \\t]*|\\b(?:return|yield|assert)[ \\t]+)(?:f|fr|rf|r)?\\\"\\\"\\\"(?=[ \\t]*$)",
       "end": "\\\"\\\"\\\"",
       "patterns": [
         {
@@ -51,7 +51,7 @@
       ]
     },
     "leadingNewlineTripleSingleSql": {
-      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?'''(?=[ \\t]*$)",
+      "begin": "(?ix)(?:^[ \\t]*|[=(:,\\[\\{][ \\t]*|\\b(?:return|yield|assert)[ \\t]+)(?:f|fr|rf|r)?'''(?=[ \\t]*$)",
       "end": "'''",
       "patterns": [
         {
@@ -60,7 +60,7 @@
       ]
     },
     "leadingNewlineDoubleSql": {
-      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?\\\"(?!\\\"\\\")(?=[ \\t]*$)",
+      "begin": "(?ix)(?:^[ \\t]*|[=(:,\\[\\{][ \\t]*|\\b(?:return|yield|assert)[ \\t]+)(?:f|fr|rf|r)?\\\"(?!\\\"\\\")(?=[ \\t]*$)",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K\\\"",
       "patterns": [
         {
@@ -69,7 +69,7 @@
       ]
     },
     "leadingNewlineSingleSql": {
-      "begin": "(?ix)(?:^|(?<=[=(:,\\[\\{])|(?<=[=(:,\\[\\{][ \\t])|(?<=return[ \\t])|(?<=yield[ \\t])|(?<=assert[ \\t]))(?:f|fr|rf|r)?'(?!'')(?=[ \\t]*$)",
+      "begin": "(?ix)(?:^[ \\t]*|[=(:,\\[\\{][ \\t]*|\\b(?:return|yield|assert)[ \\t]+)(?:f|fr|rf|r)?'(?!'')(?=[ \\t]*$)",
       "end": "(?<!\\\\)(?:\\\\\\\\)*\\K'",
       "patterns": [
         {

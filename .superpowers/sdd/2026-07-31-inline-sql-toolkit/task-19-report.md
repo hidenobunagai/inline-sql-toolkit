@@ -21,17 +21,24 @@
 
 ## Verification
 
-- `bun run test:unit`: 177 passed.
+- `bun run test:unit`: 193 passed, including focus-waiter race/timeout cases,
+  serializer wire round-trip, runner fake-clock lifecycle cases, and the
+  per-suite timeout guard.
 - `bunx tsc --noEmit`, `bunx eslint .`, `bun run build`, and integration bundle
   `node --check`: passed.
 - `uv run pytest test/python -q`: 482 passed, 4 skipped.
 - VS Code 1.95.0 grammar preflight and grammar suite: 38 passed.
 - VS Code 1.95.0 untrusted integration scenario: passed (exit 0).
-- Trusted Extension Host launches were exercised. Standalone formatting and
-  helper multi-candidate formatting pass after the wire-order fix; the current
-  VS Code 1.95.0 notebook host does not attach the generic `undo` command to a
-  serializer-backed cell, so the notebook undo assertion remains environment
-  gated and is recorded as a follow-up for the integration reviewer.
+- Trusted VS Code 1.95.0 completed with exit 0. Standalone formatting,
+  semantic isolation, apply races, and helper multi-candidate formatting pass
+  after the wire-order fix. The host does not attach the generic `undo`
+  command to serializer-backed notebook cells (Jupyter and the test marimo
+  serializer); notebook cases emit an observable `SKIP` with VS Code version,
+  URI, command, and document version. Set
+  `INLINE_SQL_REQUIRE_NOTEBOOK_UNDO=1` to make this capability gate strict.
+  No edit is silently restored in place of undo; disposable gated cells are
+  cleaned only after the limitation is reported. Standalone files remain
+  strict undo assertions.
 - `bun run format:check` still reports five pre-existing formatting warnings in
   unrelated files (`src/vscode/configuration.ts`, `src/vscode/document-target.ts`,
   `test/support/vscode-mock.ts`, and two existing tests).

@@ -53,11 +53,11 @@ export async function testApplyRaces(): Promise<void> {
     assert.equal(document.getText(), preserveFinalNewline(document, 'query = "select 1"'));
     assert.equal(document.version, cancelledVersion);
 
-    const untrustedVersion = await runPausedRace(
-      document,
-      { workspaceTrustOverride: false },
-      async () => {},
-    );
+    const untrustedVersion = await runPausedRace(document, {}, async () => {
+      await vscode.commands.executeCommand(TEST_HOOK_COMMANDS.configure, {
+        workspaceTrustOverride: false,
+      });
+    });
     assert.equal(document.getText(), preserveFinalNewline(document, 'query = "select 1"'));
     assert.equal(document.version, untrustedVersion);
 

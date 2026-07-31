@@ -160,11 +160,15 @@ export class Selection extends Range {
 
 export class EventEmitter<T> {
   private readonly listeners = new Set<Listener<T>>();
+  private subscribeHook: (() => void) | undefined;
   readonly event: vscode.Event<T> = (listener, thisArgs, disposables) => {
     const callback = thisArgs === undefined ? listener : listener.bind(thisArgs);
     this.listeners.add(callback);
     const disposable = { dispose: () => this.listeners.delete(callback) };
     disposables?.push(disposable);
+    const hook = this.subscribeHook;
+    this.subscribeHook = undefined;
+    hook?.();
     return disposable;
   };
   fire(value: T): void {
@@ -172,6 +176,13 @@ export class EventEmitter<T> {
   }
   dispose(): void {
     this.listeners.clear();
+    this.subscribeHook = undefined;
+  }
+  setSubscribeHook(hook: () => void): void {
+    this.subscribeHook = hook;
+  }
+  listenerCount(): number {
+    return this.listeners.size;
   }
 }
 
@@ -350,6 +361,7 @@ const windowState = {
   onDidChangeActiveTextEditor: new EventEmitter<vscode.TextEditor | undefined>(),
 };
 const workspaceState = {
+  onDidOpenNotebookDocument: new EventEmitter<vscode.NotebookDocument>(),
   onDidGrantWorkspaceTrust: new EventEmitter<void>(),
   onDidChangeConfiguration: new EventEmitter<vscode.ConfigurationChangeEvent>(),
   onDidChangeTextDocument: new EventEmitter<vscode.TextDocumentChangeEvent>(),
@@ -374,6 +386,7 @@ export const workspace = new Proxy({}, {
     if (property === "isTrusted") return state.trusted;
     if (property === "notebookDocuments") return state.notebooks;
     if (property === "getConfiguration") return getMockConfiguration;
+    if (property === "onDidOpenNotebookDocument") return workspaceState.onDidOpenNotebookDocument.event;
     if (property === "onDidGrantWorkspaceTrust") return workspaceState.onDidGrantWorkspaceTrust.event;
     if (property === "onDidChangeConfiguration") return workspaceState.onDidChangeConfiguration.event;
     if (property === "applyEdit") return () => Promise.resolve(true);
@@ -421,6 +434,11 @@ export interface VscodeMockControl {
   setActiveEditor(editor: vscode.TextEditor | undefined): void;
   setActiveNotebook(notebook: vscode.NotebookDocument | undefined): void;
   setNotebookDocuments(notebooks: readonly vscode.NotebookDocument[]): void;
+  fireActiveEditorDuringNextSubscription(editor: vscode.TextEditor | undefined): void;
+  fireNotebookDocument(document: vscode.NotebookDocument): void;
+  fireNotebookDuringNextSubscription(notebook: vscode.NotebookDocument): void;
+  activeEditorListenerCount(): number;
+  notebookListenerCount(): number;
   setConfiguration(resource: vscode.Uri, key: string, value: unknown): void;
   configurationReads(key: string): number;
   setTrusted(trusted: boolean): void;
@@ -442,6 +460,7 @@ export const __mock: VscodeMockControl = {
     state.commandRegistrations.length = 0;
     state.codeActionRegistrations.length = 0;
     windowState.onDidChangeActiveTextEditor.dispose();
+    workspaceState.onDidOpenNotebookDocument.dispose();
     workspaceState.onDidGrantWorkspaceTrust.dispose();
     workspaceState.onDidChangeConfiguration.dispose();
     workspaceState.onDidChangeTextDocument.dispose();
@@ -461,6 +480,19 @@ export const __mock: VscodeMockControl = {
   setActiveEditor(editor) { state.activeEditor = editor; windowState.onDidChangeActiveTextEditor.fire(editor); },
   setActiveNotebook(notebook) { state.activeNotebook = notebook === undefined ? undefined : { notebook, selection: new (class { start = 0; end = 0; isEmpty = true; })(), visibleRanges: [] } as unknown as vscode.NotebookEditor; },
   setNotebookDocuments(notebooks) { state.notebooks = notebooks; },
+  fireActiveEditorDuringNextSubscription(editor) {
+    windowState.onDidChangeActiveTextEditor.setSubscribeHook(() => {
+      windowState.onDidChangeActiveTextEditor.fire(editor);
+    });
+  },
+  fireNotebookDocument(document) { workspaceState.onDidOpenNotebookDocument.fire(document); },
+  fireNotebookDuringNextSubscription(notebook) {
+    workspaceState.onDidOpenNotebookDocument.setSubscribeHook(() => {
+      workspaceState.onDidOpenNotebookDocument.fire(notebook);
+    });
+  },
+  activeEditorListenerCount() { return windowState.onDidChangeActiveTextEditor.listenerCount(); },
+  notebookListenerCount() { return workspaceState.onDidOpenNotebookDocument.listenerCount(); },
   setConfiguration(resource, key, value) {
     const configKey = `${uriKey(resource)}\0inlineSql`;
     let values = state.configurations.get(configKey);

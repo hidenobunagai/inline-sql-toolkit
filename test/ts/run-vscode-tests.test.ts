@@ -1,16 +1,19 @@
 import { strict as assert } from "node:assert";
+import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-import type { PythonResolveDependencies } from "../../tools/run_vscode_tests.js";
+import type { PythonResolveDependencies, SpawnRunOptions } from "../../tools/run_vscode_tests.js";
 import {
   buildLaunchCommand,
   isAbsoluteExecutablePath,
   main,
   parseGrammarVersion,
   resolveIntegrationPython,
+  spawnAndRequireZero,
 } from "../../tools/run_vscode_tests.js";
+import { INTEGRATION_TEST_TIMEOUT_MS, runIntegrationTest } from "../integration/run.js";
 import { assertNoSemanticSqlOverlap, decodeSemanticTokens } from "../support/semantic-tokens.js";
 
 afterEach(() => {
@@ -131,6 +134,104 @@ describe("integration runner bootstrap", () => {
     expect(bundle).toHaveBeenCalledTimes(1);
     expect(launch).toHaveBeenCalledTimes(1);
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({ scenario: "trusted" }));
+  });
+});
+
+describe("integration runner process lifecycle", () => {
+  class FakeChild extends EventEmitter {
+    readonly pid = 42;
+  }
+
+  const spawnOptions = (
+    child: FakeChild,
+    extra: Partial<SpawnRunOptions> = {},
+  ): SpawnRunOptions => ({
+    shell: false as const,
+    stdio: "ignore" as const,
+    timeoutMs: 25,
+    spawnProcess: vi.fn(() => child) as unknown as NonNullable<SpawnRunOptions["spawnProcess"]>,
+    ...extra,
+  });
+
+  it("kills the process tree on timeout and settles exactly once", async () => {
+    vi.useFakeTimers();
+    const child = new FakeChild();
+    let releaseKill!: () => void;
+    const kill = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseKill = resolve;
+        }),
+    );
+    const pending = spawnAndRequireZero("code", [], {
+      ...spawnOptions(child),
+      terminateTree: kill,
+    });
+    await vi.advanceTimersByTimeAsync(25);
+    expect(kill).toHaveBeenCalledWith(42);
+    let settled = false;
+    void pending.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    child.emit("exit", 0, null);
+    releaseKill();
+    await expect(pending).rejects.toThrow("timed out");
+    expect(child.listenerCount("exit")).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rejects synchronous spawn throws without scheduling a timer", async () => {
+    vi.useFakeTimers();
+    const spawnProcess = vi.fn(() => {
+      throw new Error("spawn");
+    });
+    await expect(
+      spawnAndRequireZero("code", [], {
+        ...spawnOptions(new FakeChild()),
+        spawnProcess,
+      }),
+    ).rejects.toThrow("spawn failed");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("handles error/exit races with one settlement and cleaned timer", async () => {
+    vi.useFakeTimers();
+    const child = new FakeChild();
+    const pending = spawnAndRequireZero("code", [], spawnOptions(child));
+    child.emit("exit", 0, null);
+    child.emit("error", new Error("late error"));
+    await expect(pending).resolves.toBeUndefined();
+    expect(child.listenerCount("exit")).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rejects a child error and ignores a later exit", async () => {
+    vi.useFakeTimers();
+    const child = new FakeChild();
+    const pending = spawnAndRequireZero("code", [], spawnOptions(child));
+    child.emit("error", new Error("child error"));
+    child.emit("exit", 1, null);
+    await expect(pending).rejects.toThrow("process failed");
+    expect(child.listenerCount("exit")).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("integration suite timeout", () => {
+  it("uses the required 30-second bound and rejects a hanging suite", async () => {
+    expect(INTEGRATION_TEST_TIMEOUT_MS).toBe(30_000);
+    vi.useFakeTimers();
+    const pending = runIntegrationTest(() => new Promise<void>(() => {}), 30);
+    const rejection = expect(pending).rejects.toThrow("integration assertion timed out");
+    await vi.advanceTimersByTimeAsync(30);
+    await rejection;
   });
 });
 

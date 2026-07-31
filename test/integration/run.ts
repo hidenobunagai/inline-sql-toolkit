@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 import { type IntegrationScenario, parseScenario } from "../support/integration-scenario.js";
-import { registerMarimoTestSerializer } from "../support/vscode-harness.js";
+import { registerMarimoTestSerializer, withTimeout } from "../support/vscode-harness.js";
 import { testOfficialExtensionCompatibility } from "./compatibility.test.js";
 import { testApplyRaces, testStandaloneFormatting } from "./extension.test.js";
 import { testNotebookFormatting } from "./notebooks.test.js";
@@ -13,14 +13,23 @@ function assertNeverScenario(value: never): never {
   throw new Error("unreachable integration scenario");
 }
 
+export const INTEGRATION_TEST_TIMEOUT_MS = 30_000;
+
+export function runIntegrationTest(
+  test: () => Promise<void>,
+  timeoutMs = INTEGRATION_TEST_TIMEOUT_MS,
+): Promise<void> {
+  return withTimeout(test(), timeoutMs);
+}
+
 export function scenarioTests(scenario: IntegrationScenario): readonly (() => Promise<void>)[] {
   switch (scenario) {
     case "trusted":
       return [
         testStandaloneFormatting,
-        testNotebookFormatting,
         testSemanticTokenIsolation,
         testApplyRaces,
+        testNotebookFormatting,
       ];
     case "untrusted":
       return [testUntrustedHighlightOnly];
@@ -42,9 +51,10 @@ export async function run(): Promise<void> {
   try {
     for (const test of tests) {
       try {
-        await test();
+        await runIntegrationTest(test);
       } catch (error) {
         failures.push(error);
+        if (error instanceof Error && error.message === "integration assertion timed out") break;
       }
     }
   } finally {

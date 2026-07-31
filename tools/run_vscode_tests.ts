@@ -54,6 +54,8 @@ export interface SpawnRunOptions {
   readonly timeoutMs: number;
   readonly spawnProcess?: typeof spawn;
   readonly terminateTree?: (processId: number) => Promise<void>;
+  readonly setTimeout?: typeof setTimeout;
+  readonly clearTimeout?: typeof clearTimeout;
 }
 
 export function parseGrammarVersion(value: string | undefined): GrammarVersion {
@@ -325,6 +327,8 @@ export async function spawnAndRequireZero(
   options: SpawnRunOptions,
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
+    const schedule = options.setTimeout ?? setTimeout;
+    const cancel = options.clearTimeout ?? clearTimeout;
     let child: ChildProcess;
     try {
       child = (options.spawnProcess ?? spawn)(command, [...args], {
@@ -344,7 +348,7 @@ export async function spawnAndRequireZero(
     const finish = (error?: Error): void => {
       if (settled) return;
       settled = true;
-      if (timer !== undefined) clearTimeout(timer);
+      if (timer !== undefined) cancel(timer);
       child.removeAllListeners();
       // Keep a sink for a late Electron error after the promise has settled.
       child.on("error", () => {});
@@ -355,7 +359,7 @@ export async function spawnAndRequireZero(
       if (settled || timingOut) return;
       timingOut = true;
       if (timer !== undefined) {
-        clearTimeout(timer);
+        cancel(timer);
         timer = undefined;
       }
       const timeoutError = new Error("VS Code process timed out");
@@ -384,7 +388,7 @@ export async function spawnAndRequireZero(
       if (code === 0 && signal === null) finish();
       else finish(new Error("VS Code process exited unsuccessfully"));
     });
-    timer = setTimeout(beginTimeout, options.timeoutMs);
+    timer = schedule(beginTimeout, options.timeoutMs);
   });
 }
 

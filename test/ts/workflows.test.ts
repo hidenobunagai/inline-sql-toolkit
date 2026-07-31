@@ -174,6 +174,7 @@ describe("GitHub workflow contracts", () => {
       "security-events": "write",
     });
     expect(job?.with?.["scan-args"]).toBe("--lockfile=osv-scanner:vsix-components.osv.json");
+    expect(job?.with?.["upload-sarif"]).toBe(true);
     const sourceWorkflows = await Promise.all([
       loadWorkflow("osv-scanner-pr.yml"),
       loadWorkflow("osv-scanner-scheduled.yml"),

@@ -256,3 +256,4 @@ jobs:
     with:
       download-artifact: vsix-osv-input
       scan-args: --lockfile=osv-scanner:vsix-components.osv.json
+      upload-sarif: true

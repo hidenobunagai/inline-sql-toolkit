@@ -7,5 +7,6 @@
   "configuration.format.indentWidth.description": "Controls the number of spaces used for SQL indentation.",
   "configuration.format.wrapAfter.description": "Sets the preferred line length for wrapping SQL in triple-quoted strings.",
   "configuration.format.useSpaceAroundOperators.description": "Controls whether spaces are inserted around SQL operators.",
-  "configuration.pythonPath.description": "Overrides the Python interpreter used by Inline SQL Toolkit."
+  "configuration.pythonPath.description": "Overrides the Python interpreter used by Inline SQL Toolkit.",
+  "untrustedWorkspaces.description": "Inline SQL formatting is disabled until this workspace is trusted."
 }

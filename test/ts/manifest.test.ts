@@ -79,6 +79,7 @@ describe("extension manifest", () => {
     expect(manifest.extensionDependencies).toBeUndefined();
     expect(capabilities.untrustedWorkspaces).toEqual({
       supported: "limited",
+      description: "%untrustedWorkspaces.description%",
       restrictedConfigurations: ["inlineSql.pythonPath"],
     });
   });

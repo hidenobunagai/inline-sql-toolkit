@@ -102,7 +102,6 @@ export function probeVersion(
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let settled = false;
-    let killIssued = false;
     const timerState: { timeout?: NodeJS.Timeout; cancellation?: vscode.Disposable } = {};
 
     const finish = (result: VersionProbeResult): void => {
@@ -118,15 +117,12 @@ export function probeVersion(
     };
     const terminate = (reason: VersionProbeFailureReason): void => {
       if (settled) return;
-      if (!killIssued) {
-        killIssued = true;
-        try {
-          child.kill();
-        } catch {
-          /* process is already gone */
-        }
-      }
       finish({ ok: false, reason });
+      try {
+        child.kill();
+      } catch {
+        /* process is already gone */
+      }
     };
     timerState.timeout = setTimeout(() => {
       terminate("PROCESS_TIMEOUT");

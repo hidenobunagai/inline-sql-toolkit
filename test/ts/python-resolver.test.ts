@@ -251,4 +251,17 @@ describe("bounded version probe", () => {
     await expect(secondPending).resolves.toEqual({ ok: false, reason: "PROCESS_TIMEOUT" });
     expect(second.process.kill).toHaveBeenCalledTimes(1);
   });
+
+  it("preserves cancellation when kill synchronously emits close", async () => {
+    const deps = dependencies();
+    deps.process.kill.mockImplementation(() => {
+      deps.process.emit("close", 1, null);
+      return true;
+    });
+    const source = tokenSource();
+    const pending = createPythonResolver(deps).resolve(target(), source.token);
+    source.cancel();
+    await expect(pending).resolves.toEqual({ ok: false, reason: "PROCESS_CANCELLED" });
+    expect(deps.process.kill).toHaveBeenCalledTimes(1);
+  });
 });

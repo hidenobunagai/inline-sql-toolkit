@@ -69,12 +69,24 @@ def valid_members() -> dict[str, bytes]:
         "extension/python/bootstrap.py": b"print('ok')",
         "extension/syntaxes/inline-sql-fstring-islands.tmLanguage.json": b"{}",
         "extension/syntaxes/inline-sql-python.tmLanguage.json": b"{}",
-        "extension/third_party/runtime-components.json": b"{}",
-        "extension/third_party/sqlparse/AUTHORS": b"authors",
-        "extension/third_party/sqlparse/LICENSE": b"license",
-        "extension/third_party/sqlparse/SOURCE.json": b"{}",
-        "extension/third_party/vscode-python-extension/LICENSE.md": b"MIT",
-        "extension/third_party/vscode-python-extension/SOURCE.json": b"{}",
+        "extension/third_party/runtime-components.json": (
+            ROOT / "third_party/runtime-components.json"
+        ).read_bytes(),
+        "extension/third_party/sqlparse/AUTHORS": (
+            ROOT / "third_party/sqlparse/AUTHORS"
+        ).read_bytes(),
+        "extension/third_party/sqlparse/LICENSE": (
+            ROOT / "third_party/sqlparse/LICENSE"
+        ).read_bytes(),
+        "extension/third_party/sqlparse/SOURCE.json": (
+            ROOT / "third_party/sqlparse/SOURCE.json"
+        ).read_bytes(),
+        "extension/third_party/vscode-python-extension/LICENSE.md": (
+            ROOT / "third_party/vscode-python-extension/LICENSE.md"
+        ).read_bytes(),
+        "extension/third_party/vscode-python-extension/SOURCE.json": (
+            ROOT / "third_party/vscode-python-extension/SOURCE.json"
+        ).read_bytes(),
     }
     for path in (
         "__init__.py",

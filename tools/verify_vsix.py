@@ -167,7 +167,7 @@ def validate_packaged_manifest(manifest: object) -> None:
     if manifest.get("main") != "./dist/extension.js":
         raise VsixError("invalid extension manifest")
     engines = manifest.get("engines")
-    if not isinstance(engines, dict) or engines.get("vscode") != "^1.95.0":
+    if not isinstance(engines, dict) or engines != {"vscode": "^1.95.0"}:
         raise VsixError("invalid extension manifest")
     if "node_modules" in manifest:
         raise VsixError("unexpected dependency tree")
@@ -210,6 +210,79 @@ def scan_for_forbidden_runtime_content(
 
 def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def _read_json_member(archive: zipfile.ZipFile, name: str) -> object:
+    try:
+        return json.loads(read_bounded_member(archive, name).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise VsixError("invalid provenance record") from exc
+
+
+def validate_provenance(archive: zipfile.ZipFile) -> None:
+    source = _read_json_member(archive, "extension/third_party/sqlparse/SOURCE.json")
+    if not isinstance(source, dict) or source != {
+        "authorsSha256": (
+            "65ed421fc032252eb23b7a4b64ed6915c12c3bf64dec6f3dd4d7b5b421f8fd3c"
+        ),
+        "generatedAt": "omitted for deterministic output",
+        "license": "BSD-3-Clause",
+        "licenseSha256": (
+            "c1938235b80d39e93138eae89edc3af67e18ecbc40d266529fa57b2dce426310"
+        ),
+        "name": "sqlparse",
+        "sha256": "12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba",
+        "url": "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl",
+        "version": "0.5.5",
+        "wheel": "sqlparse-0.5.5-py3-none-any.whl",
+    }:
+        raise VsixError("invalid provenance record")
+    if (
+        _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/LICENSE"))
+        != source["licenseSha256"]
+    ):
+        raise VsixError("invalid provenance record")
+    if (
+        _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/AUTHORS"))
+        != source["authorsSha256"]
+    ):
+        raise VsixError("invalid provenance record")
+
+    vscode_source = _read_json_member(
+        archive, "extension/third_party/vscode-python-extension/SOURCE.json"
+    )
+    if (
+        not isinstance(vscode_source, dict)
+        or vscode_source.get("name") != "@vscode/python-extension"
+        or vscode_source.get("version") != "1.0.5"
+        or vscode_source.get("license") != "MIT"
+    ):
+        raise VsixError("invalid provenance record")
+    if b"MIT License" not in read_bounded_member(
+        archive, "extension/third_party/vscode-python-extension/LICENSE.md"
+    ):
+        raise VsixError("invalid provenance record")
+
+    components = _read_json_member(
+        archive, "extension/third_party/runtime-components.json"
+    )
+    if components != {
+        "components": [
+            {
+                "name": "@vscode/python-extension",
+                "version": "1.0.5",
+                "ecosystem": "npm",
+                "license": "MIT",
+            },
+            {
+                "name": "sqlparse",
+                "version": "0.5.5",
+                "ecosystem": "PyPI",
+                "license": "BSD-3-Clause",
+            },
+        ]
+    }:
+        raise VsixError("invalid provenance record")
 
 
 def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
@@ -270,6 +343,7 @@ def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
             )
             if _sha256(payload) != expected_hash:
                 raise VsixError("vendored file hash mismatch")
+        validate_provenance(archive)
         scan_for_forbidden_runtime_content(archive, file_names)
         return ValidatedVsix(
             archive_bytes=archive_bytes,

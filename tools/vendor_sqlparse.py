@@ -30,6 +30,12 @@ REQUIRED_URL = (
     "sqlparse-0.5.5-py3-none-any.whl"
 )
 REQUIRED_SHA256 = "12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba"
+REQUIRED_LICENSE_SHA256 = (
+    "c1938235b80d39e93138eae89edc3af67e18ecbc40d266529fa57b2dce426310"
+)
+REQUIRED_AUTHORS_SHA256 = (
+    "65ed421fc032252eb23b7a4b64ed6915c12c3bf64dec6f3dd4d7b5b421f8fd3c"
+)
 DIST_INFO = "sqlparse-0.5.5.dist-info"
 EXPECTED_PACKAGE_FILES = frozenset(
     {
@@ -120,6 +126,8 @@ def validated_members(archive: zipfile.ZipFile) -> tuple[zipfile.ZipInfo, ...]:
         mode = member.external_attr >> 16
         if path.is_absolute() or ".." in path.parts or stat.S_ISLNK(mode):
             raise VendorError("unsafe wheel member")
+        if member.filename in {"sqlparse", DIST_INFO}:
+            raise VendorError("unsafe wheel member")
         if not path.parts or path.parts[0] not in {"sqlparse", DIST_INFO}:
             raise VendorError("unexpected wheel member")
     return members
@@ -176,13 +184,32 @@ def _validate_open_archive(archive: zipfile.ZipFile) -> tuple[zipfile.ZipInfo, .
     }
     if package_names != EXPECTED_PACKAGE_FILES or dist_names != EXPECTED_DIST_FILES:
         raise VendorError("unexpected or missing wheel member")
-    init = _member_bytes(archive, "sqlparse/__init__.py").decode("utf-8")
-    metadata = _member_bytes(archive, f"{DIST_INFO}/METADATA").decode("utf-8")
+    try:
+        init = _member_bytes(archive, "sqlparse/__init__.py").decode("utf-8")
+        metadata = _member_bytes(archive, f"{DIST_INFO}/METADATA").decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise VendorError("invalid wheel text") from exc
     init_version = re.search(r"__version__\s*=\s*['\"]([^'\"]+)", init)
+    metadata_name = re.search(r"^Name:\s*(\S+)\s*$", metadata, re.MULTILINE)
     metadata_version = re.search(r"^Version:\s*(\S+)\s*$", metadata, re.MULTILINE)
+    metadata_license = re.search(
+        r"^License(?:-Expression)?:\s*(\S+)\s*$", metadata, re.MULTILINE
+    )
+    license_files = set(
+        re.findall(r"^License-File:\s*(\S+)\s*$", metadata, re.MULTILINE)
+    )
+    license_is_exact = (
+        metadata_license is not None and metadata_license.group(1) == REQUIRED_LICENSE
+    ) or license_files == {"AUTHORS", "LICENSE"}
     if not init_version or init_version.group(1) != REQUIRED_VERSION:
         raise VendorError("wrong sqlparse version")
-    if not metadata_version or metadata_version.group(1) != REQUIRED_VERSION:
+    if (
+        not metadata_name
+        or metadata_name.group(1) != "sqlparse"
+        or not metadata_version
+        or metadata_version.group(1) != REQUIRED_VERSION
+        or not license_is_exact
+    ):
         raise VendorError("wrong wheel version")
     return members
 
@@ -192,9 +219,11 @@ def _inventory(vendor_root: Path) -> dict[str, str]:
         raise VendorError("invalid vendor tree")
     result: dict[str, str] = {}
     for path in sorted(vendor_root.rglob("*")):
-        if path.is_dir():
-            continue
         if path.is_symlink() or not path.is_file():
+            if path.is_symlink():
+                raise VendorError("invalid vendor tree")
+            if path.is_dir():
+                continue
             raise VendorError("invalid vendor tree")
         result[path.relative_to(vendor_root).as_posix()] = sha256_file(path)
     return result
@@ -238,6 +267,16 @@ def validate_lock_projection(lock_path: Path, requirements_path: Path) -> None:
         raise VendorError("requirements projection disagrees with vendor lock")
 
 
+def fixed_vendor_root(root: Path) -> Path:
+    expected = root / "python" / "vendor"
+    if expected.parent.is_symlink() or expected.is_symlink():
+        raise VendorError("symlinked vendor root")
+    resolved = expected.resolve()
+    if resolved != expected:
+        raise VendorError("vendor root escapes extension root")
+    return resolved
+
+
 def _extract_to_staging(
     archive_path: Path,
     staging_root: Path,
@@ -254,7 +293,14 @@ def _extract_to_staging(
             os.chmod(destination, 0o644)
 
 
-def _replace_vendor_tree(staged: Path, target: Path) -> None:
+def _remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def _replace_vendor_tree(staged: Path, target: Path) -> Path | None:
     parent = target.parent.resolve()
     parent.mkdir(parents=True, exist_ok=True)
     backup: Path | None = None
@@ -267,21 +313,19 @@ def _replace_vendor_tree(staged: Path, target: Path) -> None:
         if backup is not None and not target.exists():
             backup.rename(target)
         raise
-    if backup is not None:
-        if backup.is_dir() and not backup.is_symlink():
-            shutil.rmtree(backup)
-        else:
-            backup.unlink()
+    return backup
 
 
 def vendor(lock_path: Path) -> None:
     lock = read_lock(lock_path)
     root = Path(__file__).resolve().parents[1]
-    vendor_parent = (root / "python" / "vendor").resolve()
+    vendor_parent = fixed_vendor_root(root)
     target = vendor_parent / "sqlparse"
     vendor_parent.mkdir(parents=True, exist_ok=True)
     license_bytes: bytes
     authors_bytes: bytes
+    backup: Path | None = None
+    installed_new_tree = False
     with tempfile.TemporaryDirectory(
         prefix="sqlparse-download-", dir=vendor_parent
     ) as temp:
@@ -312,36 +356,52 @@ def vendor(lock_path: Path) -> None:
             ):
                 shutil.rmtree(staged)
             else:
-                _replace_vendor_tree(staged, target)
+                backup = _replace_vendor_tree(staged, target)
+                installed_new_tree = True
         finally:
             if staged.exists():
                 shutil.rmtree(staged)
-    third_party = root / "third_party" / "sqlparse"
-    third_party.mkdir(parents=True, exist_ok=True)
-    (third_party / "LICENSE").write_bytes(license_bytes)
-    (third_party / "AUTHORS").write_bytes(authors_bytes)
-    inventory = _inventory(target)
-    (third_party / "files.sha256").write_text(
-        "".join(f"{digest}  {relative}\n" for relative, digest in inventory.items()),
-        encoding="utf-8",
-    )
-    (third_party / "SOURCE.json").write_text(
-        json.dumps(
-            {
-                "name": lock["name"],
-                "version": lock["version"],
-                "url": lock["url"],
-                "wheel": lock["wheel"],
-                "sha256": lock["sha256"],
-                "license": lock["license"],
-                "generatedAt": "omitted for deterministic output",
-            },
-            indent=2,
-            sort_keys=True,
+    try:
+        third_party = root / "third_party" / "sqlparse"
+        third_party.mkdir(parents=True, exist_ok=True)
+        (third_party / "LICENSE").write_bytes(license_bytes)
+        (third_party / "AUTHORS").write_bytes(authors_bytes)
+        inventory = _inventory(target)
+        (third_party / "files.sha256").write_text(
+            "".join(
+                f"{digest}  {relative}\n" for relative, digest in inventory.items()
+            ),
+            encoding="utf-8",
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        (third_party / "SOURCE.json").write_text(
+            json.dumps(
+                {
+                    "name": lock["name"],
+                    "version": lock["version"],
+                    "url": lock["url"],
+                    "wheel": lock["wheel"],
+                    "sha256": lock["sha256"],
+                    "license": lock["license"],
+                    "licenseSha256": REQUIRED_LICENSE_SHA256,
+                    "authorsSha256": REQUIRED_AUTHORS_SHA256,
+                    "generatedAt": "omitted for deterministic output",
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    except BaseException:
+        if installed_new_tree:
+            if target.exists() or target.is_symlink():
+                _remove_path(target)
+            if backup is not None:
+                backup.rename(target)
+            backup = None
+        raise
+    if backup is not None:
+        _remove_path(backup)
 
 
 def main(argv: list[str] | None = None) -> int:

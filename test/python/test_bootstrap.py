@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -94,3 +95,23 @@ def test_bootstrap_failure_is_source_silent(tmp_path: Path) -> None:
     assert result.returncode != 0
     assert result.stderr == ""
     assert result.stdout == ""
+
+
+@pytest.mark.skipif(not BOOTSTRAP.exists(), reason="bootstrap is added in Task 9")
+def test_bootstrap_rejects_symlinked_vendor_root(tmp_path: Path) -> None:
+    extension = tmp_path / "extension"
+    python_root = extension / "python"
+    python_root.mkdir(parents=True)
+    (python_root / "bootstrap.py").write_text(
+        BOOTSTRAP.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    outside = tmp_path / "outside"
+    shutil.copytree(VENDOR, outside)
+    try:
+        (python_root / "vendor").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    result = run_bootstrap(extension)
+    assert result.returncode != 0
+    assert result.stdout == ""
+    assert result.stderr == ""

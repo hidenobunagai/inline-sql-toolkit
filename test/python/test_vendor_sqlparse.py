@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import shutil
 import stat
 import sys
 import zipfile
@@ -14,13 +16,22 @@ import pytest
 sys.path.insert(0, str(Path("tools").resolve()))
 
 from vendor_sqlparse import (  # ty: ignore[unresolved-import]
+    DIST_INFO,
+    EXPECTED_DIST_FILES,
+    EXPECTED_PACKAGE_FILES,
     VendorError,
+    _remove_path,
+    _replace_vendor_tree,
     checked_destination,
+    fixed_vendor_root,
     validate_archive,
     validate_lock_projection,
     validated_members,
     verify_tree_hashes,
 )
+from verify_vendor import verify  # ty: ignore[unresolved-import]
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def write_synthetic_wheel(root: Path, members: dict[str, bytes]) -> Path:
@@ -33,14 +44,34 @@ def write_synthetic_wheel(root: Path, members: dict[str, bytes]) -> Path:
 
 
 def valid_members() -> dict[str, bytes]:
-    return {
+    members = {
         "sqlparse/__init__.py": b'__version__ = "0.5.5"\n',
-        "sqlparse/core.py": b"def format(sql, **options):\n    return sql\n",
         "sqlparse-0.5.5.dist-info/METADATA": (
             b"Metadata-Version: 2.1\nName: sqlparse\nVersion: 0.5.5\n"
+            b"License: BSD-3-Clause\n"
         ),
         "sqlparse-0.5.5.dist-info/licenses/LICENSE": b"BSD\n",
+        "sqlparse-0.5.5.dist-info/licenses/AUTHORS": b"Authors\n",
     }
+    for relative in EXPECTED_PACKAGE_FILES:
+        members.setdefault(f"sqlparse/{relative}", b"\n")
+    for relative in EXPECTED_DIST_FILES:
+        members.setdefault(f"{DIST_INFO}/{relative}", b"\n")
+    return members
+
+
+@pytest.mark.parametrize("member", ["sqlparse", DIST_INFO])
+def test_vendor_rejects_archive_root_members(tmp_path: Path, member: str) -> None:
+    wheel = write_synthetic_wheel(
+        tmp_path,
+        {
+            **valid_members(),
+            member: b"root\n",
+        },
+    )
+    with pytest.raises(VendorError):
+        with zipfile.ZipFile(wheel) as archive:
+            validated_members(archive)
 
 
 @pytest.mark.parametrize(
@@ -150,6 +181,88 @@ def test_changed_vendored_file_hash_is_rejected(tmp_path: Path) -> None:
         verify_tree_hashes(vendor, inventory)
 
 
+def test_nested_symlink_is_rejected_before_directory_traversal(tmp_path: Path) -> None:
+    vendor = tmp_path / "sqlparse"
+    outside = tmp_path / "outside"
+    vendor.mkdir()
+    outside.mkdir()
+    (outside / "secret.py").write_bytes(b"secret")
+    try:
+        (vendor / "nested").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    with pytest.raises(VendorError):
+        verify_tree_hashes(vendor, {})
+
+
+def test_fixed_vendor_root_rejects_symlink_escape(tmp_path: Path) -> None:
+    (tmp_path / "python").mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (tmp_path / "python" / "vendor").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    with pytest.raises(VendorError):
+        fixed_vendor_root(tmp_path)
+
+
+def test_vendor_tree_replacement_retains_backup_for_rollback(tmp_path: Path) -> None:
+    target = tmp_path / "sqlparse"
+    staged = tmp_path / "staged"
+    target.mkdir()
+    staged.mkdir()
+    (target / "old.py").write_bytes(b"old")
+    (staged / "new.py").write_bytes(b"new")
+    backup = _replace_vendor_tree(staged, target)
+    assert backup is not None
+    assert backup.exists()
+    _remove_path(target)
+    backup.rename(target)
+    assert (target / "old.py").read_bytes() == b"old"
+
+
+def test_malformed_wheel_text_is_rejected_as_vendor_error(tmp_path: Path) -> None:
+    members = valid_members()
+    members["sqlparse/__init__.py"] = b"\xff"
+    wheel = write_synthetic_wheel(tmp_path, members)
+    with zipfile.ZipFile(wheel) as archive:
+        with pytest.raises(VendorError):
+            validate_archive(archive)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("Name", "other"), ("License", "MIT")],
+)
+def test_metadata_identity_and_license_are_strict(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    members = valid_members()
+    metadata = members[f"{DIST_INFO}/METADATA"].decode()
+    if field == "Name":
+        metadata = metadata.replace("Name: sqlparse", f"Name: {value}")
+    else:
+        metadata = metadata.replace("License: BSD-3-Clause", f"License: {value}")
+    members[f"{DIST_INFO}/METADATA"] = metadata.encode()
+    wheel = write_synthetic_wheel(tmp_path, members)
+    with zipfile.ZipFile(wheel) as archive:
+        with pytest.raises(VendorError):
+            validate_archive(archive)
+
+
+def test_metadata_license_header_is_required(tmp_path: Path) -> None:
+    members = valid_members()
+    metadata = members[f"{DIST_INFO}/METADATA"].decode()
+    members[f"{DIST_INFO}/METADATA"] = metadata.replace(
+        "License: BSD-3-Clause\n", ""
+    ).encode()
+    wheel = write_synthetic_wheel(tmp_path, members)
+    with zipfile.ZipFile(wheel) as archive:
+        with pytest.raises(VendorError):
+            validate_archive(archive)
+
+
 def test_lock_and_requirements_projection_must_agree(tmp_path: Path) -> None:
     lock = tmp_path / "sqlparse-vendor.lock"
     requirements = tmp_path / "sqlparse-vendor.requirements.txt"
@@ -157,6 +270,46 @@ def test_lock_and_requirements_projection_must_agree(tmp_path: Path) -> None:
     requirements.write_text("sqlparse==0.4.0\n", encoding="utf-8")
     with pytest.raises(VendorError):
         validate_lock_projection(lock, requirements)
+
+
+def make_verification_root(tmp_path: Path) -> Path:
+    root = tmp_path / "extension"
+    for relative in (
+        "tools/sqlparse-vendor.lock",
+        "tools/sqlparse-vendor.requirements.txt",
+        "third_party/sqlparse/SOURCE.json",
+        "third_party/sqlparse/LICENSE",
+        "third_party/sqlparse/AUTHORS",
+        "third_party/sqlparse/files.sha256",
+    ):
+        source = ROOT / relative
+        destination = root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+    shutil.copytree(ROOT / "python/vendor/sqlparse", root / "python/vendor/sqlparse")
+    return root
+
+
+@pytest.mark.parametrize("notice", ["LICENSE", "AUTHORS"])
+def test_verify_vendor_rejects_mutated_notice(tmp_path: Path, notice: str) -> None:
+    root = make_verification_root(tmp_path)
+    path = root / "third_party/sqlparse" / notice
+    path.write_bytes(path.read_bytes() + b"tampered")
+    with pytest.raises(VendorError):
+        verify(root)
+
+
+@pytest.mark.parametrize("field", ["licenseSha256", "authorsSha256", "generatedAt"])
+def test_verify_vendor_rejects_mutated_source_provenance(
+    tmp_path: Path, field: str
+) -> None:
+    root = make_verification_root(tmp_path)
+    path = root / "third_party/sqlparse/SOURCE.json"
+    source = json.loads(path.read_text(encoding="utf-8"))
+    source[field] = "tampered"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(VendorError):
+        verify(root)
 
 
 def test_checked_destination_uses_posix_components(tmp_path: Path) -> None:

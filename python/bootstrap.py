@@ -19,7 +19,12 @@ class RuntimeContext:
 
 def prepare_runtime() -> RuntimeContext:
     python_root = Path(__file__).resolve().parent
-    vendor_root = (python_root / "vendor").resolve()
+    vendor_anchor = python_root / "vendor"
+    if vendor_anchor.parent.is_symlink() or vendor_anchor.is_symlink():
+        raise RuntimeError("invalid vendored runtime")
+    vendor_root = vendor_anchor.resolve()
+    if vendor_root != vendor_anchor:
+        raise RuntimeError("invalid vendored runtime")
     sys.dont_write_bytecode = True
     sys.path[:0] = [str(vendor_root), str(python_root)]
     sqlparse = importlib.import_module("sqlparse")

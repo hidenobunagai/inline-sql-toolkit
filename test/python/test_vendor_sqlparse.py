@@ -23,6 +23,7 @@ from vendor_sqlparse import (  # ty: ignore[unresolved-import]
     _remove_path,
     _replace_vendor_tree,
     checked_destination,
+    fixed_provenance_root,
     fixed_vendor_root,
     validate_archive,
     validate_lock_projection,
@@ -207,6 +208,31 @@ def test_fixed_vendor_root_rejects_symlink_escape(tmp_path: Path) -> None:
         fixed_vendor_root(tmp_path)
 
 
+def test_fixed_provenance_root_rejects_symlink_escape(tmp_path: Path) -> None:
+    (tmp_path / "third_party").mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (tmp_path / "third_party" / "sqlparse").symlink_to(
+            outside, target_is_directory=True
+        )
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    with pytest.raises(VendorError):
+        fixed_provenance_root(tmp_path)
+
+
+def test_fixed_provenance_parent_rejects_symlink_escape(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (tmp_path / "third_party").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    with pytest.raises(VendorError):
+        fixed_provenance_root(tmp_path)
+
+
 def test_vendor_tree_replacement_retains_backup_for_rollback(tmp_path: Path) -> None:
     target = tmp_path / "sqlparse"
     staged = tmp_path / "staged"
@@ -266,6 +292,22 @@ def test_metadata_license_header_is_required(tmp_path: Path) -> None:
             validate_archive(archive)
 
 
+def test_metadata_mit_license_contradicts_official_license_files(
+    tmp_path: Path,
+) -> None:
+    members = valid_members()
+    metadata = members[f"{DIST_INFO}/METADATA"].decode()
+    metadata = metadata.replace(
+        "License: BSD-3-Clause",
+        "License: MIT\nLicense-File: AUTHORS\nLicense-File: LICENSE",
+    )
+    members[f"{DIST_INFO}/METADATA"] = metadata.encode()
+    wheel = write_synthetic_wheel(tmp_path, members)
+    with zipfile.ZipFile(wheel) as archive:
+        with pytest.raises(VendorError):
+            validate_archive(archive)
+
+
 def test_lock_and_requirements_projection_must_agree(tmp_path: Path) -> None:
     lock = tmp_path / "sqlparse-vendor.lock"
     requirements = tmp_path / "sqlparse-vendor.requirements.txt"
@@ -311,6 +353,33 @@ def test_verify_vendor_rejects_mutated_source_provenance(
     source = json.loads(path.read_text(encoding="utf-8"))
     source[field] = "tampered"
     path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(VendorError):
+        verify(root)
+
+
+def test_verify_vendor_rejects_extra_source_provenance_key(tmp_path: Path) -> None:
+    root = make_verification_root(tmp_path)
+    path = root / "third_party/sqlparse/SOURCE.json"
+    source = json.loads(path.read_text(encoding="utf-8"))
+    source["unexpected"] = "extra"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(VendorError):
+        verify(root)
+
+
+@pytest.mark.parametrize("artifact", ["LICENSE", "AUTHORS", "files.sha256"])
+def test_verify_vendor_rejects_symlinked_provenance_artifact(
+    tmp_path: Path, artifact: str
+) -> None:
+    root = make_verification_root(tmp_path)
+    path = root / "third_party/sqlparse" / artifact
+    target = tmp_path / f"{artifact}.outside"
+    target.write_bytes(path.read_bytes())
+    path.unlink()
+    try:
+        path.symlink_to(target)
+    except OSError:
+        pytest.skip("symlinks unavailable")
     with pytest.raises(VendorError):
         verify(root)
 

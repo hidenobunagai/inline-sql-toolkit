@@ -73,6 +73,19 @@ EXPECTED_DIST_FILES = frozenset(
         "licenses/LICENSE",
     }
 )
+EXPECTED_SOURCE_KEYS = frozenset(
+    {
+        "name",
+        "version",
+        "url",
+        "wheel",
+        "sha256",
+        "license",
+        "licenseSha256",
+        "authorsSha256",
+        "generatedAt",
+    }
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -199,8 +212,10 @@ def _validate_open_archive(archive: zipfile.ZipFile) -> tuple[zipfile.ZipInfo, .
         re.findall(r"^License-File:\s*(\S+)\s*$", metadata, re.MULTILINE)
     )
     license_is_exact = (
-        metadata_license is not None and metadata_license.group(1) == REQUIRED_LICENSE
-    ) or license_files == {"AUTHORS", "LICENSE"}
+        metadata_license.group(1) == REQUIRED_LICENSE
+        if metadata_license is not None
+        else license_files == {"AUTHORS", "LICENSE"}
+    )
     if not init_version or init_version.group(1) != REQUIRED_VERSION:
         raise VendorError("wrong sqlparse version")
     if (
@@ -274,6 +289,16 @@ def fixed_vendor_root(root: Path) -> Path:
     resolved = expected.resolve()
     if resolved != expected:
         raise VendorError("vendor root escapes extension root")
+    return resolved
+
+
+def fixed_provenance_root(root: Path) -> Path:
+    expected = root / "third_party" / "sqlparse"
+    if expected.parent.is_symlink() or expected.is_symlink():
+        raise VendorError("symlinked provenance root")
+    resolved = expected.resolve()
+    if resolved != expected:
+        raise VendorError("provenance root escapes extension root")
     return resolved
 
 
@@ -361,7 +386,7 @@ def vendor(lock_path: Path) -> None:
         finally:
             if staged.exists():
                 shutil.rmtree(staged)
-    third_party = root / "third_party" / "sqlparse"
+    third_party = fixed_provenance_root(root)
     artifact_paths = {
         name: third_party / name
         for name in ("LICENSE", "AUTHORS", "files.sha256", "SOURCE.json")

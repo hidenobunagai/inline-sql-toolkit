@@ -113,7 +113,8 @@ def validate_packaged_manifest(manifest: object) -> None:
         raise VsixError("invalid extension manifest")
     if manifest.get("publisher") != "hidenobunagai":
         raise VsixError("invalid extension manifest")
-    if manifest.get("version") != "0.1.1":
+    version = manifest.get("version")
+    if not isinstance(version, str) or re.fullmatch(r"\d+\.\d+\.\d+", version) is None:
         raise VsixError("invalid extension manifest")
     if manifest.get("main") != "./dist/extension.js":
         raise VsixError("invalid extension manifest")

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-08-01
 
 - Switches the formatter engine from `sqlparse` to the bundled `sql-formatter`
   (JS), which lays out nested function calls and long expressions correctly.

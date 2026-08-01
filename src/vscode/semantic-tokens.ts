@@ -294,11 +294,35 @@ function isCancellationRequested(token: vscode.CancellationToken): boolean {
 }
 
 export function createInlineSqlSemanticTokensProvider(): {
-  readonly provider: vscode.DocumentSemanticTokensProvider;
+  readonly provider: vscode.DocumentSemanticTokensProvider &
+    vscode.DocumentRangeSemanticTokensProvider;
   readonly legend: vscode.SemanticTokensLegend;
 } {
   const legend = createSemanticTokensLegend();
-  const provider: vscode.DocumentSemanticTokensProvider = {
+  const build = (
+    text: string,
+    lineStarts: readonly number[],
+    builder: vscode.SemanticTokensBuilder,
+    token: vscode.CancellationToken,
+    range?: vscode.Range,
+  ): boolean => {
+    const literals = findSqlLiterals(text);
+    if (literals.length === 0) return false;
+    for (const literal of literals) {
+      for (const sqlToken of tokenizeSqlLiteral(literal, text)) {
+        if (isCancellationRequested(token)) return false;
+        const start = offsetToPosition(sqlToken.start, lineStarts);
+        const end = offsetToPosition(sqlToken.start + sqlToken.length, lineStarts);
+        if (range !== undefined && !range.intersection(new vscode.Range(start, end))) {
+          continue;
+        }
+        builder.push(new vscode.Range(start, end), sqlToken.type, []);
+      }
+    }
+    return true;
+  };
+  const provider: vscode.DocumentSemanticTokensProvider &
+    vscode.DocumentRangeSemanticTokensProvider = {
     provideDocumentSemanticTokens(
       document: vscode.TextDocument,
       token: vscode.CancellationToken,
@@ -307,18 +331,23 @@ export function createInlineSqlSemanticTokensProvider(): {
       if (text.length > MAX_SEMANTIC_DOCUMENT_CHARS || isCancellationRequested(token)) {
         return null;
       }
-      const literals = findSqlLiterals(text);
-      if (literals.length === 0) return null;
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
-      for (const literal of literals) {
-        for (const sqlToken of tokenizeSqlLiteral(literal, text)) {
-          if (isCancellationRequested(token)) return null;
-          const start = offsetToPosition(sqlToken.start, lineStarts);
-          const end = offsetToPosition(sqlToken.start + sqlToken.length, lineStarts);
-          builder.push(new vscode.Range(start, end), sqlToken.type, []);
-        }
+      if (!build(text, lineStarts, builder, token)) return null;
+      return builder.build();
+    },
+    provideDocumentRangeSemanticTokens(
+      document: vscode.TextDocument,
+      range: vscode.Range,
+      token: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.SemanticTokens> {
+      const text = document.getText();
+      if (text.length > MAX_SEMANTIC_DOCUMENT_CHARS || isCancellationRequested(token)) {
+        return null;
       }
+      const lineStarts = computeLineStarts(text);
+      const builder = new vscode.SemanticTokensBuilder(legend);
+      if (!build(text, lineStarts, builder, token, range)) return null;
       return builder.build();
     },
   };

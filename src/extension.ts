@@ -51,11 +51,22 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
 
   const registerSemanticTokens = (): vscode.Disposable => {
     const semanticTokens = createInlineSqlSemanticTokensProvider();
-    return vscode.languages.registerDocumentSemanticTokensProvider(
+    const full = vscode.languages.registerDocumentSemanticTokensProvider(
       INLINE_SQL_SELECTOR,
       semanticTokens.provider,
       semanticTokens.legend,
     );
+    const ranged = vscode.languages.registerDocumentRangeSemanticTokensProvider(
+      INLINE_SQL_SELECTOR,
+      semanticTokens.provider,
+      semanticTokens.legend,
+    );
+    return {
+      dispose: () => {
+        full.dispose();
+        ranged.dispose();
+      },
+    };
   };
   context.subscriptions.push(own(registerSemanticTokens()));
 

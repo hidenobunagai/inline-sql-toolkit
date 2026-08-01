@@ -501,8 +501,10 @@ interface CodeActionRegistration {
 }
 interface SemanticTokenRegistration {
   readonly selector: vscode.DocumentSelector;
-  readonly provider: vscode.DocumentSemanticTokensProvider;
+  readonly provider:
+    vscode.DocumentSemanticTokensProvider | vscode.DocumentRangeSemanticTokensProvider;
   readonly legend: vscode.SemanticTokensLegend;
+  readonly range?: boolean;
 }
 
 export const window = new Proxy(
@@ -564,6 +566,21 @@ export const languages = new Proxy(
           legend: vscode.SemanticTokensLegend,
         ) => {
           const registration = { selector, provider, legend };
+          state.semanticTokenRegistrations.push(registration);
+          return {
+            dispose: () => {
+              const index = state.semanticTokenRegistrations.indexOf(registration);
+              if (index >= 0) state.semanticTokenRegistrations.splice(index, 1);
+            },
+          };
+        };
+      if (property === "registerDocumentRangeSemanticTokensProvider")
+        return (
+          selector: vscode.DocumentSelector,
+          provider: vscode.DocumentRangeSemanticTokensProvider,
+          legend: vscode.SemanticTokensLegend,
+        ) => {
+          const registration = { selector, provider, legend, range: true };
           state.semanticTokenRegistrations.push(registration);
           return {
             dispose: () => {

@@ -9,5 +9,7 @@ export function formatProtectedSql(sql: string, options: FormatOptions): string 
     tabWidth: options.indentWidth,
     keywordCase: options.keywordCase === "preserve" ? "preserve" : options.keywordCase,
     linesBetweenQueries: 1,
+    expressionWidth: options.wrapAfter,
+    denseOperators: !options.useSpaceAroundOperators,
   });
 }

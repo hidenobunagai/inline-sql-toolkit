@@ -1,0 +1,121 @@
+[
+  {
+    "id": "pg-nested-in",
+    "dialect": "postgresql",
+    "sql": "SELECT users.id, users.name FROM users WHERE users.id IN (SELECT id FROM orders WHERE orders.total > 100)",
+    "options": {},
+    "expected": "SELECT\n  users.id,\n  users.name\nFROM\n  users\nWHERE\n  users.id IN (\n    SELECT\n      id\n    FROM\n      orders\n    WHERE\n      orders.total > 100\n  )"
+  },
+  {
+    "id": "pg-nested-case",
+    "dialect": "postgresql",
+    "sql": "SELECT CASE WHEN status = 1 THEN 'active' ELSE 'inactive' END AS label FROM users",
+    "options": {},
+    "expected": "SELECT\n  CASE\n    WHEN status = 1 THEN 'active'\n    ELSE 'inactive'\n  END AS label\nFROM\n  users"
+  },
+  {
+    "id": "pg-json-ops",
+    "dialect": "postgresql",
+    "sql": "SELECT data->>'name' AS name, payload->'meta'->>'k' AS k FROM events",
+    "options": {},
+    "expected": "SELECT\n  data ->> 'name' AS name,\n  payload -> 'meta' ->> 'k' AS k\nFROM\n  events"
+  },
+  {
+    "id": "pg-quoted-marker",
+    "dialect": "postgresql",
+    "sql": "SELECT \"__INLINE_SQL_abc1234567890_STR_0__\", \"__INLINE_SQL_abc1234567890_STR_1__\" FROM users",
+    "options": {},
+    "expected": "SELECT\n  \"__INLINE_SQL_abc1234567890_STR_0__\",\n  \"__INLINE_SQL_abc1234567890_STR_1__\"\nFROM\n  users"
+  },
+  {
+    "id": "pg-plain-marker",
+    "dialect": "postgresql",
+    "sql": "SELECT __INLINE_SQL_abc1234567890_STR_0__ FROM users WHERE x = 1",
+    "options": {},
+    "expected": "SELECT\n  __INLINE_SQL_abc1234567890_STR_0__\nFROM\n  users\nWHERE\n  x = 1"
+  },
+  {
+    "id": "pg-dense-operators",
+    "dialect": "postgresql",
+    "sql": "SELECT a+1 AS x FROM t WHERE y=2",
+    "options": { "useSpaceAroundOperators": false },
+    "expected": "SELECT\n  a+1 AS x\nFROM\n  t\nWHERE\n  y=2"
+  },
+  {
+    "id": "pg-spaced-operators",
+    "dialect": "postgresql",
+    "sql": "SELECT a+1 AS x FROM t WHERE y=2",
+    "options": { "useSpaceAroundOperators": true },
+    "expected": "SELECT\n  a + 1 AS x\nFROM\n  t\nWHERE\n  y = 2"
+  },
+  {
+    "id": "pg-group-by-having",
+    "dialect": "postgresql",
+    "sql": "SELECT category, COUNT(*) AS n FROM items GROUP BY category HAVING COUNT(*) > 5 ORDER BY n DESC",
+    "options": {},
+    "expected": "SELECT\n  category,\n  COUNT(*) AS n\nFROM\n  items\nGROUP BY\n  category\nHAVING\n  COUNT(*) > 5\nORDER BY\n  n DESC"
+  },
+  {
+    "id": "pg-insert-values",
+    "dialect": "postgresql",
+    "sql": "INSERT INTO items (id, name, qty) VALUES (1, 'a', 2), (2, 'b', 3)",
+    "options": {},
+    "expected": "INSERT INTO\n  items (id, name, qty)\nVALUES\n  (1, 'a', 2),\n  (2, 'b', 3)"
+  },
+  {
+    "id": "pg-update-set",
+    "dialect": "postgresql",
+    "sql": "UPDATE users SET name = 'x', status = 2 WHERE id = 1",
+    "options": {},
+    "expected": "UPDATE users\nSET\n  name = 'x',\n  status = 2\nWHERE\n  id = 1"
+  },
+  {
+    "id": "pg-delete-where",
+    "dialect": "postgresql",
+    "sql": "DELETE FROM sessions WHERE expires_at < now()",
+    "options": {},
+    "expected": "DELETE FROM sessions\nWHERE\n  expires_at < now()"
+  },
+  {
+    "id": "pg-window",
+    "dialect": "postgresql",
+    "sql": "SELECT name, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) AS rn FROM employees",
+    "options": {},
+    "expected": "SELECT\n  name,\n  ROW_NUMBER() OVER (\n    PARTITION BY\n      dept\n    ORDER BY\n      salary DESC\n  ) AS rn\nFROM\n  employees"
+  },
+  {
+    "id": "sqlite-nested-functions",
+    "dialect": "sqlite",
+    "sql": "select julianday(substr(b.started_at, 1, 10)) as day, count(*) as n from events",
+    "options": {},
+    "expected": "SELECT\n  julianday(substr(b.started_at, 1, 10)) AS day,\n  count(*) AS n\nFROM\n  events"
+  },
+  {
+    "id": "sqlite-join",
+    "dialect": "sqlite",
+    "sql": "SELECT a.id, b.name FROM a JOIN b ON a.b_id = b.id WHERE a.created_at > julianday(substr(b.started_at, 1, 10))",
+    "options": {},
+    "expected": "SELECT\n  a.id,\n  b.name\nFROM\n  a\n  JOIN b ON a.b_id = b.id\nWHERE\n  a.created_at > julianday(substr(b.started_at, 1, 10))"
+  },
+  {
+    "id": "sqlite-insert",
+    "dialect": "sqlite",
+    "sql": "INSERT INTO t (a, b) VALUES (1, 'x'), (2, 'y')",
+    "options": {},
+    "expected": "INSERT INTO\n  t (a, b)\nVALUES\n  (1, 'x'),\n  (2, 'y')"
+  },
+  {
+    "id": "sqlite-limit-order",
+    "dialect": "sqlite",
+    "sql": "SELECT name FROM users ORDER BY id DESC LIMIT 10 OFFSET 5",
+    "options": {},
+    "expected": "SELECT\n  name\nFROM\n  users\nORDER BY\n  id DESC\nLIMIT\n  10\nOFFSET\n  5"
+  },
+  {
+    "id": "sqlite-replace",
+    "dialect": "sqlite",
+    "sql": "REPLACE INTO t (a, b) VALUES (1, 'x')",
+    "options": {},
+    "expected": "REPLACE INTO\n  t (a, b)\nVALUES\n  (1, 'x')"
+  }
+]

@@ -223,7 +223,12 @@ def test_golden_fixtures_cover_the_formatter_surface() -> None:
             cast(int, raw_options["indentWidth"]),
             cast(int, raw_options["wrapAfter"]),
             cast(bool, raw_options["useSpaceAroundOperators"]),
-            cast(bool, raw_options.get("expandSelectList", False)),
+            cast(bool, raw_options["expandSelectList"]),
+            cast(bool, raw_options["trimBlankBoundaries"]),
+            cast(
+                Literal["sql", "mysql", "postgresql", "sqlite"],
+                raw_options["dialect"],
+            ),
         )
         analysis = analyze_document(source)
         literal = analysis.supported[0]

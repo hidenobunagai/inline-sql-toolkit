@@ -31,15 +31,10 @@ function utf8ByteLength(codePoint: number): number {
   return 4;
 }
 
-function lineMap(
-  text: string,
-  start: number,
-  contentEnd: number,
-  nextStart: number,
-): LineMap {
+function lineMap(text: string, start: number, contentEnd: number, nextStart: number): LineMap {
   const utf8 = [0];
   const utf16 = [0];
-  for (let offset = start; offset < contentEnd; ) {
+  for (let offset = start; offset < contentEnd;) {
     const codePoint = text.codePointAt(offset) ?? 0;
     const characterLength = codePoint > 0xffff ? 2 : 1;
     const previousUtf8 = utf8[utf8.length - 1] ?? 0;
@@ -87,11 +82,7 @@ export class SourceMap {
   readonly lines: readonly LineMap[];
   readonly lineStarts: readonly number[];
 
-  private constructor(
-    text: string,
-    lines: readonly LineMap[],
-    lineStarts: readonly number[],
-  ) {
+  private constructor(text: string, lines: readonly LineMap[], lineStarts: readonly number[]) {
     this.text = text;
     this.lines = lines;
     this.lineStarts = lineStarts;
@@ -109,7 +100,11 @@ export class SourceMap {
     }
     lines.push(lineMap(text, start, text.length, text.length));
     const frozen = lines;
-    return new SourceMap(text, frozen, frozen.map((line) => line.start));
+    return new SourceMap(
+      text,
+      frozen,
+      frozen.map((line) => line.start),
+    );
   }
 
   private line(index: number): LineMap {

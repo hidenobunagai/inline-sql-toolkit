@@ -9,6 +9,8 @@ from inline_sql_helper.model import (
     CandidateSkipPayload,
     ErrorPayload,
     ErrorResponse,
+    FinalizeItem,
+    FinalizeRequest,
     FormatEdit,
     FormatMode,
     FormatOptions,
@@ -21,6 +23,9 @@ from inline_sql_helper.model import (
     LocateResponse,
     LocateSuccess,
     Position,
+    ProtectCandidate,
+    ProtectResponse,
+    ProtectSuccess,
     ProtocolOperation,
     ReasonCode,
     TextRange,
@@ -29,6 +34,7 @@ from inline_sql_helper.model import (
 type ProtocolValueKind = Literal[
     "request",
     "locateResponse",
+    "protectResponse",
     "formatResponse",
     "preDispatchError",
 ]
@@ -217,11 +223,49 @@ def parse_request(value: object) -> HelperRequest:
             Literal[1], require_literal(record["protocolVersion"], 1)
         ),
         operation=ProtocolOperation(
-            require_enum(record["operation"], {"locate", "format"})
+            require_enum(record["operation"], {"locate", "protect", "format"})
         ),
         source=require_str(record["source"]),
         target=parse_target(record["target"]),
         options=parse_format_options(record["options"]),
+    )
+
+
+def parse_finalize_request(value: object) -> FinalizeRequest:
+    """Validate one finalize request and construct frozen model values."""
+
+    record = require_exact_dict(
+        value,
+        frozenset(
+            {
+                "protocolVersion",
+                "operation",
+                "source",
+                "nonce",
+                "options",
+                "formatted",
+            }
+        ),
+    )
+    if record["operation"] != "finalize":
+        raise ProtocolViolation
+    formatted = tuple(
+        FinalizeItem(
+            parse_range(item_record["range"], allow_empty=False),
+            require_str(item_record["sql"]),
+        )
+        for item in require_list(record["formatted"])
+        for item_record in (require_exact_dict(item, frozenset({"range", "sql"})),)
+    )
+    return FinalizeRequest(
+        protocol_version=cast(
+            Literal[1], require_literal(record["protocolVersion"], 1)
+        ),
+        operation=ProtocolOperation.FINALIZE,
+        source=require_str(record["source"]),
+        nonce=require_str(record["nonce"]),
+        options=parse_format_options(record["options"]),
+        formatted=formatted,
     )
 
 
@@ -306,6 +350,32 @@ def parse_locate_response(value: object) -> LocateResponse:
     )
 
 
+def parse_protect_response(value: object) -> ProtectResponse:
+    if isinstance(value, dict) and value.get("ok") is False:
+        return parse_error_response(value, ProtocolOperation.PROTECT)
+    record = require_exact_dict(
+        value,
+        frozenset({"protocolVersion", "operation", "ok", "nonce", "candidates"}),
+    )
+    if record["operation"] != "protect" or record["ok"] is not True:
+        raise ProtocolViolation
+    candidates = tuple(
+        ProtectCandidate(
+            parse_range(item_record["range"], allow_empty=False),
+            require_str(item_record["sql"]),
+        )
+        for item in require_list(record["candidates"])
+        for item_record in (require_exact_dict(item, frozenset({"range", "sql"})),)
+    )
+    return ProtectSuccess(
+        cast(Literal[1], require_literal(record["protocolVersion"], 1)),
+        ProtocolOperation.PROTECT,
+        True,
+        require_str(record["nonce"]),
+        candidates,
+    )
+
+
 def parse_format_response(value: object) -> FormatResponse:
     if isinstance(value, dict) and value.get("ok") is False:
         return parse_error_response(value, ProtocolOperation.FORMAT)
@@ -322,11 +392,11 @@ def parse_format_response(value: object) -> FormatResponse:
             }
         ),
     )
-    if record["operation"] != "format" or record["ok"] is not True:
+    if record["operation"] not in ("format", "finalize") or record["ok"] is not True:
         raise ProtocolViolation
     return FormatSuccess(
         cast(Literal[1], require_literal(record["protocolVersion"], 1)),
-        ProtocolOperation.FORMAT,
+        ProtocolOperation(record["operation"]),
         True,
         tuple(parse_edit(item) for item in require_list(record["edits"])),
         tuple(parse_skip(item) for item in require_list(record["skips"])),
@@ -355,7 +425,7 @@ def validate_format_relations(response: FormatSuccess) -> FormatSuccess:
 def parse_protocol_value(
     kind: ProtocolValueKind,
     value: object,
-) -> HelperRequest | LocateResponse | FormatResponse:
+) -> HelperRequest | LocateResponse | ProtectResponse | FormatResponse:
     """Validate one request or context-specific response value."""
 
     if kind == "request":
@@ -364,6 +434,8 @@ def parse_protocol_value(
         return parse_error_response(value, "unknown")
     if kind == "locateResponse":
         return parse_locate_response(value)
+    if kind == "protectResponse":
+        return parse_protect_response(value)
     if kind == "formatResponse":
         response = parse_format_response(value)
         if isinstance(response, ErrorResponse):
@@ -445,6 +517,20 @@ def response_to_wire(response: HelperResponse) -> dict[str, object]:
                 range_to_wire(candidate) for candidate in response.candidates
             ],
         }
+    if isinstance(response, ProtectSuccess):
+        return {
+            "protocolVersion": response.protocol_version,
+            "operation": operation,
+            "ok": response.ok,
+            "nonce": response.nonce,
+            "candidates": [
+                {
+                    "range": range_to_wire(candidate.range),
+                    "sql": candidate.sql,
+                }
+                for candidate in response.candidates
+            ],
+        }
     # Candidate formatting applies edits from the end of the source backwards
     # so source offsets remain stable. The wire protocol, however, requires
     # edits in source order. Sort only this serialized view: the internal
@@ -520,8 +606,11 @@ def serialize_response(response: HelperResponse) -> bytes:
         kind: ProtocolValueKind = (
             "locateResponse"
             if response.operation == ProtocolOperation.LOCATE
+            else "protectResponse"
+            if response.operation == ProtocolOperation.PROTECT
             else "formatResponse"
-            if response.operation == ProtocolOperation.FORMAT
+            if response.operation
+            in (ProtocolOperation.FORMAT, ProtocolOperation.FINALIZE)
             else "preDispatchError"
         )
     except (AttributeError, TypeError, ValueError):

@@ -68,7 +68,11 @@ def marker_text(
 ) -> str:
     """Return the stable opaque token used for one protected fragment."""
     token = f"__INLINE_SQL_{nonce}_{kind.name}_{ordinal}__"
-    return ("-- " if sql_comment else "") + token + ("\n" if canonical_newline else "")
+    if sql_comment:
+        return f"-- {token}" + ("\n" if canonical_newline else "")
+    # Quoted identifiers survive formatter case normalization (sqlparse and
+    # sql-formatter both preserve quoted identifiers verbatim).
+    return f'"{token}"' + ("\n" if canonical_newline else "")
 
 
 def _intersects_any(span: SourceSpan, blocked: Sequence[SourceSpan]) -> bool:
@@ -259,20 +263,25 @@ def build_protection_plan(
 
 
 _TOKEN_TEMPLATE = r"__INLINE_SQL_{nonce}_[A-Z_]+_[0-9]+__"
+_QUOTED_TOKEN_TEMPLATE = '"' + _TOKEN_TEMPLATE + '"'
 
 
 def _marker_token(marker: str, nonce: str) -> str:
-    match = re.fullmatch(
-        _TOKEN_TEMPLATE.format(nonce=re.escape(nonce)), marker.rstrip("\n")
-    )
     if marker.startswith("-- "):
         match = re.fullmatch(
             r"-- " + _TOKEN_TEMPLATE.format(nonce=re.escape(nonce)) + r"\n?",
             marker,
         )
+        if match is None:
+            raise UnsafeRestore("invalid protected marker")
+        return match.group(0).removeprefix("-- ").removesuffix("\n")
+    match = re.fullmatch(
+        _QUOTED_TOKEN_TEMPLATE.format(nonce=re.escape(nonce)) + r"\n?",
+        marker,
+    )
     if match is None:
         raise UnsafeRestore("invalid protected marker")
-    return match.group(0).removeprefix("-- ").removesuffix("\n")
+    return match.group(0).strip('"\n')
 
 
 def restore_protected(formatted: str, plan: ProtectionPlan) -> str:
@@ -300,7 +309,11 @@ def restore_protected(formatted: str, plan: ProtectionPlan) -> str:
         position = formatted.find(fragment.marker, cursor)
         if position < 0:
             raise UnsafeRestore("protected marker spelling changed")
-        token_position = position + (3 if fragment.marker.startswith("-- ") else 0)
+        token_position = position
+        if fragment.marker.startswith("-- "):
+            token_position += 3
+        elif fragment.marker.startswith('"'):
+            token_position += 1
         if (
             formatted[token_position : token_position + len(expected_token)]
             != expected_token

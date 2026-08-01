@@ -226,7 +226,8 @@
     "test:vsix-install": "bun tools/install_and_smoke_vsix.ts"
   },
   "dependencies": {
-    "@vscode/python-extension": "1.0.5"
+    "@vscode/python-extension": "1.0.5",
+    "sql-formatter": "^15.8.2"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

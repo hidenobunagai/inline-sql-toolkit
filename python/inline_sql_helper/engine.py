@@ -25,6 +25,7 @@ from inline_sql_helper.literals import (
 from inline_sql_helper.model import (
     CandidateSkipPayload,
     ErrorResponse,
+    FinalizeRequest,
     FormatEdit,
     FormatMode,
     FormatResponse,
@@ -33,11 +34,19 @@ from inline_sql_helper.model import (
     HelperRequest,
     LocateResponse,
     LocateSuccess,
+    ProtectCandidate,
+    ProtectResponse,
+    ProtectSuccess,
     ProtocolOperation,
     ReasonCode,
 )
 from inline_sql_helper.positions import PositionMappingError, SourceMap, SourceSpan
-from inline_sql_helper.protection import UnsafeRestore, allocate_nonce
+from inline_sql_helper.protection import (
+    UnsafeRestore,
+    allocate_nonce,
+    build_protection_plan,
+    restore_protected,
+)
 from inline_sql_helper.protocol import error_response
 
 MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
@@ -193,6 +202,141 @@ def locate_request(
         <= MAX_CANDIDATE_BYTES
     )
     return LocateSuccess(1, ProtocolOperation.LOCATE, True, candidates)
+
+
+def protect_request(
+    request: HelperRequest,
+    dependencies: EngineDependencies,
+) -> ProtectResponse:
+    """Protect selected SQL candidates and return their masked bodies."""
+    prepared = _prepare(request)
+    if isinstance(prepared, ErrorResponse):
+        return prepared
+    if not prepared.selected:
+        return error_response(request.operation, ReasonCode.NO_SQL_CANDIDATE)
+    try:
+        nonce = allocate_nonce(request.source, dependencies.random_bytes)
+    except UnsafeRestore:
+        return error_response(request.operation, ReasonCode.FORMATTER_FAILED)
+    candidates: list[ProtectCandidate] = []
+    for unit in prepared.selected:
+        if isinstance(unit.literal, UnsupportedLiteral):
+            continue
+        literal_text = prepared.analysis.source_map.slice(unit.span)
+        if len(literal_text.encode("utf-8")) > MAX_CANDIDATE_BYTES:
+            continue
+        try:
+            plan = build_protection_plan(
+                prepared.analysis.source_map,
+                unit.literal,
+                unit.detection,
+                nonce,
+            )
+        except UnsafeRestore:
+            continue
+        candidates.append(
+            ProtectCandidate(
+                prepared.analysis.source_map.vscode_range(unit.span),
+                plan.protected_sql,
+            )
+        )
+    return ProtectSuccess(1, ProtocolOperation.PROTECT, True, nonce, tuple(candidates))
+
+
+def _literal_text(literal: SupportedLiteral, content: str) -> str:
+    """Reassemble a literal with its exact source prefix and delimiter."""
+    return f"{literal.prefix}{literal.delimiter}{content}{literal.delimiter}"
+
+
+def finalize_request(
+    request: FinalizeRequest,
+    dependencies: EngineDependencies,
+) -> FormatResponse:
+    """Restore and validate externally formatted SQL into guarded edits."""
+    del dependencies
+    if len(request.source.encode("utf-8")) > MAX_DOCUMENT_BYTES:
+        return error_response(request.operation, ReasonCode.RESOURCE_LIMIT_EXCEEDED)
+    try:
+        analysis = analyze_document(request.source)
+    except (SyntaxError, tokenize.TokenError):
+        return error_response(request.operation, ReasonCode.DOCUMENT_PARSE_FAILED)
+    edits: list[tuple[SourceSpan, str, str]] = []
+    skips: list[CandidateSkipPayload] = []
+    unchanged = 0
+    for item in request.formatted:
+        span = SourceSpan(
+            analysis.source_map.offset_from_vscode(
+                item.range.start.line,
+                item.range.start.character,
+            ),
+            analysis.source_map.offset_from_vscode(
+                item.range.end.line,
+                item.range.end.character,
+            ),
+        )
+        literal = next(
+            (candidate for candidate in analysis.supported if candidate.span == span),
+            None,
+        )
+        if literal is None:
+            skips.append(CandidateSkipPayload(item.range, ReasonCode.FORMATTER_FAILED))
+            continue
+        detection = detect_sql(literal, analysis.source_map)
+        if not detection.matched:
+            skips.append(CandidateSkipPayload(item.range, ReasonCode.NO_SQL_CANDIDATE))
+            continue
+        try:
+            plan = build_protection_plan(
+                analysis.source_map,
+                literal,
+                detection,
+                request.nonce,
+            )
+            restored = restore_protected(item.sql, plan)
+        except UnsafeRestore:
+            skips.append(
+                CandidateSkipPayload(item.range, ReasonCode.UNSAFE_FSTRING_RESTORE)
+            )
+            continue
+        expected = analysis.source_map.slice(span)
+        replacement = _literal_text(literal, restored)
+        if expected == replacement:
+            unchanged += 1
+            continue
+        edits.append((span, expected, replacement))
+    combined = request.source
+    for edit_span, _, new in sorted(
+        edits, key=lambda edit: edit[0].start, reverse=True
+    ):
+        combined = combined[: edit_span.start] + new + combined[edit_span.end :]
+    try:
+        ast.parse(combined)
+    except (SyntaxError, ValueError, TypeError):
+        return error_response(request.operation, ReasonCode.FORMATTER_FAILED)
+    result_edits = tuple(
+        FormatEdit(
+            range=analysis.source_map.vscode_range(edit_span),
+            expected_text=expected_text,
+            new_text=new_text,
+        )
+        for edit_span, expected_text, new_text in sorted(
+            edits, key=lambda edit: edit[0].start
+        )
+    )
+    return FormatSuccess(
+        1,
+        ProtocolOperation.FINALIZE,
+        True,
+        result_edits,
+        tuple(skips),
+        FormatSummary(
+            discovered=len(analysis.supported),
+            selected=len(request.formatted),
+            changed=len(result_edits),
+            unchanged=unchanged,
+            skipped=len(skips),
+        ),
+    )
 
 
 def format_request(

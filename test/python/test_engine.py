@@ -11,11 +11,15 @@ from inline_sql_helper.engine import (
     MAX_CANDIDATES,
     MAX_DOCUMENT_BYTES,
     EngineDependencies,
+    finalize_request,
     format_request,
     locate_request,
+    protect_request,
 )
 from inline_sql_helper.model import (
     ErrorResponse,
+    FinalizeItem,
+    FinalizeRequest,
     FormatMode,
     FormatOptions,
     FormatSuccess,
@@ -23,6 +27,7 @@ from inline_sql_helper.model import (
     HelperRequest,
     LocateSuccess,
     Position,
+    ProtectSuccess,
     ProtocolOperation,
     ReasonCode,
     TextRange,
@@ -71,6 +76,11 @@ def deps(formatter: SqlFormatter | None = None) -> EngineDependencies:
 
 def format_success(value: object) -> FormatSuccess:
     assert isinstance(value, FormatSuccess)
+    return value
+
+
+def protect_success(value: object) -> ProtectSuccess:
+    assert isinstance(value, ProtectSuccess)
     return value
 
 
@@ -284,3 +294,67 @@ def test_same_nonce_is_used_for_all_candidates() -> None:
     )
     assert result.ok is True
     assert len(nonces) == 1
+
+
+def test_protect_returns_masked_sql_for_selected_candidates() -> None:
+    source = 'query = f"SELECT {col_name} FROM t"'
+    result = protect_success(protect_request(request(source), deps()))
+    assert result.ok is True
+    assert len(result.candidates) == 1
+    candidate = result.candidates[0]
+    assert '"__INLINE_SQL_' in candidate.sql
+    assert "{col_name}" not in candidate.sql
+
+
+def test_protect_rejects_when_no_sql_candidate() -> None:
+    source = 'value = "plain text"'
+    result = error_response(protect_request(request(source), deps()))
+    assert result.error.code is ReasonCode.NO_SQL_CANDIDATE
+
+
+def test_finalize_restores_and_builds_guarded_edit() -> None:
+    source = 'query = f"select 1"'
+    protected = protect_success(protect_request(request(source), deps()))
+    candidate = protected.candidates[0]
+    formatted = candidate.sql.replace("select 1", "SELECT 1")
+    result = format_success(
+        finalize_request(
+            FinalizeRequest(
+                1,
+                ProtocolOperation.FINALIZE,
+                source,
+                protected.nonce,
+                OPTIONS,
+                (FinalizeItem(candidate.range, formatted),),
+            ),
+            deps(),
+        )
+    )
+    assert result.ok is True
+    assert result.summary.changed == 1
+    assert result.summary.skipped == 0
+    edit = result.edits[0]
+    assert edit.new_text == 'f"SELECT 1"'
+
+
+def test_finalize_skips_when_marker_sequence_changed() -> None:
+    source = 'query = f"select {col_name}"'
+    protected = protect_success(protect_request(request(source), deps()))
+    candidate = protected.candidates[0]
+    corrupted = candidate.sql.replace("__INLINE_SQL", "__INLINE_SQK")
+    result = format_success(
+        finalize_request(
+            FinalizeRequest(
+                1,
+                ProtocolOperation.FINALIZE,
+                source,
+                protected.nonce,
+                OPTIONS,
+                (FinalizeItem(candidate.range, corrupted),),
+            ),
+            deps(),
+        )
+    )
+    assert result.ok is True
+    assert result.summary.changed == 0
+    assert result.summary.skipped == 1

@@ -8,8 +8,10 @@ from typing import BinaryIO, Literal
 
 from inline_sql_helper.engine import (
     EngineDependencies,
+    finalize_request,
     format_request,
     locate_request,
+    protect_request,
 )
 from inline_sql_helper.model import (
     HelperResponse,
@@ -20,6 +22,7 @@ from inline_sql_helper.protocol import (
     ProtocolViolation,
     decode_json,
     error_response,
+    parse_finalize_request,
     parse_request,
     serialize_response,
 )
@@ -52,6 +55,10 @@ def peek_operation(
     operation = value.get("operation")
     if operation == "locate":
         return ProtocolOperation.LOCATE
+    if operation == "protect":
+        return ProtocolOperation.PROTECT
+    if operation == "finalize":
+        return ProtocolOperation.FINALIZE
     if operation == "format":
         return ProtocolOperation.FORMAT
     return "unknown"
@@ -62,13 +69,17 @@ def _process(payload: bytes) -> HelperResponse:
     try:
         value = decode_json(payload)
         operation = peek_operation(value)
-        request = parse_request(value)
         dependencies = EngineDependencies(
             random_bytes=secrets.token_bytes,
             sql_formatter=format_sql,
         )
+        if operation == "finalize":
+            return finalize_request(parse_finalize_request(value), dependencies)
+        request = parse_request(value)
         if request.operation is ProtocolOperation.LOCATE:
             return locate_request(request, dependencies)
+        if request.operation is ProtocolOperation.PROTECT:
+            return protect_request(request, dependencies)
         return format_request(request, dependencies)
     except ProtocolViolation:
         return error_response(operation, ReasonCode.PROTOCOL_ERROR)

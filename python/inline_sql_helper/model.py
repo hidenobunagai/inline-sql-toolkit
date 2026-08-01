@@ -17,6 +17,8 @@ class ProtocolOperation(StrEnum):
     """Helper operation selected by a request."""
 
     LOCATE = "locate"
+    PROTECT = "protect"
+    FINALIZE = "finalize"
     FORMAT = "format"
 
 
@@ -129,11 +131,50 @@ class LocateSuccess:
 
 
 @dataclass(frozen=True, slots=True)
-class FormatSuccess:
-    """Successful format response."""
+class ProtectCandidate:
+    """One protected SQL candidate and its source range."""
+
+    range: TextRange
+    sql: str
+
+
+@dataclass(frozen=True, slots=True)
+class ProtectSuccess:
+    """Successful protect response with protected SQL for formatting."""
 
     protocol_version: Literal[1]
-    operation: Literal[ProtocolOperation.FORMAT]
+    operation: Literal[ProtocolOperation.PROTECT]
+    ok: Literal[True]
+    nonce: str
+    candidates: tuple[ProtectCandidate, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FinalizeItem:
+    """One formatted SQL candidate to restore and validate."""
+
+    range: TextRange
+    sql: str
+
+
+@dataclass(frozen=True, slots=True)
+class FinalizeRequest:
+    """Request to restore and validate externally formatted SQL."""
+
+    protocol_version: Literal[1]
+    operation: Literal[ProtocolOperation.FINALIZE]
+    source: str
+    nonce: str
+    options: FormatOptions
+    formatted: tuple[FinalizeItem, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FormatSuccess:
+    """Successful format or finalize response."""
+
+    protocol_version: Literal[1]
+    operation: ProtocolOperation
     ok: Literal[True]
     edits: tuple[FormatEdit, ...]
     skips: tuple[CandidateSkipPayload, ...]
@@ -158,5 +199,6 @@ class ErrorResponse:
 
 
 type LocateResponse = LocateSuccess | ErrorResponse
+type ProtectResponse = ProtectSuccess | ErrorResponse
 type FormatResponse = FormatSuccess | ErrorResponse
-type HelperResponse = LocateSuccess | FormatSuccess | ErrorResponse
+type HelperResponse = LocateSuccess | ProtectSuccess | FormatSuccess | ErrorResponse

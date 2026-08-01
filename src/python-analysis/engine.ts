@@ -18,6 +18,7 @@ export interface DetectedUnit {
 
 /** The result of formatting one document with the TS engine. */
 export interface EngineResult {
+  readonly sourceMap: SourceMap;
   readonly edits: readonly CandidateEdit[];
   readonly skipped: number;
   readonly summary: {
@@ -140,6 +141,7 @@ export function formatDocument(
   const combined = combinedSource(source, edits);
   analyzeDocument(combined);
   return {
+    sourceMap: analysis.sourceMap,
     edits,
     skipped,
     summary: {

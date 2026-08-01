@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
 import type { FormatSuccess } from "../../src/protocol.js";
+import type { DocumentSnapshot } from "../../src/vscode/edit-applicator.js";
 import { DefaultEditApplicator, strictPosition } from "../../src/vscode/edit-applicator.js";
-import type { DocumentSnapshot } from "../../src/vscode/helper-client.js";
 import { __mock } from "../support/vscode-mock.js";
 
 beforeEach(() => {

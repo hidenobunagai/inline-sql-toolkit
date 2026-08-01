@@ -1,7 +1,12 @@
 import * as vscode from "vscode";
 
 import type { FormatEdit, FormatSuccess } from "../protocol.js";
-import type { DocumentSnapshot } from "./helper-client.js";
+
+export interface DocumentSnapshot {
+  readonly uri: vscode.Uri;
+  readonly version: number;
+  readonly text: string;
+}
 
 export type ApplyOutcome =
   | { readonly ok: true; readonly applied: number }

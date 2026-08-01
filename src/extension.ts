@@ -1,4 +1,3 @@
-import { spawn as nodeSpawn } from "node:child_process";
 
 import * as vscode from "vscode";
 
@@ -7,7 +6,6 @@ import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
 import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
-import { createPythonResolver } from "./vscode/python-resolver.js";
 import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
 
@@ -38,17 +36,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   const hooks = createTestHooks(context);
   for (const subscription of context.subscriptions.slice(hookSubscriptionStart)) own(subscription);
 
-  const resolver = own(
-    createPythonResolver({
-      isWorkspaceTrusted: () => hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
-      processWillSpawn: hooks.processWillSpawn,
-      getPythonExtension: () => vscode.extensions.getExtension("ms-python.python"),
-      getPythonApi: async () => (await import("@vscode/python-extension")).PythonExtension.api(),
-      spawn: nodeSpawn,
-      onDidChangeConfiguration: vscode.workspace.onDidChangeConfiguration,
-      onDidGrantWorkspaceTrust: vscode.workspace.onDidGrantWorkspaceTrust,
-    }),
-  );
   const applicator = createEditApplicator({
     applyWorkspaceEdit: hooks.applyWorkspaceEdit,
   });
@@ -96,7 +83,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     trustGrant = own(
       vscode.workspace.onDidGrantWorkspaceTrust(() => {
         cache.clear();
-        resolver.invalidate();
         registerCodeActionsOnce();
         trustGrant?.dispose();
         trustGrant = undefined;

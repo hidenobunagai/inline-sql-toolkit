@@ -12,8 +12,11 @@ import {
   resolveEditorTarget,
   type TargetResolution,
 } from "./document-target.js";
-import { DefaultEditApplicator, type EditApplicator } from "./edit-applicator.js";
-import type { DocumentSnapshot } from "./helper-client.js";
+import {
+  DefaultEditApplicator,
+  type DocumentSnapshot,
+  type EditApplicator,
+} from "./edit-applicator.js";
 import {
   createNotifications,
   type NotificationSink,

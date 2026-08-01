@@ -257,8 +257,7 @@ export function workspaceRoot(): vscode.Uri {
 let marimoFixtureCounter = 0;
 
 export function preserveFinalNewline(document: vscode.TextDocument, text: string): string {
-  const endsWithNewline =
-    document.getText().endsWith("\n") || document.getText().endsWith("\r");
+  const endsWithNewline = document.getText().endsWith("\n") || document.getText().endsWith("\r");
   if (!endsWithNewline) return text;
   return document.getText().includes("\r\n") ? `${text}\r\n` : `${text}\n`;
 }

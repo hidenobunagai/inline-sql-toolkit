@@ -152,11 +152,12 @@ describe("DefaultFormatController", () => {
     const applied: unknown[] = [];
     const value = setup();
     __mock.setActiveEditor(__mock.editor(first));
-    (value.hook as { applyWorkspaceEdit: (edit: unknown) => Thenable<boolean> }).applyWorkspaceEdit =
-      (edit) => {
-        applied.push(edit);
-        return Promise.resolve(true);
-      };
+    (
+      value.hook as { applyWorkspaceEdit: (edit: unknown) => Thenable<boolean> }
+    ).applyWorkspaceEdit = (edit) => {
+      applied.push(edit);
+      return Promise.resolve(true);
+    };
     await value.controller.execute("all");
     expect(value.hook.outcomes).toEqual([{ changed: 2, skipped: 0 }]);
     expect(applied).toHaveLength(1);

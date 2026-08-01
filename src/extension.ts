@@ -135,6 +135,14 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  // eslint-disable-next-line no-console
+  console.log(
+    `[inline-sql] python semanticHighlighting resolved = ${String(
+      vscode.workspace
+        .getConfiguration("editor", { languageId: "python" })
+        .get("semanticHighlighting.enabled"),
+    )}`,
+  );
   disposeActiveState();
   activeState = createState(context);
 }

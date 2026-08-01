@@ -303,6 +303,8 @@ export function createInlineSqlSemanticTokensProvider(): {
       document: vscode.TextDocument,
       token: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.SemanticTokens> {
+      // eslint-disable-next-line no-console
+      console.log(`[inline-sql] semantic provider called: ${document.languageId}`);
       const text = document.getText();
       if (text.length > MAX_SEMANTIC_DOCUMENT_CHARS || isCancellationRequested(token)) {
         return null;

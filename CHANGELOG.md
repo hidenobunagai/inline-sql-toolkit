@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.2.8 - 2026-08-01
+
+- Reports skip reasons (e.g. FORMATTER_FAILED) in the formatting summary so
+  skipped candidates are diagnosable.
+
 ## 0.2.7 - 2026-08-01
 
 - Registers only the range semantic tokens provider so SQL highlighting is
@@ -25,6 +30,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.2.8 - 2026-08-01
+
+- Reports skip reasons (e.g. FORMATTER_FAILED) in the formatting summary so
+  skipped candidates are diagnosable.
 
 ## 0.2.7 - 2026-08-01
 

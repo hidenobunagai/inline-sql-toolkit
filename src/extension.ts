@@ -82,28 +82,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   };
   context.subscriptions.push(own(registerSemanticTokens()));
 
-  // VS Code serves semantic tokens from the last-registered provider.  Other
-  // extensions (for example the Python extension's built-in tokenizer, even
-  // with its language server disabled) register after this extension
-  // activates.  Re-register for a short window so this provider stays last and
-  // its SQL tokens override the generic string token stream.  Registrations
-  // are only added (never disposed) so a re-registration never leaves the
-  // extension host momentarily without this provider.
-  const RE_REGISTRATION_INTERVAL_MS = 2_000;
-  const RE_REGISTRATION_COUNT = 10;
-  let reRegistrationsLeft = RE_REGISTRATION_COUNT;
-  let reRegistrationTimer: ReturnType<typeof setTimeout> | undefined;
-  const scheduleReRegistration = (): void => {
-    reRegistrationTimer = setTimeout(() => {
-      reRegistrationTimer = undefined;
-      if (reRegistrationsLeft <= 0) return;
-      reRegistrationsLeft -= 1;
-      context.subscriptions.push(own(registerSemanticTokens()));
-      scheduleReRegistration();
-    }, RE_REGISTRATION_INTERVAL_MS);
-  };
-  scheduleReRegistration();
-
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,
   };
@@ -151,7 +129,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   return {
     disposables: owned,
     dispose(): void {
-      if (reRegistrationTimer !== undefined) clearTimeout(reRegistrationTimer);
       for (const disposable of owned.splice(0)) disposable.dispose();
     },
   };

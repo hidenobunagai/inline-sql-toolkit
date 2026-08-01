@@ -12,6 +12,7 @@ interface PackageManifest {
   readonly main?: unknown;
   readonly activationEvents?: unknown;
   readonly capabilities?: unknown;
+  readonly configurationDefaults?: unknown;
   readonly extensionDependencies?: unknown;
   readonly contributes?: unknown;
   readonly repository?: unknown;
@@ -80,6 +81,10 @@ describe("extension manifest", () => {
         readonly restrictedConfigurations: readonly string[];
       };
     };
+    const configurationDefaults = (manifest.configurationDefaults ?? {}) as Record<
+      string,
+      { readonly "editor.semanticHighlighting.enabled"?: boolean }
+    >;
 
     expect(contributes.commands?.map(({ command }) => command)).toEqual([
       "inlineSql.formatAtCursor",
@@ -100,6 +105,10 @@ describe("extension manifest", () => {
       description: "%untrustedWorkspaces.description%",
       restrictedConfigurations: ["inlineSql.pythonPath"],
     });
+    expect(configurationDefaults["[python]"]?.["editor.semanticHighlighting.enabled"]).toBe(false);
+    expect(
+      configurationDefaults["[mo-python]"]?.["editor.semanticHighlighting.enabled"],
+    ).toBe(false);
   });
 
   it("maps both injected grammar scopes to their embedded languages", () => {

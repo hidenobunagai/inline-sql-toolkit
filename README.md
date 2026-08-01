@@ -90,6 +90,13 @@ later atomic precondition.
   are rejected. VS Code marks this setting restricted in untrusted workspaces,
   but the extension does not claim to validate path containment.
 
+For Python and Marimo Python documents the extension disables
+`editor.semanticHighlighting.enabled` by default. Python language servers
+(such as Pylance) classify an entire f-string as a string token, which would
+override the SQL highlighting contributed by this extension. Users who enable
+semantic highlighting for Python in their own settings override this default;
+the extension then also contributes its own SQL semantic tokens.
+
 ## Detection and supported syntax
 
 Formatter detection is source-level: it examines Python tokens and the literal

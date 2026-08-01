@@ -34,6 +34,14 @@
       ]
     }
   },
+  "configurationDefaults": {
+    "[python]": {
+      "editor.semanticHighlighting.enabled": false
+    },
+    "[mo-python]": {
+      "editor.semanticHighlighting.enabled": false
+    }
+  },
   "contributes": {
     "commands": [
       {

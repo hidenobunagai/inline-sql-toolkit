@@ -281,7 +281,10 @@ export function buildLaunchCommand(input: LaunchInput): LaunchCommand {
   ];
   if (input.scenario !== "untrusted") launchArgs.push("--disable-workspace-trust");
   if (process.platform === "linux") {
-    return { command: "xvfb-run", args: ["-a", input.executable, ...launchArgs] };
+    return {
+      command: "xvfb-run",
+      args: ["-a", input.executable, "--no-sandbox", "--disable-gpu", ...launchArgs],
+    };
   }
   return { command: input.executable, args: launchArgs };
 }

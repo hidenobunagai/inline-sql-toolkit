@@ -175,13 +175,11 @@ describe("extension manifest", () => {
       "inlineSql.format.expandSelectList",
       "inlineSql.format.trimBlankBoundaries",
       "inlineSql.format.dialect",
-      "inlineSql.pythonPath",
     ]) {
       expect(readme).toContain(setting);
     }
 
     for (const assertion of [
-      "Python 3.12",
       "first logical line",
       "-- sql",
       "--sql",
@@ -220,7 +218,7 @@ describe("extension manifest", () => {
       "manual-only",
       "never executed",
       "never validated",
-      "sqlparse",
+      "sql-formatter",
       "dialect",
       "unsafe",
       "untrusted",

@@ -8,7 +8,7 @@ the `python` and `mo-python` cell languages are supported. SQL-language cells
 and notebook magic commands (`%sql`, `%%sql`, and similar magic syntax) are not
 supported.
 
-Requirements are VS Code 1.95 or newer and Python 3.12 or newer. Formatting is
+Requirements are VS Code 1.95 or newer. Formatting is
 manual-only: this extension does not register a formatter provider, format on
 save, format on type, or format ranges automatically. It never executes SQL,
 validates SQL, infers a SQL dialect, connects to a database, or sends source to
@@ -90,10 +90,6 @@ later atomic precondition.
   start and end of triple-quoted SQL to a single line ending (default `true`).
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
-- `inlineSql.pythonPath`: optional absolute path to a Python 3.12+ interpreter.
-  The path is read only in a trusted workspace; invalid or non-string values
-  are rejected. VS Code marks this setting restricted in untrusted workspaces,
-  but the extension does not claim to validate path containment.
 
 For Python and Marimo Python documents the extension disables
 `editor.semanticHighlighting.enabled` by default. Python language servers
@@ -130,13 +126,11 @@ without changing Python source is reported as unsafe and is not edited.
 ## Trust, privacy, and offline behavior
 
 In an untrusted workspace the extension provides highlighting only. The three
-formatting commands remain visible, but formatting is disabled: no Python
-process starts, no Code Actions are offered, and no edits are applied until
-the workspace is trusted. In a trusted workspace the helper is launched with a
-fixed isolated command and receives only the protocol request on standard
-input. SQL is not written to disk, logged, telemetered, sent over the network,
-passed to a shell/database, or executed. The bundled `sql-formatter` and
-`sqlparse` code runs offline and is a layout engine, not a SQL validator.
+formatting commands remain visible, but formatting is disabled: no analysis
+runs, no Code Actions are offered, and no edits are applied until the
+workspace is trusted. SQL is not written to disk, logged, telemetered, sent
+over the network, passed to a shell/database, or executed. The bundled
+`sql-formatter` code runs offline and is a layout engine, not a SQL validator.
 
 ## Troubleshooting
 
@@ -146,10 +140,9 @@ passed to a shell/database, or executed. The bundled `sql-formatter` and
 - **Unsupported literal or unsafe f-string:** remove concatenation, bytes or
   t-string syntax, and verify that Python parses the document. Complex f-string
   expressions are skipped when their source spans cannot be restored exactly.
-- **Formatting is unavailable:** use a trusted workspace and a Python 3.12+
-  interpreter. Check `inlineSql.pythonPath` and the diagnostic reason shown by
-  the extension (`PYTHON_NOT_FOUND`, `PYTHON_VERSION_UNSUPPORTED`,
-  `WORKSPACE_UNTRUSTED`, `INVALID_CONFIGURATION`, or `PROCESS_TIMEOUT`).
+- **Formatting is unavailable:** use a trusted workspace and check the
+  diagnostic reason shown by the extension (`WORKSPACE_UNTRUSTED`,
+  `INVALID_CONFIGURATION`, `PROCESS_TIMEOUT`, or `PROCESS_FAILED`).
 - **SQL looks different than expected:** formatting does not validate SQL or
   infer a dialect. Adjust the settings above and review the source-level
   candidate before applying the one-step edit.

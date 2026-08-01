@@ -9,6 +9,10 @@
 - Adds `inlineSql.format.trimBlankBoundaries` (default `true`) to collapse
   extra blank lines at the start and end of triple-quoted SQL to a single line
   ending.
+- Ports the entire analysis pipeline (detection, protection, restore,
+  validation, and target selection) from the Python helper to TypeScript and
+  removes the Python runtime, bundled `sqlparse`, `inlineSql.pythonPath`, and
+  the helper bootstrap. The VSIX drops from ~58 to 16 files.
 
 ## 0.1.1 - 2026-08-01
 

@@ -13,7 +13,6 @@
   "configuration.format.expandSelectList.description": "Places every SELECT column onto its own indented line in triple-quoted SQL.",
   "configuration.format.trimBlankBoundaries.description": "Collapses extra blank lines at the start and end of triple-quoted SQL to a single line ending.",
   "configuration.format.dialect.description": "SQL dialect used by the formatter.",
-  "configuration.pythonPath.description": "Overrides the Python interpreter used by Inline SQL Toolkit.",
   "semanticTokenTypes.inlineSqlKeyword.description": "An SQL keyword inside an inline SQL literal.",
   "semanticTokenTypes.inlineSqlString.description": "An SQL string literal inside an inline SQL literal.",
   "semanticTokenTypes.inlineSqlNumber.description": "An SQL numeric literal inside an inline SQL literal.",

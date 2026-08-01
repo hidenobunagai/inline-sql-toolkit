@@ -1,7 +1,8 @@
 # Formatter migration design: sqlparse to sql-formatter
 
-Status: Phase 1 implemented (sql-formatter wired in; sqlparse remains as the
-fallback `format` operation).
+Status: Phase 1-3 implemented (sql-formatter wired in; the analysis pipeline
+was ported to TypeScript and the Python helper, vendored sqlparse, and
+`inlineSql.pythonPath` were removed).
 
 ## 1. Background and motivation
 

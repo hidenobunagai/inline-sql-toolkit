@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5 - 2026-08-01
+
+- Removes dark square background box for a 100% transparent background logo icon.
+
 ## 0.2.4 - 2026-08-01
 
 - Fixes white corner artifacts in icon PNG by rendering a full-tile dark background with Playwright Chrome.

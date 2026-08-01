@@ -153,22 +153,32 @@ function discoverSourceSpecs(
 
   let cursor = content.start;
   while (cursor + 1 < content.end) {
-    const pairSpan = new SourceSpan(cursor, cursor + 2);
-    const pair = sourceMap.text.slice(pairSpan.start, pairSpan.end);
-    if (pair === "{{" || pair === "}}") {
-      const overlaps = specs.filter((item) => intersectsAny(pairSpan, [item.sourceSpan]));
+    const pair = sourceMap.text.slice(cursor, cursor + 2);
+    if (pair === "{{") {
+      const close = sourceMap.text.indexOf("}}", cursor + 2);
+      const span = new SourceSpan(cursor, close === -1 ? content.end : close + 2);
+      const overlaps = specs.filter((item) => intersectsAny(span, [item.sourceSpan]));
       if (overlaps.length === 0) {
-        specs.push(spec("escaped_brace", pairSpan));
+        specs.push(spec("escaped_brace", span));
       } else if (overlaps.every((item) => item.kind === "python_escape")) {
         const merged = new SourceSpan(
-          Math.min(pairSpan.start, ...overlaps.map((item) => item.sourceSpan.start)),
-          Math.max(pairSpan.end, ...overlaps.map((item) => item.sourceSpan.end)),
+          Math.min(span.start, ...overlaps.map((item) => item.sourceSpan.start)),
+          Math.max(span.end, ...overlaps.map((item) => item.sourceSpan.end)),
         );
         const overlapSet = new Set(overlaps);
         const filtered = specs.filter((item) => !overlapSet.has(item));
         filtered.push(spec("python_escape", merged));
         specs.length = 0;
         specs.push(...filtered);
+      }
+      cursor = span.end;
+      continue;
+    }
+    if (pair === "}}") {
+      const span = new SourceSpan(cursor, cursor + 2);
+      const overlaps = specs.filter((item) => intersectsAny(span, [item.sourceSpan]));
+      if (overlaps.length === 0) {
+        specs.push(spec("escaped_brace", span));
       }
       cursor += 2;
       continue;

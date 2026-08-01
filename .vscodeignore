@@ -1,5 +1,7 @@
 .git
 .gitignore
+.headroom/**
+AGENTS.md
 .vscode/**
 .worktrees/**
 .superpowers/**

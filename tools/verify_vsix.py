@@ -190,7 +190,7 @@ _FORBIDDEN_COMPONENTS = {
 _FORBIDDEN_SUFFIXES = (".ts", ".map", ".lock", ".pyc")
 _ABSOLUTE_PATH = re.compile(
     rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
-    rb"\\\\[A-Za-z0-9._-]+[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
+    rb"\\\\[A-Za-z0-9._-]{2,}[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
     rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+|"
     rb"(?<![A-Za-z0-9_/:.!-])/(?:tmp|etc|root|home|Users|private|var|opt|srv|workspace)"
     rb"(?=$|[\s\"'<>),;]))"

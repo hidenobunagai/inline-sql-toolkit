@@ -15,8 +15,6 @@ export interface DocumentAnalysis {
   readonly unsupported: readonly UnsupportedLiteral[];
 }
 
-const STRING_OPERATORS = new Set(["+", "-", "*", "/", "%", "&", "|", "^", "<", ">"]);
-
 function onlyWhitespace(text: string): boolean {
   return /^[\s]*$/.test(text);
 }
@@ -40,8 +38,9 @@ function isConcatenated(
         ? source.slice(neighbor.span.end, current.span.start)
         : source.slice(current.span.end, neighbor.span.start);
     if (onlyWhitespace(between)) return true;
-    const operator = between.match(/[+\-*/%&|^<>]/);
-    return operator !== null && STRING_OPERATORS.has(operator[0]);
+    const code = between.replace(/#.*$/gm, "");
+    if (onlyWhitespace(code)) return false;
+    return /^\s*[+\-*/%&|^<>]+\s*$/.test(code);
   });
 }
 

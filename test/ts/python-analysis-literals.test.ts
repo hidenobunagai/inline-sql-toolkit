@@ -51,6 +51,14 @@ describe("analyzeDocument", () => {
     expect(analysis.unsupported).toHaveLength(2);
   });
 
+  it("ignores comment separators and python code between literals", () => {
+    const analysis = analyzeDocument(
+      'x = """doc"""\n\n# --- separator ---\ny = "select 1"\nz = a + b\nw = "select 2"',
+    );
+    expect(analysis.supported).toHaveLength(3);
+    expect(analysis.unsupported).toHaveLength(0);
+  });
+
   it("keeps separate statements independent", () => {
     const analysis = analyzeDocument('a = "select 1"\nb = "select 2"');
     expect(analysis.supported).toHaveLength(2);

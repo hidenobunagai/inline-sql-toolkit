@@ -29,8 +29,7 @@ export interface StringSurface {
   readonly contentSpan: SourceSpan;
 }
 
-const STRING_OPEN =
-  /^(?:[rRbBuUfFtT]{1,2})?(?:'''|"""|'|")/;
+const STRING_OPEN = /^(?:[rRbBuUfFtT]{1,2})?(?:'''|"""|'|")/;
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*/;
 
 /** Scan one string body and return the offset just past its closing quote. */
@@ -60,11 +59,7 @@ function stringSurfaceAt(source: string, index: number): StringSurface | undefin
   const surface = match[0];
   const prefix = surface.replace(/['"]+$/, "");
   const delimiter = surface.slice(prefix.length);
-  const kind = /[tT]/.test(prefix)
-    ? "tstring"
-    : /[fF]/.test(prefix)
-      ? "fstring"
-      : "string";
+  const kind = /[tT]/.test(prefix) ? "tstring" : /[fF]/.test(prefix) ? "fstring" : "string";
   const contentStart = index + surface.length;
   const end = scanStringBody(source, contentStart, delimiter);
   if (end === -1) return undefined;
@@ -126,7 +121,16 @@ export function scanFstringFieldSpans(
   while (index < contentSpan.end) {
     const char = source[index] ?? "";
     if (char === "\\") {
-      index += 2;
+      if (source[index + 1] === "N" && source[index + 2] === "{") {
+        const close = source.indexOf("}", index + 3);
+        if (close === -1 || close >= contentSpan.end) {
+          index = contentSpan.end;
+        } else {
+          index = close + 1;
+        }
+      } else {
+        index += 2;
+      }
       continue;
     }
     if (fieldStart === -1) {

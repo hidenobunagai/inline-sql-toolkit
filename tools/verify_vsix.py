@@ -35,6 +35,7 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
         "extension/dist/extension.js",
         "extension/dist/package.json",
         "extension/python/bootstrap.py",
+        "extension/icon.png",
     }
 )
 
@@ -165,7 +166,7 @@ def validate_packaged_manifest(manifest: object) -> None:
         raise VsixError("invalid extension manifest")
     if manifest.get("publisher") != "hidenobunagai":
         raise VsixError("invalid extension manifest")
-    if manifest.get("version") != "0.1.0":
+    if manifest.get("version") != "0.1.1":
         raise VsixError("invalid extension manifest")
     if manifest.get("main") != "./dist/extension.js":
         raise VsixError("invalid extension manifest")

@@ -178,10 +178,10 @@ jobs:
       - name: Verify VSIX inventory and provenance
         run: |
           uv run python tools/verify_vsix.py \
-            dist-vsix/inline-sql-toolkit-0.1.0.vsix \
+            dist-vsix/inline-sql-toolkit-0.1.1.vsix \
             --report reports/vsix-components.osv.json
-          sha256sum dist-vsix/inline-sql-toolkit-0.1.0.vsix > reports/inline-sql-toolkit.vsix.sha256
-          unzip -Z1 dist-vsix/inline-sql-toolkit-0.1.0.vsix > reports/vsix-inventory.txt
+          sha256sum dist-vsix/inline-sql-toolkit-0.1.1.vsix > reports/inline-sql-toolkit.vsix.sha256
+          unzip -Z1 dist-vsix/inline-sql-toolkit-0.1.1.vsix > reports/vsix-inventory.txt
           cp tools/sqlparse-vendor.requirements.txt reports/sqlparse-vendor.requirements.txt
           cp tools/sqlparse-vendor.lock reports/sqlparse-vendor.lock
           cp third_party/sqlparse/files.sha256 reports/sqlparse-files.sha256
@@ -190,7 +190,7 @@ jobs:
         with:
           node-version: "20"
       - run: node --check dist/extension.js
-      - run: cp dist-vsix/inline-sql-toolkit-0.1.0.vsix package-artifact/
+      - run: cp dist-vsix/inline-sql-toolkit-0.1.1.vsix package-artifact/
       - run: cp reports/inline-sql-toolkit.vsix.sha256 reports/vsix-inventory.txt reports/sqlparse-vendor.requirements.txt reports/sqlparse-vendor.lock reports/sqlparse-files.sha256 reports/THIRD_PARTY_NOTICES.md package-artifact/
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:

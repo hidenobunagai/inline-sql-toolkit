@@ -52,7 +52,7 @@ def valid_members() -> dict[str, bytes]:
             {
                 "name": "inline-sql-toolkit",
                 "publisher": "hidenobunagai",
-                "version": "0.1.0",
+                "version": "0.1.1",
                 "main": "./dist/extension.js",
                 "engines": {"vscode": "^1.95.0"},
             }

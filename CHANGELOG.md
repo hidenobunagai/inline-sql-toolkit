@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2026-08-01
+
+- Adds official extension icon for VS Code Marketplace and Open VSX listings.
+
 ## 0.1.0 - 2026-08-01
 
 - Highlights SQL embedded in supported Python strings and in Jupyter and

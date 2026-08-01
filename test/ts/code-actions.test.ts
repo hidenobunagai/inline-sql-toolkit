@@ -2,14 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
 import { activate, deactivate } from "../../src/extension.js";
-import type { LocateResponse } from "../../src/protocol.js";
 import {
   type CodeActionDependencies,
   InlineSqlCodeActionProvider,
+  LocateCache,
 } from "../../src/vscode/code-actions.js";
 import { COMMANDS, registerCommands } from "../../src/vscode/commands.js";
 import type { FormatController } from "../../src/vscode/format-controller.js";
-import type { HelperClient } from "../../src/vscode/helper-client.js";
 import { __mock } from "../support/vscode-mock.js";
 
 beforeEach(() => {
@@ -28,37 +27,8 @@ function document(text = "query = 'SELECT 1'"): vscode.TextDocument {
   });
 }
 
-function candidates(...ranges: [number, number, number, number][]): LocateResponse {
-  return {
-    protocolVersion: 1,
-    operation: "locate",
-    ok: true,
-    candidates: ranges.map(([startLine, startCharacter, endLine, endCharacter]) => ({
-      start: { line: startLine, character: startCharacter },
-      end: { line: endLine, character: endCharacter },
-    })),
-  };
-}
-
-function helperWith(response: LocateResponse): HelperClient & {
-  readonly locateCalls: ReturnType<typeof vi.fn>;
-} {
-  const locateCalls = vi.fn(() => Promise.resolve(response));
-  return {
-    locate: locateCalls,
-    format: vi.fn(),
-    protect: vi.fn(),
-    finalize: vi.fn(),
-    locateCalls,
-  };
-}
-
-function providerFor(
-  helper: HelperClient,
-  trusted: () => boolean = () => true,
-): InlineSqlCodeActionProvider {
+function providerFor(trusted: () => boolean = () => true): InlineSqlCodeActionProvider {
   const dependencies: CodeActionDependencies = {
-    helper,
     isWorkspaceTrusted: trusted,
   };
   return new InlineSqlCodeActionProvider(dependencies);
@@ -101,12 +71,11 @@ describe("public command registration", () => {
 });
 
 describe("InlineSqlCodeActionProvider", () => {
-  it("offers a cursor action for an intersecting candidate and routes by URI", async () => {
+  it("offers a cursor action for an intersecting candidate and routes by URI", () => {
     const value = document();
-    const helper = helperWith(candidates([0, 9, 0, 17]));
-    const provider = providerFor(helper);
+    const provider = providerFor();
     const range = new vscode.Range(0, 11, 0, 11);
-    const actions = await provider.provideCodeActions(
+    const actions = provider.provideCodeActions(
       value,
       range,
       {} as vscode.CodeActionContext,
@@ -121,21 +90,13 @@ describe("InlineSqlCodeActionProvider", () => {
       command: COMMANDS.cursor,
       arguments: [{ documentUri: value.uri, range }],
     });
-    expect(helper.locateCalls).toHaveBeenCalledWith(
-      expect.objectContaining({ uri: value.uri, version: value.version, text: value.getText() }),
-      { mode: "all" },
-      expect.objectContaining({ keywordCase: "upper" }),
-      expect.objectContaining({ document: value, documentUri: value.uri, resourceUri: value.uri }),
-      expect.anything(),
-    );
   });
 
-  it("uses selection mode for non-empty ranges without changing the action range", async () => {
+  it("uses selection mode for non-empty ranges without changing the action range", () => {
     const value = document();
-    const helper = helperWith(candidates([0, 9, 0, 17]));
-    const provider = providerFor(helper);
+    const provider = providerFor();
     const range = new vscode.Range(0, 9, 0, 14);
-    const actions = await provider.provideCodeActions(
+    const actions = provider.provideCodeActions(
       value,
       range,
       {} as vscode.CodeActionContext,
@@ -148,43 +109,25 @@ describe("InlineSqlCodeActionProvider", () => {
     });
   });
 
-  it("caches only a successful locate result for one URI/version", async () => {
-    const value = document();
-    const helper = helperWith(candidates([0, 9, 0, 17]));
-    const provider = providerFor(helper);
-    const token = new vscode.CancellationTokenSource().token;
-    await provider.provideCodeActions(
-      value,
-      new vscode.Range(0, 10, 0, 10),
-      {} as vscode.CodeActionContext,
-      token,
-    );
-    await provider.provideCodeActions(
-      value,
-      new vscode.Range(0, 12, 0, 12),
-      {} as vscode.CodeActionContext,
-      token,
-    );
-    expect(helper.locateCalls).toHaveBeenCalledTimes(1);
-    const changed = __mock.document({
-      uri: value.uri.toString(),
-      languageId: "python",
-      text: value.getText(),
-      version: value.version + 1,
-    });
-    await provider.provideCodeActions(
-      changed,
-      new vscode.Range(0, 10, 0, 10),
-      {} as vscode.CodeActionContext,
-      token,
-    );
-    expect(helper.locateCalls).toHaveBeenCalledTimes(2);
+  it("caches located candidates per URI and version", () => {
+    const cache = new LocateCache();
+    const uri = vscode.Uri.file("/workspace/query.py");
+    const first = [{ start: { line: 0, character: 8 }, end: { line: 0, character: 18 } }];
+    cache.set(uri, 1, first);
+    expect(cache.get(uri, 1)).toEqual(first);
+    expect(cache.get(uri, 2)).toBeUndefined();
+    cache.set(uri, 2, [{ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } }]);
+    expect(cache.get(uri, 1)).toEqual(first);
+    expect(cache.get(uri, 2)).toHaveLength(1);
+    cache.deleteUri(uri);
+    expect(cache.get(uri, 1)).toBeUndefined();
+    expect(cache.get(uri, 2)).toBeUndefined();
   });
 
   it.each([
     ["untrusted", () => false],
     ["unsupported", () => true],
-  ])("returns no action for %s without locating", async (label, trust) => {
+  ])("returns no action for %s without locating", (label, trust) => {
     const value =
       label === "unsupported"
         ? __mock.document({
@@ -193,62 +136,43 @@ describe("InlineSqlCodeActionProvider", () => {
             text: "SELECT 1",
           })
         : document();
-    const helper = helperWith(candidates([0, 0, 0, 1]));
-    const provider = providerFor(helper, trust);
-    const actions = await provider.provideCodeActions(
+    const provider = providerFor(trust);
+    const actions = provider.provideCodeActions(
       value,
       new vscode.Range(0, 0, 0, 0),
       {} as vscode.CodeActionContext,
       new vscode.CancellationTokenSource().token,
     );
     expect(actions).toEqual([]);
-    expect(helper.locateCalls).not.toHaveBeenCalled();
   });
 
-  it("rejects cancellation, failures, missing candidates, and endpoint-only contact", async () => {
+  it("rejects cancellation, missing candidates, and endpoint-only contact", () => {
     const value = document();
     const source = new vscode.CancellationTokenSource();
     source.cancel();
-    const cancelledHelper = helperWith(candidates([0, 9, 0, 17]));
     expect(
-      await providerFor(cancelledHelper).provideCodeActions(
+      providerFor().provideCodeActions(
         value,
         new vscode.Range(0, 10, 0, 10),
         {} as vscode.CodeActionContext,
         source.token,
       ),
     ).toEqual([]);
-    expect(cancelledHelper.locateCalls).not.toHaveBeenCalled();
 
-    const failed = helperWith({
-      protocolVersion: 1,
-      operation: "locate",
-      ok: false,
-      error: { code: "DOCUMENT_PARSE_FAILED" },
-    });
+    const noCandidate = document("query = 'not sql'");
     expect(
-      await providerFor(failed).provideCodeActions(
-        value,
-        new vscode.Range(0, 10, 0, 10),
-        {} as vscode.CodeActionContext,
-        new vscode.CancellationTokenSource().token,
-      ),
-    ).toEqual([]);
-
-    const noCandidate = helperWith(candidates([0, 0, 0, 2]));
-    expect(
-      await providerFor(noCandidate).provideCodeActions(
-        value,
+      providerFor().provideCodeActions(
+        noCandidate,
         new vscode.Range(0, 9, 0, 9),
         {} as vscode.CodeActionContext,
         new vscode.CancellationTokenSource().token,
       ),
     ).toEqual([]);
-    const endpoint = helperWith(candidates([0, 9, 0, 17]));
+
     expect(
-      await providerFor(endpoint).provideCodeActions(
+      providerFor().provideCodeActions(
         value,
-        new vscode.Range(0, 17, 0, 17),
+        new vscode.Range(0, 18, 0, 18),
         {} as vscode.CodeActionContext,
         new vscode.CancellationTokenSource().token,
       ),

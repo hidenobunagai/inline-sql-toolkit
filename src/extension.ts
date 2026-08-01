@@ -7,7 +7,6 @@ import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
 import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
-import { DefaultHelperClient } from "./vscode/helper-client.js";
 import { createPythonResolver } from "./vscode/python-resolver.js";
 import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
@@ -50,13 +49,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
       onDidGrantWorkspaceTrust: vscode.workspace.onDidGrantWorkspaceTrust,
     }),
   );
-  const helper = new DefaultHelperClient({
-    extensionUri: context.extensionUri,
-    resolver,
-    isWorkspaceTrusted: () => hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
-    processWillSpawn: hooks.processWillSpawn,
-    spawn: nodeSpawn,
-  });
   const applicator = createEditApplicator({
     applyWorkspaceEdit: hooks.applyWorkspaceEdit,
   });
@@ -64,7 +56,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   const cache = new LocateCache();
   const provider = new InlineSqlCodeActionProvider(
     {
-      helper,
       isWorkspaceTrusted: () => hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
     },
     cache,

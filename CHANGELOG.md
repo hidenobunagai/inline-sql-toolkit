@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Adds SQL semantic tokens so the SQL portion keeps its highlighting even when
+  a Python language server classifies the whole f-string as a string token.
+- Disables `editor.semanticHighlighting.enabled` for Python and Marimo Python
+  by default; Python language servers would otherwise override the SQL
+  highlighting contributed by the TextMate grammar.
+- Adds `inlineSql.format.expandSelectList` (default `true`) to place every
+  SELECT column on its own indented line in triple-quoted SQL.
+- Formats f-string fields that appear inside SQL string literals, for example
+  `WHERE status = '{value}'`.
+
 ## 0.1.0 - 2026-07-31
 
 Initial release.

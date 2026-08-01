@@ -3,11 +3,7 @@ import type { FormatOptions } from "../protocol.js";
 import { detectSql, type SqlDetection } from "./detection.js";
 import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { SourceSpan } from "./positions.js";
-import {
-  buildProtectionPlan,
-  restoreProtected,
-  UnsafeRestore,
-} from "./protection.js";
+import { buildProtectionPlan, restoreProtected, UnsafeRestore } from "./protection.js";
 import type { SupportedLiteral } from "./tokenizer.js";
 
 export type ReasonCode = (typeof REASON_CODES)[number];
@@ -89,9 +85,7 @@ function replacementLiteral(
   updated: DocumentAnalysis,
   original: SupportedLiteral,
 ): SupportedLiteral {
-  const matches = updated.supported.filter(
-    (item) => item.span.start === original.span.start,
-  );
+  const matches = updated.supported.filter((item) => item.span.start === original.span.start);
   if (matches.length !== 1) throw new CandidateFailure("FORMATTER_FAILED");
   const result = matches[0];
   if (result === undefined) throw new CandidateFailure("FORMATTER_FAILED");
@@ -106,10 +100,7 @@ function replacementLiteral(
 }
 
 /** Return source spellings of every replacement field. */
-function fieldTexts(
-  analysis: DocumentAnalysis,
-  literal: SupportedLiteral,
-): readonly string[] {
+function fieldTexts(analysis: DocumentAnalysis, literal: SupportedLiteral): readonly string[] {
   return literal.fieldSpans.map((span) => analysis.sourceMap.slice(span));
 }
 

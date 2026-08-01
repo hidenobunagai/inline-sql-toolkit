@@ -4,10 +4,7 @@ import type { FormatOptions } from "../../src/protocol.js";
 import { detectSql, type SqlDetection } from "../../src/python-analysis/detection.js";
 import { analyzeDocument, type DocumentAnalysis } from "../../src/python-analysis/literals.js";
 import type { SupportedLiteral } from "../../src/python-analysis/tokenizer.js";
-import {
-  formatCandidate,
-  type SqlFormatter,
-} from "../../src/python-analysis/validation.js";
+import { formatCandidate, type SqlFormatter } from "../../src/python-analysis/validation.js";
 import { formatProtectedSql } from "../../src/vscode/sql-formatter.js";
 
 const NONCE = "abcdef0123456789abcdef0123456789";
@@ -22,9 +19,11 @@ const OPTIONS: FormatOptions = {
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);
 
-function analyzeOne(
-  source: string,
-): { analysis: DocumentAnalysis; literal: SupportedLiteral; detection: SqlDetection } {
+function analyzeOne(source: string): {
+  analysis: DocumentAnalysis;
+  literal: SupportedLiteral;
+  detection: SqlDetection;
+} {
   const analysis = analyzeDocument(source);
   const literal = analysis.supported[0];
   if (literal === undefined) throw new Error("no supported literal");
@@ -36,15 +35,7 @@ describe("formatCandidate", () => {
   it("edits a plain string to upper-case", () => {
     const source = 'query = "select 1"';
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(
-      source,
-      analysis,
-      literal,
-      detection,
-      OPTIONS,
-      NONCE,
-      formatter,
-    );
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     expect(result).toEqual({
       sourceSpan: literal.span,
       expectedText: '"select 1"',
@@ -55,30 +46,14 @@ describe("formatCandidate", () => {
   it("returns unchanged for already formatted SQL", () => {
     const source = 'query = """SELECT\n  1"""';
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(
-      source,
-      analysis,
-      literal,
-      detection,
-      OPTIONS,
-      NONCE,
-      formatter,
-    );
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     expect(result).toEqual({ sourceSpan: literal.span });
   });
 
   it("keeps f-string fields intact", () => {
     const source = 'query = f"select {col} from users"';
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(
-      source,
-      analysis,
-      literal,
-      detection,
-      OPTIONS,
-      NONCE,
-      formatter,
-    );
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toContain("{col}");
       expect(result.replacementText).toContain('f"');
@@ -89,30 +64,14 @@ describe("formatCandidate", () => {
   it("skips non-SQL candidates", () => {
     const source = 'query = "not sql"';
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(
-      source,
-      analysis,
-      literal,
-      detection,
-      OPTIONS,
-      NONCE,
-      formatter,
-    );
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     expect(result).toEqual({ sourceSpan: literal.span, reason: "NO_SQL_CANDIDATE" });
   });
 
   it("preserves the sql marker comment", () => {
     const source = 'query = """-- sql\nselect 1"""';
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(
-      source,
-      analysis,
-      literal,
-      detection,
-      OPTIONS,
-      NONCE,
-      formatter,
-    );
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toContain("-- sql\nSELECT\n  1");
     }

@@ -209,7 +209,7 @@ def test_rejects_forbidden_content(tmp_path: Path, name: str) -> None:
     members["extension/dist/extension.js"] = (
         b"const p='/Users/private/source';"
         if name == "absolute"
-        else b"token=ghp_12345678901234567890"
+        else b"token=ghp_123456789012345678901234567890"
     )
     path = tmp_path / "bad.vsix"
     write_archive(path, members)

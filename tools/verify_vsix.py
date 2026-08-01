@@ -190,18 +190,19 @@ _FORBIDDEN_COMPONENTS = {
 }
 _FORBIDDEN_SUFFIXES = (".ts", ".map", ".lock", ".pyc")
 _ABSOLUTE_PATH = re.compile(
-    rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
-    rb"\\\\[A-Za-z0-9._-]{2,}[\\/][A-Za-z0-9._-]+(?:[\\/][A-Za-z0-9._-]+)*|"
-    rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+|"
+    rb"(?:\b[A-Za-z]:[\\/][A-Za-z0-9._-]{2,}(?:[\\/][A-Za-z0-9._-]{2,})*|"
+    rb"\\\\[A-Za-z0-9._-]{2,}[\\/][A-Za-z0-9._-]{2,}(?:[\\/][A-Za-z0-9._-]{2,})*|"
+    rb"(?<![A-Za-z0-9_/:.!-])/(?!/)(?:[A-Za-z0-9._-]{2,}/)+[A-Za-z0-9._-]{2,}|"
     rb"(?<![A-Za-z0-9_/:.!-])/(?:tmp|etc|root|home|Users|private|var|opt|srv|workspace)"
     rb"(?=$|[\s\"'<>),;]))"
 )
 _SECRET_LIKE = re.compile(
-    rb"(?:AKIA[0-9A-Z]{16}|(?:sk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}|"
-    rb"(?:aws[_-]?(?:access[_-]?key|secret[_-]?access[_-]?key|session[_-]?token)|"
+    rb"(?:sk_live_[a-z0-9]{20,}|sk_test_[a-z0-9]{20,}|sk_[a-z0-9]{24,}|"
+    rb"(?i:AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,}|"
+    rb"xox[baprs]-[A-Za-z0-9-]{20,}|-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----)|"
+    rb"(?i:aws[_-]?(?:access[_-]?key|secret[_-]?access[_-]?key|session[_-]?token)|"
     rb"password|passwd|secret|api[_-]?key|access[_-]?token)\s*[=:]\s*[\"']?"
-    rb"[A-Za-z0-9_./+=-]{12,}[\"']?|-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----)",
-    re.IGNORECASE,
+    rb"[A-Za-z0-9_./+=-]{12,}[\"']?)"
 )
 
 

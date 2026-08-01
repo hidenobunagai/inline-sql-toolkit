@@ -51,6 +51,15 @@ function literalText(literal: SupportedLiteral, content: string): string {
   return `${literal.prefix}${literal.delimiter}${content}${literal.delimiter}`;
 }
 
+/** Keep triple-quoted frame boundaries on their own lines. */
+function normalizeFrame(content: string, literal: SupportedLiteral): string {
+  if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
+  let normalized = content;
+  if (!normalized.startsWith("\n")) normalized = `\n${normalized}`;
+  if (!normalized.endsWith("\n")) normalized = `${normalized}\n`;
+  return normalized;
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -72,7 +81,7 @@ function formatOnce(
     }
   }
   const restored = restoreProtected(formatted, plan);
-  return literalText(literal, restored);
+  return literalText(literal, normalizeFrame(restored, literal));
 }
 
 /** Replace one half-open source span while preserving all surrounding text. */

@@ -44,7 +44,7 @@ describe("formatCandidate", () => {
   });
 
   it("returns unchanged for already formatted SQL", () => {
-    const source = 'query = """SELECT\n  1"""';
+    const source = 'query = """\nSELECT\n  1\n"""';
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     expect(result).toEqual({ sourceSpan: literal.span });
@@ -76,6 +76,17 @@ describe("formatCandidate", () => {
       expect(result.replacementText).toContain("-- sql\nSELECT\n  1");
     }
     expect(result).not.toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
+  });
+
+  it("normalizes triple-quoted frame boundaries", () => {
+    const source = 'query = """SELECT\n  1"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe('"""\nSELECT\n  1\n"""');
+    } else {
+      throw new Error("expected a changed candidate");
+    }
   });
 
   it("rejects a stale source snapshot", () => {

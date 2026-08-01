@@ -12,6 +12,12 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.2 - 2026-08-01
+
+- Provides Python semantic tokens alongside SQL tokens so the extension
+  replaces the Python language server's tokens without disabling semantic
+  highlighting.
+
 ## 0.3.1 - 2026-08-01
 
 - Switches SQL highlighting from semantic tokens to TextMate grammar injection
@@ -46,6 +52,12 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.2 - 2026-08-01
+
+- Provides Python semantic tokens alongside SQL tokens so the extension
+  replaces the Python language server's tokens without disabling semantic
+  highlighting.
 
 ## 0.3.1 - 2026-08-01
 

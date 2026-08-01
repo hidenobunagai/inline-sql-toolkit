@@ -134,18 +134,18 @@ extension host, eliminating the two round-trips.
 
 ### Scope (port to TS)
 
-| Python module | Lines | TS replacement |
-|---|---|---|
-| model.py | 207 | protocol.ts types |
-| protocol.py | 646 | protocol.ts (shared shape already) |
-| detection.py | 90 | `src/python-analysis/detection.ts` |
-| token_bundles.py | 224 | `src/python-analysis/tokenizer.ts` |
-| literals.py | 305 | `src/python-analysis/literals.ts` |
-| positions.py | 131 | `src/python-analysis/positions.ts` |
-| protection.py | 333 | `src/python-analysis/protection.ts` |
-| candidate_formatter.py | 239 | `src/python-analysis/validation.ts` |
-| sqlparse_adapter.py | 214 | deleted (sql-formatter is the only engine) |
-| cli.py + engine.py | 539 | replaced by `format-controller.ts` flow |
+| Python module          | Lines | TS replacement                             |
+| ---------------------- | ----- | ------------------------------------------ |
+| model.py               | 207   | protocol.ts types                          |
+| protocol.py            | 646   | protocol.ts (shared shape already)         |
+| detection.py           | 90    | `src/python-analysis/detection.ts`         |
+| token_bundles.py       | 224   | `src/python-analysis/tokenizer.ts`         |
+| literals.py            | 305   | `src/python-analysis/literals.ts`          |
+| positions.py           | 131   | `src/python-analysis/positions.ts`         |
+| protection.py          | 333   | `src/python-analysis/protection.ts`        |
+| candidate_formatter.py | 239   | `src/python-analysis/validation.ts`        |
+| sqlparse_adapter.py    | 214   | deleted (sql-formatter is the only engine) |
+| cli.py + engine.py     | 539   | replaced by `format-controller.ts` flow    |
 
 ### Architecture
 

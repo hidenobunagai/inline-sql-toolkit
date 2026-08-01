@@ -84,7 +84,10 @@ export async function testDialectFormatting(): Promise<void> {
     await configureIntegrationPython(document);
 
     await config.update("format.dialect", "postgresql", vscode.ConfigurationTarget.Workspace);
-    await replaceWholeDocument(document, preserveFinalNewline(document, 'query = "select id::text from users"'));
+    await replaceWholeDocument(
+      document,
+      preserveFinalNewline(document, 'query = "select id::text from users"'),
+    );
     await vscode.commands.executeCommand("inlineSql.formatAll");
     assert.equal(
       document.getText(),
@@ -92,9 +95,15 @@ export async function testDialectFormatting(): Promise<void> {
     );
 
     await config.update("format.dialect", "sqlite", vscode.ConfigurationTarget.Workspace);
-    await replaceWholeDocument(document, preserveFinalNewline(document, 'query = "select id::text from users"'));
+    await replaceWholeDocument(
+      document,
+      preserveFinalNewline(document, 'query = "select id::text from users"'),
+    );
     await vscode.commands.executeCommand("inlineSql.formatAll");
-    assert.equal(document.getText(), preserveFinalNewline(document, 'query = "select id::text from users"'));
+    assert.equal(
+      document.getText(),
+      preserveFinalNewline(document, 'query = "select id::text from users"'),
+    );
   } finally {
     await config.update("format.dialect", original, vscode.ConfigurationTarget.Workspace);
   }

@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.2.9 - 2026-08-01
+
+- Fixes false concatenation detection: comment separators and Python code
+  between string literals no longer mark SQL candidates as unsupported.
+
 ## 0.2.8 - 2026-08-01
 
 - Reports skip reasons (e.g. FORMATTER_FAILED) in the formatting summary so
@@ -30,6 +35,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.2.9 - 2026-08-01
+
+- Fixes false concatenation detection: comment separators and Python code
+  between string literals no longer mark SQL candidates as unsupported.
 
 ## 0.2.8 - 2026-08-01
 

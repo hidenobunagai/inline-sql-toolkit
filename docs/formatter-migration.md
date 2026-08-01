@@ -1,6 +1,7 @@
 # Formatter migration design: sqlparse to sql-formatter
 
-Status: draft for review
+Status: Phase 1 implemented (sql-formatter wired in; sqlparse remains as the
+fallback `format` operation).
 
 ## 1. Background and motivation
 

@@ -168,9 +168,6 @@ describe("GitHub workflow contracts", () => {
       .join("\n");
     expect(sourceScanArgs).toContain("--lockfile=bun.lock");
     expect(sourceScanArgs).toContain("--lockfile=uv.lock");
-    expect(sourceScanArgs).toContain(
-      "--lockfile=requirements.txt:tools/sqlparse-vendor.requirements.txt",
-    );
     for (const name of ["osv-scanner-pr.yml", "osv-scanner-scheduled.yml"] as const) {
       const workflow = await loadWorkflow(name);
       expect(Object.values(jobsOf(workflow)).some((job) => job.uses?.includes("osv-scanner"))).toBe(

@@ -91,12 +91,10 @@ later atomic precondition.
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 
-For Python and Marimo Python documents the extension disables
-`editor.semanticHighlighting.enabled` by default. Python language servers
-(such as Pylance) classify an entire f-string as a string token, which would
-override the SQL highlighting contributed by this extension. Users who enable
-semantic highlighting for Python in their own settings override this default;
-the extension then also contributes its own SQL semantic tokens.
+The extension contributes semantic tokens for both the Python code and the SQL
+it embeds, registered after the Python language server activates. SQL tokens
+are applied on top of the Python tokens so SQL highlighting is not overwritten
+by the language server; `editor.semanticHighlighting.enabled` stays on.
 
 ## Detection and supported syntax
 

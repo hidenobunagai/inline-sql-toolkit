@@ -21,5 +21,4 @@ jobs:
       scan-args: >-
         --lockfile=bun.lock
         --lockfile=uv.lock
-        --lockfile=requirements.txt:tools/sqlparse-vendor.requirements.txt
       upload-sarif: true

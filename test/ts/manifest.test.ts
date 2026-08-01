@@ -81,11 +81,6 @@ describe("extension manifest", () => {
         readonly restrictedConfigurations: readonly string[];
       };
     };
-    const configurationDefaults = (manifest.configurationDefaults ?? {}) as Record<
-      string,
-      { readonly "editor.semanticHighlighting.enabled"?: boolean }
-    >;
-
     expect(contributes.commands?.map(({ command }) => command)).toEqual([
       "inlineSql.formatAtCursor",
       "inlineSql.formatSelection",
@@ -105,10 +100,6 @@ describe("extension manifest", () => {
       description: "%untrustedWorkspaces.description%",
       restrictedConfigurations: [],
     });
-    expect(configurationDefaults["[python]"]?.["editor.semanticHighlighting.enabled"]).toBe(false);
-    expect(configurationDefaults["[mo-python]"]?.["editor.semanticHighlighting.enabled"]).toBe(
-      false,
-    );
   });
 
   it("maps both injected grammar scopes to their embedded languages", () => {

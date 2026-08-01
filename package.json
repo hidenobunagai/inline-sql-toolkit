@@ -33,14 +33,6 @@
       "restrictedConfigurations": []
     }
   },
-  "configurationDefaults": {
-    "[python]": {
-      "editor.semanticHighlighting.enabled": false
-    },
-    "[mo-python]": {
-      "editor.semanticHighlighting.enabled": false
-    }
-  },
   "contributes": {
     "commands": [
       {
@@ -225,7 +217,7 @@
     "test:integration:untrusted": "bun tools/run_vscode_tests.ts untrusted",
     "test:integration:compatibility": "bun tools/run_vscode_tests.ts compatibility",
     "package:vsix": "bun run build && mkdir -p dist-vsix && vsce package --no-dependencies --out dist-vsix",
-    "verify:vsix": "uv run python tools/verify_vsix.py dist-vsix/inline-sql-toolkit-0.2.5.vsix",
+    "verify:vsix": "uv run python tools/verify_vsix.py dist-vsix/inline-sql-toolkit-$(node -p \"require('./package.json').version\").vsix",
     "test:vsix-install": "bun tools/install_and_smoke_vsix.ts"
   },
   "dependencies": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-08-01
+
+- Normalizes triple-quoted frame boundaries so the opening and closing `"""`
+  stay on their own lines.
+- Protects escaped brace pairs (`{{...}}`) as one fragment so their spacing
+  survives formatting.
+
 ## 0.2.0 - 2026-08-01
 
 - Switches the formatter engine from `sqlparse` to the bundled `sql-formatter`

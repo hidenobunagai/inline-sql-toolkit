@@ -134,7 +134,7 @@ def test_restore_allows_marker_embedded_in_sql_quote_or_comment(
 
 def test_restore_field_originally_inside_sql_string() -> None:
     """A field marker placed inside an SQL string restores to its source."""
-    plan = protection_plan_for('query = f"SELECT \'{value}\'"')
+    plan = protection_plan_for("query = f\"SELECT '{value}'\"")
     assert restore_protected(plan.protected_sql, plan) == "SELECT '{value}'"
 
 
@@ -179,28 +179,28 @@ def test_all_fragment_kinds_are_ordered_and_restore_is_repeatable() -> None:
             ProtectedKind.PYTHON_ESCAPE,
             SourceSpan(source.index("\\x41"), source.index("\\x41") + 4),
             r"\x41",
-            f"\"__INLINE_SQL_{nonce}_PYTHON_ESCAPE_1__\"",
+            f'"__INLINE_SQL_{nonce}_PYTHON_ESCAPE_1__"',
             None,
         ),
         (
             ProtectedKind.ESCAPED_BRACE,
             SourceSpan(source.index("{{"), source.index("{{") + 2),
             "{{",
-            f"\"__INLINE_SQL_{nonce}_ESCAPED_BRACE_2__\"",
+            f'"__INLINE_SQL_{nonce}_ESCAPED_BRACE_2__"',
             None,
         ),
         (
             ProtectedKind.ESCAPED_BRACE,
             SourceSpan(source.index("}}"), source.index("}}") + 2),
             "}}",
-            f"\"__INLINE_SQL_{nonce}_ESCAPED_BRACE_3__\"",
+            f'"__INLINE_SQL_{nonce}_ESCAPED_BRACE_3__"',
             None,
         ),
         (
             ProtectedKind.FIELD,
             SourceSpan(source.index("{value}"), source.index("{value}") + 7),
             "{value}",
-            f"\"__INLINE_SQL_{nonce}_FIELD_4__\"",
+            f'"__INLINE_SQL_{nonce}_FIELD_4__"',
             None,
         ),
     )

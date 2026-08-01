@@ -111,14 +111,10 @@ def split_triple_quote_frame(
         line[len(outer_indent) :] if not _is_blank(line) else line for line in lines
     )
     leading_boundary = (
-        _collapse_blank_lines(leading)
-        if trim_blank_boundaries
-        else "".join(leading)
+        _collapse_blank_lines(leading) if trim_blank_boundaries else "".join(leading)
     )
     trailing_boundary = (
-        _collapse_blank_lines(trailing)
-        if trim_blank_boundaries
-        else "".join(trailing)
+        _collapse_blank_lines(trailing) if trim_blank_boundaries else "".join(trailing)
     )
     return TripleQuoteFrame(
         leading_boundary=leading_boundary,

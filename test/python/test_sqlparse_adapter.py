@@ -196,14 +196,7 @@ def test_expand_select_list_places_each_column_on_its_own_line() -> None:
         options=FormatOptions("upper", 2, 88, True, True),
     )
     assert result == (
-        "SELECT\n"
-        "  id,\n"
-        "  name,\n"
-        "  1,\n"
-        "  2,\n"
-        "  3\n"
-        "FROM users\n"
-        "WHERE id = 1"
+        "SELECT\n  id,\n  name,\n  1,\n  2,\n  3\nFROM users\nWHERE id = 1"
     )
 
 
@@ -251,18 +244,7 @@ def test_expand_select_list_handles_multiple_statements() -> None:
         triple_quoted=True,
         options=FormatOptions("upper", 2, 88, True, True),
     )
-    assert result == (
-        "SELECT\n"
-        "  a,\n"
-        "  b\n"
-        "FROM t1;\n"
-        "\n"
-        "\n"
-        "SELECT\n"
-        "  c,\n"
-        "  d\n"
-        "FROM t2"
-    )
+    assert result == ("SELECT\n  a,\n  b\nFROM t1;\n\n\nSELECT\n  c,\n  d\nFROM t2")
 
 
 def test_trim_blank_boundaries_collapses_extra_blank_lines() -> None:

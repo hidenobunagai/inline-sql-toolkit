@@ -22,7 +22,6 @@ import {
   assertFstringAndPartialSuccess,
   assertNoDocumentFormattingProvider,
   assertSingleCommandAndUndo,
-  configureIntegrationPython,
 } from "../support/vscode-harness.js";
 
 export async function testOfficialExtensionCompatibility(): Promise<void> {
@@ -37,7 +36,6 @@ export async function testOfficialExtensionCompatibility(): Promise<void> {
   for (const language of ["python", "mo-python"] as const) {
     const document = await openStandaloneFixture(language);
     const editor = await vscode.window.showTextDocument(document);
-    await configureIntegrationPython(document);
     await assertSingleCommandAndUndo(document, editor, "inlineSql.formatAtCursor");
     await assertSingleCommandAndUndo(document, editor, "inlineSql.formatSelection");
     await assertAllCommandAndSingleUndo(document, editor);

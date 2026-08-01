@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { readConfiguredPythonPath, readFormatOptions } from "../../src/vscode/configuration.js";
+import { readFormatOptions } from "../../src/vscode/configuration.js";
 import { __mock } from "../support/vscode-mock.js";
 
 beforeEach(() => {
@@ -90,32 +90,5 @@ describe("readFormatOptions", () => {
     __mock.setConfiguration(uri, "format.indentWidth", 4);
     expect(readFormatOptions(uri)).toMatchObject({ ok: true, options: { indentWidth: 4 } });
     expect(__mock.configurationReads("format.indentWidth")).toBe(1);
-  });
-});
-
-describe("readConfiguredPythonPath", () => {
-  it("returns undefined for the empty default", () => {
-    const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
-    expect(readConfiguredPythonPath(uri)).toEqual({ ok: true, value: undefined });
-  });
-
-  it("returns a configured path when trusted", () => {
-    const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
-    __mock.setConfiguration(uri, "pythonPath", "/opt/python");
-    expect(readConfiguredPythonPath(uri)).toEqual({ ok: true, value: "/opt/python" });
-  });
-
-  it("does not read restricted configuration while untrusted", () => {
-    const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
-    __mock.setConfiguration(uri, "pythonPath", "/opt/python");
-    __mock.setTrusted(false);
-    expect(readConfiguredPythonPath(uri)).toEqual({ ok: false, reason: "WORKSPACE_UNTRUSTED" });
-    expect(__mock.configurationReads("pythonPath")).toBe(0);
-  });
-
-  it("rejects non-string configured paths", () => {
-    const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
-    __mock.setConfiguration(uri, "pythonPath", 123);
-    expect(readConfiguredPythonPath(uri)).toEqual({ ok: false, reason: "INVALID_CONFIGURATION" });
   });
 });

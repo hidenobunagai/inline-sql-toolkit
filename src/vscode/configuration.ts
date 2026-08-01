@@ -6,10 +6,6 @@ export type FormatOptionsResult =
   | { readonly ok: true; readonly options: FormatOptions }
   | { readonly ok: false; readonly reason: "INVALID_CONFIGURATION" };
 
-export type PythonPathResult =
-  | { readonly ok: true; readonly value: string | undefined }
-  | { readonly ok: false; readonly reason: "INVALID_CONFIGURATION" | "WORKSPACE_UNTRUSTED" };
-
 function integerBetween(value: unknown, minimum: number, maximum: number): value is number {
   return (
     typeof value === "number" && Number.isInteger(value) && value >= minimum && value <= maximum
@@ -55,15 +51,4 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
       dialect,
     },
   };
-}
-
-export function readConfiguredPythonPath(resourceUri: vscode.Uri): PythonPathResult {
-  if (!vscode.workspace.isTrusted) return { ok: false, reason: "WORKSPACE_UNTRUSTED" };
-  const value = vscode.workspace
-    .getConfiguration("inlineSql", resourceUri)
-    .get<unknown>("pythonPath");
-  if (value === undefined || value === "") return { ok: true, value: undefined };
-  return typeof value === "string"
-    ? { ok: true, value }
-    : { ok: false, reason: "INVALID_CONFIGURATION" };
 }

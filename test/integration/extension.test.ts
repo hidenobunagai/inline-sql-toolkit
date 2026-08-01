@@ -9,7 +9,6 @@ import {
   assertFstringAndPartialSuccess,
   assertNoDocumentFormattingProvider,
   assertSingleCommandAndUndo,
-  configureIntegrationPython,
   openStandaloneFixture,
   preserveFinalNewline,
   replaceWholeDocument,
@@ -23,7 +22,6 @@ export async function testStandaloneFormatting(): Promise<void> {
   for (const language of ["python", "mo-python"] as const) {
     const document = await openStandaloneFixture(language);
     const editor = await vscode.window.showTextDocument(document);
-    await configureIntegrationPython(document);
     await assertSingleCommandAndUndo(document, editor, "inlineSql.formatAtCursor");
     await assertSingleCommandAndUndo(document, editor, "inlineSql.formatSelection");
     await assertAllCommandAndSingleUndo(document, editor);
@@ -36,7 +34,6 @@ export async function testStandaloneFormatting(): Promise<void> {
 export async function testApplyRaces(): Promise<void> {
   const document = await openStandaloneFixture("python");
   await vscode.window.showTextDocument(document);
-  await configureIntegrationPython(document);
   try {
     const changed = preserveFinalNewline(document, 'query = "changed"');
     const changedVersion = await runPausedRace(document, {}, async () => {
@@ -81,7 +78,6 @@ export async function testDialectFormatting(): Promise<void> {
   try {
     const document = await openStandaloneFixture("python");
     await vscode.window.showTextDocument(document);
-    await configureIntegrationPython(document);
 
     await config.update("format.dialect", "postgresql", vscode.ConfigurationTarget.Workspace);
     await replaceWholeDocument(

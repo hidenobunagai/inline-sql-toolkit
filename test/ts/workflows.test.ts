@@ -101,25 +101,18 @@ describe("GitHub workflow contracts", () => {
       .map((step) => step.run ?? "")
       .join("\n");
     expect(runs).toContain("bun install --frozen-lockfile --ignore-scripts");
-    expect(runs).toContain("uv sync --frozen");
-    expect(runs).toContain("verify_vendor.py --lock-projection-only");
     expect(runs).not.toMatch(/(?:^|\s)VSCODE_TEST_VERSION=[^\s]+\s+bun run/u);
   });
 
   it("keeps the CI dependency graph and package verification ordering explicit", async () => {
     const workflow = await loadWorkflow("ci.yml");
     const jobs = jobsOf(workflow);
-    expect(ancestors(jobs, "package")).toEqual(
-      new Set(["quality", "python-test", "grammar-gate", "integration", "performance"]),
-    );
+    expect(ancestors(jobs, "package")).toEqual(new Set(["quality", "grammar-gate", "integration"]));
     expect(jobs["quality"]?.needs).toBeUndefined();
-    expect(jobs["python-test"]?.needs).toBe("quality");
     expect(jobs["grammar-gate"]?.needs).toBe("quality");
-    expect(jobs["integration"]?.needs).toEqual(["python-test", "grammar-gate"]);
-    expect(jobs["performance"]?.needs).toBe("python-test");
-    expect(jobs["package"]?.needs).toEqual(["integration", "performance"]);
+    expect(jobs["integration"]?.needs).toBe("grammar-gate");
+    expect(jobs["package"]?.needs).toBe("integration");
     expect(jobs["vsix-install-smoke"]?.needs).toBe("package");
-    expect(jobs["offline-smoke"]?.needs).toBe("package");
 
     const packageSteps = jobs["package"]?.steps ?? [];
     const verifyIndex = packageSteps.findIndex((step) => /verify_vsix/u.test(step.run ?? ""));
@@ -144,37 +137,12 @@ describe("GitHub workflow contracts", () => {
         expect(step.with?.version).toBe("0.9.28");
       }
     }
-    expect(jobs["python-test"]?.strategy?.matrix).toMatchObject({
-      os: ["ubuntu-latest", "macos-latest", "windows-latest"],
-      python: ["3.12", "3.13", "3.14"],
-    });
     expect(jobs["grammar-gate"]?.strategy?.matrix?.vscode).toEqual(["1.95.0", "stable"]);
     expect(jobs["integration"]?.strategy?.matrix).toMatchObject({
       os: ["ubuntu-latest", "macos-latest", "windows-latest"],
       vscode: ["1.95.0", "stable"],
       trust: ["trusted", "untrusted"],
     });
-  });
-
-  it("prepares a pinned Docker image before the offline smoke", async () => {
-    const workflow = await loadWorkflow("ci.yml");
-    const steps = jobsOf(workflow)["offline-smoke"]?.steps ?? [];
-    const pullIndex = steps.findIndex((step) => /docker\s+pull/u.test(step.run ?? ""));
-    const inspectIndex = steps.findIndex((step) =>
-      /docker(?:\s+image)?\s+inspect/u.test(step.run ?? ""),
-    );
-    const smokeIndex = steps.findIndex((step) => /offline_vsix_smoke/u.test(step.run ?? ""));
-    expect(pullIndex).toBeGreaterThanOrEqual(0);
-    expect(inspectIndex).toBeGreaterThan(pullIndex);
-    expect(smokeIndex).toBeGreaterThan(inspectIndex);
-    expect(steps[pullIndex]?.run).toContain(
-      "python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
-    );
-    expect(steps[inspectIndex]?.run).toContain("actual_digest");
-    expect(steps[inspectIndex]?.run).toContain(
-      "sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de",
-    );
-    expect(steps[smokeIndex]?.run).toMatch(/python:3\.12-slim@sha256:[0-9a-f]{64}/u);
   });
 
   it("keeps OSV permissions and scan inputs scoped to reusable jobs", async () => {

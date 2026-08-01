@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import io
 import json
 import re
@@ -12,7 +11,6 @@ import sys
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Mapping, cast
 
 MAX_VSIX_BYTES = 64 * 1024 * 1024
 MAX_EXPANDED_BYTES = 128 * 1024 * 1024
@@ -34,34 +32,14 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
         "extension/THIRD_PARTY_NOTICES.md",
         "extension/dist/extension.js",
         "extension/dist/package.json",
-        "extension/python/bootstrap.py",
         "extension/icon.png",
     }
 )
 
 EXACT_FIRST_PARTY_MEMBERS = frozenset(
     {
-        "extension/python/inline_sql_helper/__init__.py",
-        "extension/python/inline_sql_helper/candidate_formatter.py",
-        "extension/python/inline_sql_helper/cli.py",
-        "extension/python/inline_sql_helper/detection.py",
-        "extension/python/inline_sql_helper/engine.py",
-        "extension/python/inline_sql_helper/literals.py",
-        "extension/python/inline_sql_helper/model.py",
-        "extension/python/inline_sql_helper/positions.py",
-        "extension/python/inline_sql_helper/protection.py",
-        "extension/python/inline_sql_helper/protocol.py",
-        "extension/python/inline_sql_helper/sqlparse_adapter.py",
-        "extension/python/inline_sql_helper/token_bundles.py",
         "extension/syntaxes/inline-sql-fstring-islands.tmLanguage.json",
         "extension/syntaxes/inline-sql-python.tmLanguage.json",
-        "extension/third_party/runtime-components.json",
-        "extension/third_party/sqlparse/AUTHORS",
-        "extension/third_party/sqlparse/LICENSE",
-        "extension/third_party/sqlparse/SOURCE.json",
-        "extension/third_party/sqlparse/files.sha256",
-        "extension/third_party/vscode-python-extension/LICENSE.md",
-        "extension/third_party/vscode-python-extension/SOURCE.json",
     }
 )
 
@@ -74,7 +52,6 @@ class VsixError(ValueError):
 class ValidatedVsix:
     archive_bytes: bytes
     members: tuple[str, ...]
-    vendor_hashes: Mapping[str, str]
     expanded_bytes: int
 
 
@@ -122,36 +99,6 @@ def read_bounded_member(archive: zipfile.ZipFile, name: str) -> bytes:
     if len(payload) != info.file_size:
         raise VsixError("VSIX member size mismatch")
     return payload
-
-
-def parse_vendor_inventory(payload: bytes) -> dict[str, str]:
-    try:
-        text = payload.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise VsixError("invalid vendor inventory") from exc
-    result: dict[str, str] = {}
-    relatives: list[str] = []
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        fields = line.split()
-        if len(fields) != 2 or not re.fullmatch(r"[0-9a-f]{64}", fields[0]):
-            raise VsixError("invalid vendor inventory")
-        relative = PurePosixPath(fields[1]).as_posix()
-        if (
-            not relative
-            or relative.startswith("/")
-            or ".." in PurePosixPath(relative).parts
-            or "\\" in fields[1]
-            or relative in result
-        ):
-            raise VsixError("invalid vendor inventory")
-        result[relative] = fields[0]
-        relatives.append(relative)
-    if not result or relatives != sorted(relatives):
-        raise VsixError("invalid vendor inventory")
-    return result
 
 
 def posix_ancestors(member: str) -> tuple[str, ...]:
@@ -220,84 +167,6 @@ def scan_for_forbidden_runtime_content(
             raise VsixError("forbidden runtime content")
 
 
-def _sha256(payload: bytes) -> str:
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _read_json_member(archive: zipfile.ZipFile, name: str) -> object:
-    try:
-        return json.loads(read_bounded_member(archive, name).decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise VsixError("invalid provenance record") from exc
-
-
-def validate_provenance(archive: zipfile.ZipFile) -> None:
-    source = _read_json_member(archive, "extension/third_party/sqlparse/SOURCE.json")
-    if not isinstance(source, dict) or source != {
-        "authorsSha256": (
-            "65ed421fc032252eb23b7a4b64ed6915c12c3bf64dec6f3dd4d7b5b421f8fd3c"
-        ),
-        "generatedAt": "omitted for deterministic output",
-        "license": "BSD-3-Clause",
-        "licenseSha256": (
-            "c1938235b80d39e93138eae89edc3af67e18ecbc40d266529fa57b2dce426310"
-        ),
-        "name": "sqlparse",
-        "sha256": "12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba",
-        "url": "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl",
-        "version": "0.5.5",
-        "wheel": "sqlparse-0.5.5-py3-none-any.whl",
-    }:
-        raise VsixError("invalid provenance record")
-    source_record = cast(dict[str, str], source)
-    if (
-        _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/LICENSE"))
-        != source_record["licenseSha256"]
-    ):
-        raise VsixError("invalid provenance record")
-    if (
-        _sha256(read_bounded_member(archive, "extension/third_party/sqlparse/AUTHORS"))
-        != source_record["authorsSha256"]
-    ):
-        raise VsixError("invalid provenance record")
-
-    vscode_source = _read_json_member(
-        archive, "extension/third_party/vscode-python-extension/SOURCE.json"
-    )
-    if (
-        not isinstance(vscode_source, dict)
-        or vscode_source.get("name") != "@vscode/python-extension"
-        or vscode_source.get("version") != "1.0.5"
-        or vscode_source.get("license") != "MIT"
-    ):
-        raise VsixError("invalid provenance record")
-    if b"MIT License" not in read_bounded_member(
-        archive, "extension/third_party/vscode-python-extension/LICENSE.md"
-    ):
-        raise VsixError("invalid provenance record")
-
-    components = _read_json_member(
-        archive, "extension/third_party/runtime-components.json"
-    )
-    if components != {
-        "components": [
-            {
-                "name": "@vscode/python-extension",
-                "version": "1.0.5",
-                "ecosystem": "npm",
-                "license": "MIT",
-            },
-            {
-                "name": "sqlparse",
-                "version": "0.5.5",
-                "ecosystem": "PyPI",
-                "license": "BSD-3-Clause",
-            },
-        ]
-    }:
-        raise VsixError("invalid provenance record")
-
-
 def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
     try:
         archive = zipfile.ZipFile(io.BytesIO(archive_bytes))
@@ -325,13 +194,7 @@ def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
             if expanded_bytes > MAX_EXPANDED_BYTES:
                 raise VsixError("VSIX expanded size limit exceeded")
 
-        vendor_hashes = parse_vendor_inventory(
-            read_bounded_member(archive, "extension/third_party/sqlparse/files.sha256")
-        )
-        vendor_members = {
-            f"extension/python/vendor/sqlparse/{relative}" for relative in vendor_hashes
-        }
-        expected = REQUIRED_PACKAGE_MEMBERS | EXACT_FIRST_PARTY_MEMBERS | vendor_members
+        expected = REQUIRED_PACKAGE_MEMBERS | EXACT_FIRST_PARTY_MEMBERS
         file_names = {
             name for name, info in zip(names, infos, strict=True) if not info.is_dir()
         }
@@ -350,18 +213,10 @@ def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise VsixError("invalid extension manifest") from exc
 
-        for relative, expected_hash in vendor_hashes.items():
-            payload = read_bounded_member(
-                archive, f"extension/python/vendor/sqlparse/{relative}"
-            )
-            if _sha256(payload) != expected_hash:
-                raise VsixError("vendored file hash mismatch")
-        validate_provenance(archive)
         scan_for_forbidden_runtime_content(archive, file_names)
         return ValidatedVsix(
             archive_bytes=archive_bytes,
             members=tuple(sorted(file_names)),
-            vendor_hashes=vendor_hashes,
             expanded_bytes=expanded_bytes,
         )
 
@@ -377,18 +232,11 @@ def component_report(validated: ValidatedVsix) -> dict[str, object]:
                 "packages": [
                     {
                         "package": {
-                            "name": "@vscode/python-extension",
-                            "version": "1.0.5",
+                            "name": "sql-formatter",
+                            "version": "15.8.2",
                             "ecosystem": "npm",
                         }
-                    },
-                    {
-                        "package": {
-                            "name": "sqlparse",
-                            "version": "0.5.5",
-                            "ecosystem": "PyPI",
-                        }
-                    },
+                    }
                 ]
             }
         ]

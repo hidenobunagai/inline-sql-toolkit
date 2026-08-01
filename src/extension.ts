@@ -1,4 +1,3 @@
-
 import * as vscode from "vscode";
 
 import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";

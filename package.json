@@ -30,9 +30,7 @@
     "untrustedWorkspaces": {
       "supported": "limited",
       "description": "%untrustedWorkspaces.description%",
-      "restrictedConfigurations": [
-        "inlineSql.pythonPath"
-      ]
+      "restrictedConfigurations": []
     }
   },
   "configurationDefaults": {
@@ -120,12 +118,6 @@
           "default": "postgresql",
           "scope": "resource",
           "description": "%configuration.format.dialect.description%"
-        },
-        "inlineSql.pythonPath": {
-          "type": "string",
-          "default": "",
-          "scope": "resource",
-          "description": "%configuration.pythonPath.description%"
         }
       }
     },
@@ -234,11 +226,9 @@
     "test:integration:compatibility": "bun tools/run_vscode_tests.ts compatibility",
     "package:vsix": "bun run build && mkdir -p dist-vsix && vsce package --no-dependencies --out dist-vsix/inline-sql-toolkit-0.1.1.vsix",
     "verify:vsix": "uv run python tools/verify_vsix.py dist-vsix/inline-sql-toolkit-0.1.1.vsix",
-    "test:offline-vsix": "uv run python tools/offline_vsix_smoke.py",
     "test:vsix-install": "bun tools/install_and_smoke_vsix.ts"
   },
   "dependencies": {
-    "@vscode/python-extension": "1.0.5",
     "sql-formatter": "^15.8.2"
   },
   "devDependencies": {

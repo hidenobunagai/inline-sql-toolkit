@@ -96,14 +96,14 @@ describe("extension manifest", () => {
         ({ title, description }) => typeof title === "string" && typeof description === "string",
       ),
     ).toBe(true);
-    expect(Object.keys(contributes.configuration?.properties ?? {})).toHaveLength(8);
+    expect(Object.keys(contributes.configuration?.properties ?? {})).toHaveLength(7);
     expect((manifest.contributes as Record<string, unknown>).keybindings).toBeUndefined();
     expect((manifest.contributes as Record<string, unknown>).languages).toBeUndefined();
     expect(manifest.extensionDependencies).toBeUndefined();
     expect(capabilities.untrustedWorkspaces).toEqual({
       supported: "limited",
       description: "%untrustedWorkspaces.description%",
-      restrictedConfigurations: ["inlineSql.pythonPath"],
+      restrictedConfigurations: [],
     });
     expect(configurationDefaults["[python]"]?.["editor.semanticHighlighting.enabled"]).toBe(false);
     expect(configurationDefaults["[mo-python]"]?.["editor.semanticHighlighting.enabled"]).toBe(

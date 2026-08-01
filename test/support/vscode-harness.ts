@@ -1,5 +1,4 @@
 import { strict as assert } from "node:assert";
-import * as path from "node:path";
 
 import * as vscode from "vscode";
 
@@ -308,16 +307,6 @@ async function undoDocumentOnce(document: vscode.TextDocument): Promise<void> {
   await vscode.commands.executeCommand("undo", document.uri);
 }
 
-export async function configureIntegrationPython(document: vscode.TextDocument): Promise<void> {
-  const pythonPath = process.env.INLINE_SQL_TEST_PYTHON;
-  if (pythonPath === undefined || !path.isAbsolute(pythonPath)) {
-    throw new Error("integration Python path must be absolute");
-  }
-  await vscode.workspace
-    .getConfiguration("inlineSql", document.uri)
-    .update("pythonPath", pythonPath, vscode.ConfigurationTarget.Workspace);
-}
-
 export async function openStandaloneFixture(
   language: "python" | "mo-python",
 ): Promise<vscode.TextDocument> {
@@ -449,7 +438,6 @@ export async function assertThreeCommandsAndCodeAction(opened: OpenedCell): Prom
         [cell.document.uri.toString(), cell.document.getText(), cell.document.version] as const,
     );
   try {
-    await configureIntegrationPython(opened.cell.document);
     await assertSingleCommandAndUndo(
       opened.cell.document,
       opened.textEditor,

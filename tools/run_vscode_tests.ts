@@ -1,10 +1,8 @@
-import { type ChildProcess, execFile as nodeExecFile, spawn } from "node:child_process";
-import { constants as fsConstants } from "node:fs";
+import { type ChildProcess, spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 
 import { downloadAndUnzipVSCode } from "@vscode/test-electron";
 import { build } from "esbuild";
@@ -18,9 +16,7 @@ import {
 import { type IntegrationScenario, parseScenario } from "../test/support/integration-scenario.js";
 import { buildExtension } from "./build.js";
 
-const execFileAsync = promisify(nodeExecFile);
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
-const PYTHON_RESOLVE_TIMEOUT_MS = 10_000;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export type { GrammarVersion };
@@ -28,7 +24,6 @@ export type { GrammarVersion };
 export interface ScenarioOptions {
   readonly scenario: IntegrationScenario;
   readonly vscodeVersion: GrammarVersion;
-  readonly pythonPath: string;
   readonly repositoryRoot: string;
 }
 
@@ -70,50 +65,6 @@ function isWindowsAbsolute(value: string): boolean {
 
 export function isAbsoluteExecutablePath(value: string): boolean {
   return path.isAbsolute(value) || isWindowsAbsolute(value);
-}
-
-export interface PythonResolveDependencies {
-  readonly execFile?: typeof execFileAsync;
-  readonly access?: typeof fs.access;
-}
-
-/** Resolve exactly one executable path, rejecting shell/newline/path ambiguity. */
-export async function resolveIntegrationPython(
-  override: string | undefined,
-  dependencies: PythonResolveDependencies = {},
-): Promise<string> {
-  const access = dependencies.access ?? fs.access;
-  let candidate = override;
-  if (candidate === undefined) {
-    const execute = dependencies.execFile ?? execFileAsync;
-    try {
-      const result = await execute("uv", ["python", "find", "3.12"], {
-        encoding: "utf8",
-        maxBuffer: 4_096,
-        timeout: PYTHON_RESOLVE_TIMEOUT_MS,
-        windowsHide: true,
-        shell: false,
-      });
-      candidate = result.stdout.trim();
-    } catch {
-      throw new Error("unable to resolve Python 3.12 with uv");
-    }
-  }
-  if (
-    candidate.length === 0 ||
-    candidate.includes("\0") ||
-    candidate.includes("\r") ||
-    candidate.includes("\n") ||
-    !isAbsoluteExecutablePath(candidate)
-  ) {
-    throw new Error("integration Python path must be one absolute line");
-  }
-  try {
-    await access(candidate, fsConstants.X_OK);
-  } catch {
-    throw new Error("integration Python executable is not accessible");
-  }
-  return candidate;
 }
 
 export async function buildIntegrationRunner(root: string): Promise<void> {
@@ -550,7 +501,6 @@ export async function launchScenario(
       env: {
         ...process.env,
         INLINE_SQL_TEST_SCENARIO: options.scenario,
-        INLINE_SQL_TEST_PYTHON: options.pythonPath,
       },
       shell: false,
       stdio: "inherit",
@@ -564,7 +514,6 @@ export async function launchScenario(
 export interface MainDependencies {
   readonly buildExtension?: () => Promise<unknown>;
   readonly buildIntegrationRunner?: (root: string) => Promise<void>;
-  readonly resolvePython?: (override: string | undefined) => Promise<string>;
   readonly launchScenario?: (options: ScenarioOptions) => Promise<void>;
 }
 
@@ -584,16 +533,12 @@ export async function main(
 ): Promise<void> {
   const scenario = parseScenario(argv[2]);
   const vscodeVersion = parseGrammarVersion(process.env.VSCODE_TEST_VERSION);
-  const pythonPath = await (dependencies.resolvePython ?? resolveIntegrationPython)(
-    process.env.INLINE_SQL_TEST_PYTHON,
-  );
   const root = repositoryRoot;
   await (dependencies.buildExtension ?? (() => withWorkingDirectory(root, buildExtension)))();
   await (dependencies.buildIntegrationRunner ?? buildIntegrationRunner)(root);
   await (dependencies.launchScenario ?? launchScenario)({
     scenario,
     vscodeVersion,
-    pythonPath,
     repositoryRoot: root,
   });
 }

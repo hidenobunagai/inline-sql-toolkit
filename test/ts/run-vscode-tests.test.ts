@@ -4,14 +4,12 @@ import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-import type { PythonResolveDependencies, SpawnRunOptions } from "../../tools/run_vscode_tests.js";
+import type { SpawnRunOptions } from "../../tools/run_vscode_tests.js";
 import {
   buildLaunchCommand,
   installFixtureExtensions,
-  isAbsoluteExecutablePath,
   main,
   parseGrammarVersion,
-  resolveIntegrationPython,
   spawnAndRequireZero,
 } from "../../tools/run_vscode_tests.js";
 import { INTEGRATION_TEST_TIMEOUT_MS, runIntegrationTest } from "../integration/run.js";
@@ -46,43 +44,6 @@ describe("integration runner argument policy", () => {
     assert.equal(trusted.command === "xvfb-run" || trusted.command === input.executable, true);
   });
 
-  it("rejects relative, multiline, and missing Python paths", async () => {
-    const access = vi.fn(() => Promise.resolve(undefined));
-    await expect(resolveIntegrationPython("python", { access })).rejects.toThrow("absolute line");
-    await expect(resolveIntegrationPython("/tmp/python\nother", { access })).rejects.toThrow(
-      "absolute line",
-    );
-    await expect(
-      resolveIntegrationPython("/tmp/python", {
-        access: vi.fn(() => {
-          throw new Error("missing");
-        }),
-      }),
-    ).rejects.toThrow("not accessible");
-    expect(access).not.toHaveBeenCalled();
-  });
-
-  it("accepts POSIX and Windows-shaped absolute paths after access validation", async () => {
-    const access = vi.fn(() => Promise.resolve(undefined));
-    await expect(resolveIntegrationPython("/opt/python", { access })).resolves.toBe("/opt/python");
-    await expect(resolveIntegrationPython("C:\\Python\\python.exe", { access })).resolves.toBe(
-      "C:\\Python\\python.exe",
-    );
-    expect(isAbsoluteExecutablePath("C:\\Python\\python.exe")).toBe(true);
-  });
-
-  it("uses a bounded uv fallback without a shell", async () => {
-    const access = vi.fn(() => Promise.resolve(undefined));
-    const execute = vi.fn((_file: string, _args: readonly string[], options: { shell: false }) => {
-      assert.equal(options.shell, false);
-      return Promise.resolve({ stdout: "/opt/uv/python3.12\n", stderr: "" });
-    }) as unknown as NonNullable<PythonResolveDependencies["execFile"]>;
-    await expect(resolveIntegrationPython(undefined, { access, execFile: execute })).resolves.toBe(
-      "/opt/uv/python3.12",
-    );
-    expect(execute).toHaveBeenCalledTimes(1);
-  });
-
   it("does not install current official extensions into the pinned old host", async () => {
     await expect(
       installFixtureExtensions("compatibility", "/tmp/extensions", "/tmp/code", "/repo", "1.95.0"),
@@ -108,18 +69,9 @@ describe("integration runner bootstrap", () => {
         buildExtension: build,
         buildIntegrationRunner: bundle,
         launchScenario: launch,
-        resolvePython: () => Promise.resolve("/tmp/python"),
       }),
     ).rejects.toThrow("invalid VSCODE_TEST_VERSION");
     vi.stubEnv("VSCODE_TEST_VERSION", "1.95.0");
-    await expect(
-      main(["node", "runner", "trusted"], {
-        buildExtension: build,
-        buildIntegrationRunner: bundle,
-        launchScenario: launch,
-        resolvePython: () => Promise.reject(new Error("python")),
-      }),
-    ).rejects.toThrow("python");
     expect(build).not.toHaveBeenCalled();
     expect(bundle).not.toHaveBeenCalled();
     expect(launch).not.toHaveBeenCalled();
@@ -129,15 +81,12 @@ describe("integration runner bootstrap", () => {
     vi.stubEnv("VSCODE_TEST_VERSION", "stable");
     const build = vi.fn(() => Promise.resolve(undefined));
     const bundle = vi.fn(() => Promise.resolve(undefined));
-    const resolvePython = vi.fn(() => Promise.resolve("/opt/python"));
     const launch = vi.fn(() => Promise.resolve(undefined));
     await main(["node", "runner", "trusted"], {
       buildExtension: build,
       buildIntegrationRunner: bundle,
-      resolvePython,
       launchScenario: launch,
     });
-    expect(resolvePython).toHaveBeenCalledWith(undefined);
     expect(build).toHaveBeenCalledTimes(1);
     expect(bundle).toHaveBeenCalledTimes(1);
     expect(launch).toHaveBeenCalledTimes(1);

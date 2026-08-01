@@ -1,1 +1,0 @@
-{"protocolVersion":1,"operation":"format","source":"query = \"select id, name from users where id = 1\"","target":{"mode":"all"},"options":{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,"useSpaceAroundOperators":true}}

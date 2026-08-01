@@ -31,7 +31,7 @@ function assertNever(value: never): never {
 export function reasonMessage(code: ReasonCode): string {
   switch (code) {
     case "PYTHON_NOT_FOUND":
-      return translate("Install Python 3.12 or later, or configure inlineSql.pythonPath.");
+      return translate("Install Python 3.12 or later.");
     case "PYTHON_VERSION_UNSUPPORTED":
       return translate("Inline SQL formatting requires Python 3.12 or later.");
     case "WORKSPACE_UNTRUSTED":

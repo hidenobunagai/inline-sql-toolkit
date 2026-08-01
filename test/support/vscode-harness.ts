@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { type FormatMode } from "../../src/protocol.js";
 import type { HookSnapshot, TestOperationOutcome } from "../../src/vscode/test-hooks.js";
 import { TEST_HOOK_COMMANDS } from "../../src/vscode/test-hooks.js";
+import { assertNoSemanticSqlOverlap, decodeSemanticTokens } from "./semantic-tokens.js";
 
 export const LOWER = 'query = "select 1"';
 export const UPPER = 'query = "SELECT 1"';
@@ -486,6 +487,27 @@ function assertSiblingCellsUnchanged(
   }
 }
 
+export function physicalSqlRange(document: vscode.TextDocument): vscode.Range {
+  const offset = document.getText().indexOf("SELECT");
+  if (offset < 0) throw new Error("missing physical SQL segment");
+  return new vscode.Range(
+    document.positionAt(offset),
+    document.positionAt(offset + "SELECT".length),
+  );
+}
+
+export async function provideFullSemanticTokens(
+  document: vscode.TextDocument,
+): Promise<vscode.SemanticTokens> {
+  const result = await vscode.commands.executeCommand<
+    vscode.SemanticTokens | vscode.SemanticTokensEdits | undefined
+  >("vscode.provideDocumentSemanticTokens", document.uri);
+  if (result === undefined || !("data" in result) || result.data.length === 0) {
+    throw new Error("semantic provider returned no full token stream");
+  }
+  return result;
+}
+
 export async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs = 30_000): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   try {
@@ -530,4 +552,5 @@ export async function runPausedRace(
   return guardedVersion;
 }
 
+export { assertNoSemanticSqlOverlap, decodeSemanticTokens };
 export type { FormatMode, HookSnapshot, TestOperationOutcome };

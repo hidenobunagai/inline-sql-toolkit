@@ -9,6 +9,7 @@ import {
   testStandaloneFormatting,
 } from "./extension.test.js";
 import { testNotebookFormatting } from "./notebooks.test.js";
+import { testSemanticTokenIsolation } from "./semantic-tokens.test.js";
 import { testUntrustedHighlightOnly } from "./untrusted.test.js";
 
 function assertNeverScenario(value: never): never {
@@ -31,6 +32,7 @@ export function scenarioTests(scenario: IntegrationScenario): readonly (() => Pr
       return [
         testStandaloneFormatting,
         testNotebookFormatting,
+        testSemanticTokenIsolation,
         testApplyRaces,
         testDialectFormatting,
       ];

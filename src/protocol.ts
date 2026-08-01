@@ -22,6 +22,7 @@ export interface FormatOptions {
   readonly wrapAfter: number;
   readonly useSpaceAroundOperators: boolean;
   readonly expandSelectList: boolean;
+  readonly trimBlankBoundaries: boolean;
 }
 
 export interface FormatTarget {
@@ -188,6 +189,7 @@ function parseOptions(value: unknown): FormatOptions {
     "wrapAfter",
     "useSpaceAroundOperators",
     "expandSelectList",
+    "trimBlankBoundaries",
   ]);
   const indentWidth = requireNonNegativeInteger(record.indentWidth);
   const wrapAfter = requireNonNegativeInteger(record.wrapAfter);
@@ -200,6 +202,7 @@ function parseOptions(value: unknown): FormatOptions {
     wrapAfter,
     useSpaceAroundOperators: requireBoolean(record.useSpaceAroundOperators),
     expandSelectList: requireBoolean(record.expandSelectList),
+    trimBlankBoundaries: requireBoolean(record.trimBlankBoundaries),
   };
 }
 

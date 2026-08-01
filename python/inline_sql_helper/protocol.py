@@ -148,6 +148,7 @@ def parse_format_options(value: object) -> FormatOptions:
                 "wrapAfter",
                 "useSpaceAroundOperators",
                 "expandSelectList",
+                "trimBlankBoundaries",
             }
         ),
     )
@@ -159,11 +160,13 @@ def parse_format_options(value: object) -> FormatOptions:
     wrap_after = require_non_negative_int(record["wrapAfter"])
     spacing = record["useSpaceAroundOperators"]
     expand = record["expandSelectList"]
+    trim = record["trimBlankBoundaries"]
     if (
         not 1 <= indent_width <= 8
         or not 20 <= wrap_after <= 500
         or not isinstance(spacing, bool)
         or not isinstance(expand, bool)
+        or not isinstance(trim, bool)
     ):
         raise ProtocolViolation
     return FormatOptions(
@@ -172,6 +175,7 @@ def parse_format_options(value: object) -> FormatOptions:
         wrap_after,
         spacing,
         expand,
+        trim,
     )
 
 
@@ -414,6 +418,7 @@ def request_to_wire(request: HelperRequest) -> dict[str, object]:
             "wrapAfter": request.options.wrap_after,
             "useSpaceAroundOperators": (request.options.use_space_around_operators),
             "expandSelectList": request.options.expand_select_list,
+            "trimBlankBoundaries": request.options.trim_blank_boundaries,
         },
     }
 

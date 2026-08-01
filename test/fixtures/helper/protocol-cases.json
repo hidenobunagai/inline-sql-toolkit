@@ -13,7 +13,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -33,7 +34,8 @@
           "indentWidth": 1,
           "wrapAfter": 20,
           "useSpaceAroundOperators": false,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -56,7 +58,8 @@
           "indentWidth": 8,
           "wrapAfter": 500,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -163,7 +166,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         },
         "extra": true
       }
@@ -182,6 +186,7 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
+          "trimBlankBoundaries": false,
           "extra": true
         }
       }
@@ -199,7 +204,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -216,7 +222,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -236,7 +243,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -259,7 +267,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -282,7 +291,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -299,7 +309,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -316,7 +327,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -336,7 +348,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -353,7 +366,8 @@
           "indentWidth": 0,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -370,7 +384,8 @@
           "indentWidth": 9,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -387,7 +402,8 @@
           "indentWidth": 2,
           "wrapAfter": 19,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -404,7 +420,8 @@
           "indentWidth": 2,
           "wrapAfter": 501,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -421,7 +438,8 @@
           "indentWidth": true,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -460,7 +478,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },
@@ -477,7 +496,8 @@
           "indentWidth": 2,
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
-          "expandSelectList": false
+          "expandSelectList": false,
+          "trimBlankBoundaries": false
         }
       }
     },

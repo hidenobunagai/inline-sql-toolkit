@@ -67,6 +67,7 @@ class FormatOptions:
     wrap_after: int
     use_space_around_operators: bool
     expand_select_list: bool = False
+    trim_blank_boundaries: bool = False
 
 
 @dataclass(frozen=True, slots=True)

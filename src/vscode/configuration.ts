@@ -23,22 +23,33 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const wrapAfterValue = configuration.get<unknown>("format.wrapAfter");
   const operatorSpacingValue = configuration.get<unknown>("format.useSpaceAroundOperators");
   const expandSelectListValue = configuration.get<unknown>("format.expandSelectList");
+  const trimBlankBoundariesValue = configuration.get<unknown>("format.trimBlankBoundaries");
   const keywordCase = keywordCaseValue === undefined ? "upper" : keywordCaseValue;
   const indentWidth = indentWidthValue === undefined ? 2 : indentWidthValue;
   const wrapAfter = wrapAfterValue === undefined ? 88 : wrapAfterValue;
   const useSpaceAroundOperators = operatorSpacingValue === undefined ? true : operatorSpacingValue;
   const expandSelectList = expandSelectListValue === undefined ? true : expandSelectListValue;
+  const trimBlankBoundaries =
+    trimBlankBoundariesValue === undefined ? true : trimBlankBoundariesValue;
   if (
     (keywordCase !== "upper" && keywordCase !== "lower" && keywordCase !== "preserve") ||
     !integerBetween(indentWidth, 1, 8) ||
     !integerBetween(wrapAfter, 20, 500) ||
     typeof useSpaceAroundOperators !== "boolean" ||
-    typeof expandSelectList !== "boolean"
+    typeof expandSelectList !== "boolean" ||
+    typeof trimBlankBoundaries !== "boolean"
   )
     return { ok: false, reason: "INVALID_CONFIGURATION" };
   return {
     ok: true,
-    options: { keywordCase, indentWidth, wrapAfter, useSpaceAroundOperators, expandSelectList },
+    options: {
+      keywordCase,
+      indentWidth,
+      wrapAfter,
+      useSpaceAroundOperators,
+      expandSelectList,
+      trimBlankBoundaries,
+    },
   };
 }
 

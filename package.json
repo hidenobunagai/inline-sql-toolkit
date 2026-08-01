@@ -103,6 +103,12 @@
           "scope": "resource",
           "description": "%configuration.format.expandSelectList.description%"
         },
+        "inlineSql.format.trimBlankBoundaries": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "%configuration.format.trimBlankBoundaries.description%"
+        },
         "inlineSql.pythonPath": {
           "type": "string",
           "default": "",

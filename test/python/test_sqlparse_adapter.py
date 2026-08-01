@@ -263,3 +263,33 @@ def test_expand_select_list_handles_multiple_statements() -> None:
         "  d\n"
         "FROM t2"
     )
+
+
+def test_trim_blank_boundaries_collapses_extra_blank_lines() -> None:
+    source = "\n\n    select a,b from Dataset\n\n\n    "
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True, True, True),
+    )
+    assert result == "\n    SELECT\n      a,\n      b\n    FROM Dataset\n"
+
+
+def test_trim_blank_boundaries_keeps_single_leading_and_trailing_break() -> None:
+    source = "\n    select a from t\n    "
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True, True, True),
+    )
+    assert result == "\n    SELECT a\n    FROM t\n"
+
+
+def test_trim_blank_boundaries_is_disabled_by_default() -> None:
+    source = "\n\n    select a from t\n\n    "
+    result = format_sql(
+        source,
+        triple_quoted=True,
+        options=FormatOptions("upper", 2, 88, True, True),
+    )
+    assert result == "\n\n    SELECT a\n    FROM t\n\n    "

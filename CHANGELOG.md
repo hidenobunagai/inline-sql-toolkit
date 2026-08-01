@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Adds `inlineSql.format.trimBlankBoundaries` (default `true`) to collapse
+  extra blank lines at the start and end of triple-quoted SQL to a single line
+  ending.
+
 ## 0.1.1 - 2026-08-01
 
 - Adds official extension icon for VS Code Marketplace and Open VSX listings.

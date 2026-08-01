@@ -71,7 +71,20 @@ def _common_outer_indent(lines: list[str]) -> str:
     return common
 
 
-def split_triple_quote_frame(content: str) -> TripleQuoteFrame:
+def _collapse_blank_lines(lines: list[str]) -> str:
+    """Collapse blank boundary lines to a single line ending."""
+    if not lines:
+        return ""
+    for line in lines:
+        for line_ending in ("\r\n", "\r", "\n"):
+            if line.endswith(line_ending):
+                return line_ending
+    return "\n"
+
+
+def split_triple_quote_frame(
+    content: str, *, trim_blank_boundaries: bool = False
+) -> TripleQuoteFrame:
     """Separate blank boundaries and one common outer indentation."""
 
     lines = content.splitlines(keepends=True)
@@ -97,9 +110,19 @@ def split_triple_quote_frame(content: str) -> TripleQuoteFrame:
     body = "".join(
         line[len(outer_indent) :] if not _is_blank(line) else line for line in lines
     )
+    leading_boundary = (
+        _collapse_blank_lines(leading)
+        if trim_blank_boundaries
+        else "".join(leading)
+    )
+    trailing_boundary = (
+        _collapse_blank_lines(trailing)
+        if trim_blank_boundaries
+        else "".join(trailing)
+    )
     return TripleQuoteFrame(
-        leading_boundary="".join(leading),
-        trailing_boundary="".join(trailing),
+        leading_boundary=leading_boundary,
+        trailing_boundary=trailing_boundary,
         outer_indent=outer_indent,
         sql_body=body,
     )
@@ -178,7 +201,9 @@ def format_sql(
             raise SqlFormattingError("short-string formatting introduced a newline")
         return result
 
-    frame = split_triple_quote_frame(protected_sql)
+    frame = split_triple_quote_frame(
+        protected_sql, trim_blank_boundaries=options.trim_blank_boundaries
+    )
     formatted = _format_with_sqlparse(frame.sql_body, mapped)
     # The body deliberately excludes the closing-boundary line ending.  A
     # formatter may nevertheless append one; discard terminal line endings so

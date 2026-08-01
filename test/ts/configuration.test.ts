@@ -20,6 +20,7 @@ describe("readFormatOptions", () => {
           wrapAfter: 88,
           useSpaceAroundOperators: true,
           expandSelectList: true,
+          trimBlankBoundaries: true,
         },
       },
     );
@@ -55,6 +56,7 @@ describe("readFormatOptions", () => {
           wrapAfter: 500,
           useSpaceAroundOperators: false,
           expandSelectList: true,
+          trimBlankBoundaries: true,
         },
       },
     );

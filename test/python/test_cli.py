@@ -31,6 +31,7 @@ def request(operation: str = "locate", source: str = 'query = "SELECT 1"') -> by
                 "wrapAfter": 88,
                 "useSpaceAroundOperators": True,
                 "expandSelectList": False,
+                "trimBlankBoundaries": False,
             },
         },
         separators=(",", ":"),

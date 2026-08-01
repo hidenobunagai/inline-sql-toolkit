@@ -5,6 +5,7 @@ import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
 import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
+import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
 
 interface ActiveExtensionState {
@@ -47,6 +48,28 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   );
 
   for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
+
+  const registerSemanticTokens = async (): Promise<vscode.Disposable> => {
+    const semanticTokens = createInlineSqlSemanticTokensProvider();
+    // Register after Pylance activates so our provider (which also supplies
+    // Python tokens) replaces Pylance's tokens instead of being overwritten.
+    const pylance = vscode.extensions.getExtension("ms-python.vscode-pylance");
+    if (pylance !== undefined && !pylance.isActive) {
+      try {
+        await pylance.activate();
+      } catch {
+        // Best-effort: proceed with our own registration regardless.
+      }
+    }
+    return vscode.languages.registerDocumentRangeSemanticTokensProvider(
+      INLINE_SQL_SELECTOR,
+      semanticTokens.provider,
+      semanticTokens.legend,
+    );
+  };
+  void registerSemanticTokens().then((disposable) => {
+    context.subscriptions.push(own(disposable));
+  });
 
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,

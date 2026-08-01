@@ -193,3 +193,111 @@ export function fstringKind(prefix: string): LiteralKind | undefined {
   if (normalized === "rf" || normalized === "fr") return "raw_fstring";
   return undefined;
 }
+
+export type PythonTokenType =
+  "name" | "string" | "number" | "comment" | "keyword" | "operator" | "punctuation";
+
+/** One Python token with a source span, used for semantic tokens. */
+export interface PythonToken {
+  readonly type: PythonTokenType;
+  readonly start: number;
+  readonly end: number;
+}
+
+const PYTHON_KEYWORDS = new Set([
+  "False",
+  "None",
+  "True",
+  "and",
+  "as",
+  "assert",
+  "async",
+  "await",
+  "break",
+  "class",
+  "continue",
+  "def",
+  "del",
+  "elif",
+  "else",
+  "except",
+  "finally",
+  "for",
+  "from",
+  "global",
+  "if",
+  "import",
+  "in",
+  "is",
+  "lambda",
+  "nonlocal",
+  "not",
+  "or",
+  "pass",
+  "raise",
+  "return",
+  "try",
+  "while",
+  "with",
+  "yield",
+]);
+
+const PYTHON_OPERATOR = /^(?:==|!=|<=|>=|->|\*\*|\/\/|<<|>>|[+\-*/%&|^<>~@=])/;
+const PYTHON_NUMBER =
+  /^(?:0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\.\d+)/;
+
+/** Tokenize Python source with coarse classifications for semantic tokens. */
+export function tokenizePython(source: string): readonly PythonToken[] {
+  const tokens: PythonToken[] = [];
+  let index = 0;
+  while (index < source.length) {
+    const char = source[index] ?? "";
+    if (char === "\n" || char === "\r" || char === " " || char === "\t") {
+      index++;
+      continue;
+    }
+    if (char === "#") {
+      const end = source.indexOf("\n", index);
+      tokens.push({ type: "comment", start: index, end: end === -1 ? source.length : end });
+      index = end === -1 ? source.length : end;
+      continue;
+    }
+    const stringMatch = STRING_OPEN.exec(source.slice(index));
+    if (stringMatch !== null) {
+      const surface = stringMatch[0];
+      const delimiter = surface.replace(/^[rRbBuUfFtT]+/, "");
+      const end = scanStringBody(source, index + surface.length, delimiter);
+      tokens.push({ type: "string", start: index, end: end === -1 ? source.length : end });
+      index = end === -1 ? source.length : end;
+      continue;
+    }
+    const nameMatch = NAME.exec(source.slice(index));
+    if (nameMatch !== null) {
+      const name = nameMatch[0];
+      tokens.push({
+        type: PYTHON_KEYWORDS.has(name) ? "keyword" : "name",
+        start: index,
+        end: index + name.length,
+      });
+      index += name.length;
+      continue;
+    }
+    const numberMatch = PYTHON_NUMBER.exec(source.slice(index));
+    if (numberMatch !== null) {
+      const number = numberMatch[0];
+      tokens.push({ type: "number", start: index, end: index + number.length });
+      index += number.length;
+      continue;
+    }
+    const operatorMatch = PYTHON_OPERATOR.exec(source.slice(index));
+    if (operatorMatch !== null) {
+      const operator = operatorMatch[0];
+      tokens.push({ type: "operator", start: index, end: index + operator.length });
+      index += operator.length;
+      continue;
+    }
+    tokens.push({ type: "punctuation", start: index, end: index + 1 });
+    index++;
+  }
+  return tokens;
+}

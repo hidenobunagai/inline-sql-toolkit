@@ -60,7 +60,7 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   const applicator = createEditApplicator({
     applyWorkspaceEdit: hooks.applyWorkspaceEdit,
   });
-  const controller = createFormatController({ helper, applicator, hooks });
+  const controller = createFormatController({ applicator, hooks });
   const cache = new LocateCache();
   const provider = new InlineSqlCodeActionProvider(
     {

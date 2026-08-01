@@ -1,16 +1,11 @@
+import { randomBytes } from "node:crypto";
+
 import * as vscode from "vscode";
 
 import { REASON_CODES } from "../constants.js";
-import type {
-  ErrorResponse,
-  FinalizeItem,
-  FormatMode,
-  FormatResponse,
-  FormatTarget,
-  Position,
-  ProtectResponse,
-  ReasonCode,
-} from "../protocol.js";
+import type { FormatMode, FormatSuccess, FormatTarget, Position, ReasonCode } from "../protocol.js";
+import { allocateNonce, formatDocument } from "../python-analysis/engine.js";
+import { PositionMappingError } from "../python-analysis/positions.js";
 import { readFormatOptions } from "./configuration.js";
 import {
   resolveActiveEditorTarget,
@@ -18,7 +13,7 @@ import {
   type TargetResolution,
 } from "./document-target.js";
 import { DefaultEditApplicator, type EditApplicator } from "./edit-applicator.js";
-import type { DocumentSnapshot, HelperClient } from "./helper-client.js";
+import type { DocumentSnapshot } from "./helper-client.js";
 import {
   createNotifications,
   type NotificationSink,
@@ -26,55 +21,6 @@ import {
 } from "./notifications.js";
 import { formatProtectedSql } from "./sql-formatter.js";
 import type { IntegrationTestHooks } from "./test-hooks.js";
-
-function isFormatResponse(value: unknown): value is FormatResponse {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  if (
-    record.protocolVersion !== 1 ||
-    record.operation !== "format" ||
-    typeof record.ok !== "boolean"
-  )
-    return false;
-  if (!record.ok) {
-    const error = record.error;
-    if (typeof error !== "object" || error === null || Array.isArray(error)) return false;
-    const code = (error as Record<string, unknown>).code;
-    return typeof code === "string" && REASON_CODES.includes(code as ReasonCode);
-  }
-  if (!Array.isArray(record.edits) || !Array.isArray(record.skips)) return false;
-  if (
-    typeof record.summary !== "object" ||
-    record.summary === null ||
-    Array.isArray(record.summary)
-  )
-    return false;
-  const summary = record.summary as Record<string, unknown>;
-  return ["discovered", "selected", "changed", "unchanged", "skipped"].every(
-    (key) => Number.isSafeInteger(summary[key]) && (summary[key] as number) >= 0,
-  );
-}
-
-function isFinalizeResponse(value: unknown): value is FormatResponse {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  if (record.protocolVersion !== 1 || typeof record.ok !== "boolean") return false;
-  if (record.operation !== "finalize" && record.operation !== "format") return false;
-  return isFormatResponse({ ...record, operation: "format" });
-}
-
-function isProtectResponse(value: unknown): value is ProtectResponse | ErrorResponse {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  if (record.protocolVersion !== 1 || record.operation !== "protect") return false;
-  if (record.ok === false) {
-    const error = record.error;
-    if (typeof error !== "object" || error === null || Array.isArray(error)) return false;
-    const code = (error as Record<string, unknown>).code;
-    return typeof code === "string" && REASON_CODES.includes(code as ReasonCode);
-  }
-  return record.ok === true && typeof record.nonce === "string" && Array.isArray(record.candidates);
-}
 
 export interface FormatInvocation {
   readonly documentUri?: vscode.Uri;
@@ -86,7 +32,6 @@ export interface FormatController {
 }
 
 export interface FormatControllerDependencies {
-  readonly helper: HelperClient;
   readonly applicator?: EditApplicator;
   readonly hooks: IntegrationTestHooks;
   readonly notifications?: NotificationSink;
@@ -179,6 +124,12 @@ export function protocolTarget(
   };
 }
 
+/** Collapse single-line literal output so Python syntax stays intact. */
+function collapseReplacement(literalText: string, replacement: string): string {
+  if (literalText.includes("\n")) return replacement;
+  return replacement.replace(/\s*\n\s*/g, " ").trim();
+}
+
 export class DefaultFormatController implements FormatController {
   private readonly applicator: EditApplicator;
   private readonly notifications: NotificationSink;
@@ -248,80 +199,55 @@ export class DefaultFormatController implements FormatController {
       text,
     };
 
-    let protectResponse: unknown;
+    let formatted: FormatSuccess;
     try {
-      protectResponse = await this.dependencies.helper.protect(
-        snapshot,
-        protocol,
+      const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
+      const result = formatDocument(
+        text,
         options.options,
-        resource,
-        token,
+        protocol,
+        nonce,
+        (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
       );
-    } catch {
-      this.notifyReason("PROCESS_FAILED");
-      return;
-    }
-    await this.dependencies.hooks.afterHelperResponse(cancelOperation);
-    if (!isProtectResponse(protectResponse)) {
-      this.notifyReason("PROTOCOL_ERROR");
-      return;
-    }
-    if (!protectResponse.ok) {
-      this.notifyReason(protectResponse.error.code);
-      return;
-    }
-    const formatted: FinalizeItem[] = [];
-    for (const candidate of protectResponse.candidates) {
-      if (token.isCancellationRequested) {
-        this.notifyReason("PROCESS_CANCELLED");
+      formatted = {
+        protocolVersion: 1,
+        operation: "format",
+        ok: true,
+        edits: result.edits.map((edit) => {
+          const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
+          return {
+            range: result.sourceMap.vscodeRange(edit.sourceSpan),
+            expectedText: edit.expectedText,
+            newText: collapseReplacement(literalText, edit.replacementText),
+          };
+        }),
+        skips: [],
+        summary: result.summary,
+      };
+    } catch (error) {
+      if (error instanceof PositionMappingError) {
+        this.notifyReason("PROTOCOL_ERROR");
         return;
       }
-      const first = formatProtectedSql(candidate.sql, options.options);
-      const collapsed = candidate.singleLine ? first.replace(/\s*\n\s*/g, " ").trim() : first;
-      const second = formatProtectedSql(collapsed, options.options);
-      const secondCollapsed = candidate.singleLine
-        ? second.replace(/\s*\n\s*/g, " ").trim()
-        : second;
-      if (collapsed !== secondCollapsed) {
-        this.complete({ changed: 0, skipped: 1 });
-        continue;
-      }
-      formatted.push({ range: candidate.range, sql: collapsed });
-    }
-
-    let response: unknown;
-    try {
-      response = await this.dependencies.helper.finalize(
-        snapshot,
-        protectResponse.nonce,
-        formatted,
-        options.options,
-        resource,
-        token,
-      );
-    } catch {
       this.notifyReason("PROCESS_FAILED");
       return;
     }
     await this.dependencies.hooks.afterHelperResponse(cancelOperation);
-    if (!isFinalizeResponse(response)) {
-      this.notifyReason("PROTOCOL_ERROR");
+
+    if (formatted.summary.selected === 0) {
+      this.notifyReason("NO_SQL_CANDIDATE");
       return;
     }
-    if (!response.ok) {
-      this.notifyReason(response.error.code);
-      return;
-    }
-    const totalSkipped = protectResponse.skipped + response.summary.skipped;
-    if (response.edits.length === 0) {
+    const totalSkipped = formatted.summary.skipped;
+    if (formatted.edits.length === 0) {
       this.complete({
-        changed: response.summary.changed,
+        changed: formatted.summary.changed,
         skipped: totalSkipped,
       });
-      this.notifications.summary(response.summary, totalSkipped);
+      this.notifications.summary(formatted.summary, totalSkipped);
       return;
     }
-    const outcome = await this.applicator.apply(resource.document, snapshot, response, {
+    const outcome = await this.applicator.apply(resource.document, snapshot, formatted, {
       token,
       isWorkspaceTrusted: () =>
         this.dependencies.hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
@@ -331,11 +257,11 @@ export class DefaultFormatController implements FormatController {
       return;
     }
     this.complete({
-      changed: response.summary.changed,
+      changed: formatted.summary.changed,
       skipped: totalSkipped,
     });
     if (totalSkipped > 0) {
-      this.notifications.summary(response.summary, totalSkipped);
+      this.notifications.summary(formatted.summary, totalSkipped);
     }
   }
 
@@ -386,3 +312,5 @@ export function createFormatController(
 ): FormatController {
   return new DefaultFormatController(dependencies);
 }
+
+export { REASON_CODES };

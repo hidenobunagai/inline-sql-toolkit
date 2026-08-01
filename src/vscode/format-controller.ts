@@ -2,10 +2,13 @@ import * as vscode from "vscode";
 
 import { REASON_CODES } from "../constants.js";
 import type {
+  ErrorResponse,
+  FinalizeItem,
   FormatMode,
   FormatResponse,
   FormatTarget,
   Position,
+  ProtectResponse,
   ReasonCode,
 } from "../protocol.js";
 import { readFormatOptions } from "./configuration.js";
@@ -21,6 +24,7 @@ import {
   type NotificationSink,
   type TargetReasonCode,
 } from "./notifications.js";
+import { formatProtectedSql } from "./sql-formatter.js";
 import type { IntegrationTestHooks } from "./test-hooks.js";
 
 function isFormatResponse(value: unknown): value is FormatResponse {
@@ -49,6 +53,27 @@ function isFormatResponse(value: unknown): value is FormatResponse {
   return ["discovered", "selected", "changed", "unchanged", "skipped"].every(
     (key) => Number.isSafeInteger(summary[key]) && (summary[key] as number) >= 0,
   );
+}
+
+function isFinalizeResponse(value: unknown): value is FormatResponse {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (record.protocolVersion !== 1 || typeof record.ok !== "boolean") return false;
+  if (record.operation !== "finalize" && record.operation !== "format") return false;
+  return isFormatResponse({ ...record, operation: "format" });
+}
+
+function isProtectResponse(value: unknown): value is ProtectResponse | ErrorResponse {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (record.protocolVersion !== 1 || record.operation !== "protect") return false;
+  if (record.ok === false) {
+    const error = record.error;
+    if (typeof error !== "object" || error === null || Array.isArray(error)) return false;
+    const code = (error as Record<string, unknown>).code;
+    return typeof code === "string" && REASON_CODES.includes(code as ReasonCode);
+  }
+  return record.ok === true && typeof record.nonce === "string" && Array.isArray(record.candidates);
 }
 
 export interface FormatInvocation {
@@ -223,9 +248,9 @@ export class DefaultFormatController implements FormatController {
       text,
     };
 
-    let response: unknown;
+    let protectResponse: unknown;
     try {
-      response = await this.dependencies.helper.format(
+      protectResponse = await this.dependencies.helper.protect(
         snapshot,
         protocol,
         options.options,
@@ -237,7 +262,49 @@ export class DefaultFormatController implements FormatController {
       return;
     }
     await this.dependencies.hooks.afterHelperResponse(cancelOperation);
-    if (!isFormatResponse(response)) {
+    if (!isProtectResponse(protectResponse)) {
+      this.notifyReason("PROTOCOL_ERROR");
+      return;
+    }
+    if (!protectResponse.ok) {
+      this.notifyReason(protectResponse.error.code);
+      return;
+    }
+    const formatted: FinalizeItem[] = [];
+    for (const candidate of protectResponse.candidates) {
+      if (token.isCancellationRequested) {
+        this.notifyReason("PROCESS_CANCELLED");
+        return;
+      }
+      const first = formatProtectedSql(candidate.sql, options.options);
+      const collapsed = candidate.singleLine ? first.replace(/\s*\n\s*/g, " ").trim() : first;
+      const second = formatProtectedSql(collapsed, options.options);
+      const secondCollapsed = candidate.singleLine
+        ? second.replace(/\s*\n\s*/g, " ").trim()
+        : second;
+      if (collapsed !== secondCollapsed) {
+        this.complete({ changed: 0, skipped: 1 });
+        continue;
+      }
+      formatted.push({ range: candidate.range, sql: collapsed });
+    }
+
+    let response: unknown;
+    try {
+      response = await this.dependencies.helper.finalize(
+        snapshot,
+        protectResponse.nonce,
+        formatted,
+        options.options,
+        resource,
+        token,
+      );
+    } catch {
+      this.notifyReason("PROCESS_FAILED");
+      return;
+    }
+    await this.dependencies.hooks.afterHelperResponse(cancelOperation);
+    if (!isFinalizeResponse(response)) {
       this.notifyReason("PROTOCOL_ERROR");
       return;
     }
@@ -245,12 +312,13 @@ export class DefaultFormatController implements FormatController {
       this.notifyReason(response.error.code);
       return;
     }
+    const totalSkipped = protectResponse.skipped + response.summary.skipped;
     if (response.edits.length === 0) {
       this.complete({
         changed: response.summary.changed,
-        skipped: response.summary.skipped,
+        skipped: totalSkipped,
       });
-      this.notifications.summary(response.summary, response.skips.length);
+      this.notifications.summary(response.summary, totalSkipped);
       return;
     }
     const outcome = await this.applicator.apply(resource.document, snapshot, response, {
@@ -264,10 +332,10 @@ export class DefaultFormatController implements FormatController {
     }
     this.complete({
       changed: response.summary.changed,
-      skipped: response.summary.skipped,
+      skipped: totalSkipped,
     });
-    if (response.skips.length > 0) {
-      this.notifications.summary(response.summary, response.skips.length);
+    if (totalSkipped > 0) {
+      this.notifications.summary(response.summary, totalSkipped);
     }
   }
 

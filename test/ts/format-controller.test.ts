@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
-import type { FormatResponse, FormatSuccess, ReasonCode } from "../../src/protocol.js";
+import type {
+  FormatResponse,
+  FormatSuccess,
+  ProtectResponse,
+  ReasonCode,
+} from "../../src/protocol.js";
+import type { FinalizeItem } from "../../src/protocol.js";
 import { DefaultFormatController, protocolTarget } from "../../src/vscode/format-controller.js";
-import type { HelperClient } from "../../src/vscode/helper-client.js";
+import type { DocumentSnapshot, HelperClient } from "../../src/vscode/helper-client.js";
 import type { NotificationSink } from "../../src/vscode/notifications.js";
 import type { IntegrationTestHooks, TestOperationOutcome } from "../../src/vscode/test-hooks.js";
 import { createTestHooks, TEST_HOOK_COMMANDS } from "../../src/vscode/test-hooks.js";
@@ -12,6 +18,23 @@ import { __mock } from "../support/vscode-mock.js";
 beforeEach(() => {
   __mock.reset();
 });
+
+function protectResponse(sql = "SELECT 1"): ProtectResponse {
+  return {
+    protocolVersion: 1,
+    operation: "protect",
+    ok: true,
+    nonce: "a".repeat(32),
+    skipped: 0,
+    candidates: [
+      {
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: sql.length } },
+        sql,
+        singleLine: true,
+      },
+    ],
+  };
+}
 
 function success(
   text = "SELECT 1",
@@ -70,7 +93,7 @@ function hooks(): IntegrationTestHooks & { readonly outcomes: TestOperationOutco
   };
 }
 
-function setup(response: FormatResponse = success()) {
+function setup(response: FormatResponse = success(), protectedSql = "SELECT 1") {
   const document = __mock.document({
     uri: "file:///workspace/query.py",
     languageId: "python",
@@ -78,18 +101,31 @@ function setup(response: FormatResponse = success()) {
   });
   const editor = __mock.editor(document);
   __mock.setActiveEditor(editor);
-  const format = vi.fn<
-    (
-      snapshot: Parameters<HelperClient["format"]>[0],
-      target: Parameters<HelperClient["format"]>[1],
-      configuration: Parameters<HelperClient["format"]>[2],
-      resource: Parameters<HelperClient["format"]>[3],
-      token: Parameters<HelperClient["format"]>[4],
-    ) => Promise<FormatResponse>
-  >(() => Promise.resolve(response));
+  const protect = vi
+    .fn<
+      (
+        snapshot: DocumentSnapshot,
+        target: Parameters<HelperClient["format"]>[1],
+        configuration: Parameters<HelperClient["format"]>[2],
+        resource: Parameters<HelperClient["format"]>[3],
+        token: Parameters<HelperClient["format"]>[4],
+      ) => Promise<ProtectResponse>
+    >()
+    .mockResolvedValue(protectResponse(protectedSql));
+  const finalize = vi
+    .fn<
+      (
+        snapshot: DocumentSnapshot,
+        nonce: string,
+        formatted: readonly FinalizeItem[],
+      ) => Promise<FormatResponse>
+    >()
+    .mockResolvedValue(response);
   const helper: HelperClient = {
     locate: vi.fn(),
-    format,
+    protect,
+    finalize,
+    format: vi.fn(),
   };
   const hook = hooks();
   let trusted = true;
@@ -101,7 +137,8 @@ function setup(response: FormatResponse = success()) {
     document,
     editor,
     helper,
-    format,
+    protect,
+    finalize,
     hook,
     note,
     controller,
@@ -144,7 +181,7 @@ describe("DefaultFormatController", () => {
   it("formats a changed candidate without a success notification", async () => {
     const value = setup(success("SELECT 1", "SELECT 2"));
     await value.controller.execute("all");
-    expect(value.format).toHaveBeenCalledTimes(1);
+    expect(value.finalize).toHaveBeenCalledTimes(1);
     expect(value.hook.outcomes).toEqual([{ changed: 1, skipped: 0 }]);
     expect(value.note.calls).toEqual([]);
   });
@@ -178,7 +215,7 @@ describe("DefaultFormatController", () => {
     const empty = setup();
     (empty.editor as { selection: vscode.Selection }).selection = new vscode.Selection(0, 0, 0, 0);
     await empty.controller.execute("selection");
-    expect(empty.format).not.toHaveBeenCalled();
+    expect(empty.protect).not.toHaveBeenCalled();
     expect(empty.note.calls).toEqual(["empty-selection"]);
   });
 
@@ -186,12 +223,12 @@ describe("DefaultFormatController", () => {
     const value = setup();
     (value.editor as { selection: vscode.Selection }).selection = new vscode.Selection(0, 1, 0, 4);
     await value.controller.execute("cursor");
-    expect(value.format.mock.calls[0]?.[1]).toEqual({
+    expect(value.protect.mock.calls[0]?.[1]).toEqual({
       mode: "cursor",
       cursor: { line: 0, character: 4 },
     });
     await value.controller.execute("selection");
-    expect(value.format.mock.calls[1]?.[1]).toEqual({
+    expect(value.protect.mock.calls[1]?.[1]).toEqual({
       mode: "selection",
       selection: { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } },
     });
@@ -201,7 +238,7 @@ describe("DefaultFormatController", () => {
     const untrusted = setup();
     untrusted.setTrusted(false);
     await untrusted.controller.execute("all");
-    expect(untrusted.format).not.toHaveBeenCalled();
+    expect(untrusted.protect).not.toHaveBeenCalled();
     expect(untrusted.note.calls).toEqual(["reason:WORKSPACE_UNTRUSTED"]);
     const unsupported = setup();
     const raw = __mock.document({

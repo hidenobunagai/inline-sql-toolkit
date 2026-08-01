@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Switches the formatter engine from `sqlparse` to the bundled `sql-formatter`
+  (JS), which lays out nested function calls and long expressions correctly.
+- Adds `inlineSql.format.dialect` (default `postgresql`; `sql`, `mysql`, and
+  `sqlite` also supported) for dialect-aware formatting.
 - Adds `inlineSql.format.trimBlankBoundaries` (default `true`) to collapse
   extra blank lines at the start and end of triple-quoted SQL to a single line
   ending.

@@ -47,6 +47,8 @@ function helperWith(response: LocateResponse): HelperClient & {
   return {
     locate: locateCalls,
     format: vi.fn(),
+    protect: vi.fn(),
+    finalize: vi.fn(),
     locateCalls,
   };
 }

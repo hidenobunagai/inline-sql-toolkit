@@ -4,15 +4,18 @@ import * as vscode from "vscode";
 
 import type {
   ErrorResponse,
+  FinalizeItem,
+  FinalizeRequest,
   FormatOptions,
   FormatResponse,
   FormatTarget,
   HelperRequest,
   LocateResponse,
+  ProtectResponse,
   ProtocolOperation,
   ReasonCode,
 } from "../protocol.js";
-import { parseProtocolValue, serializeRequest } from "../protocol.js";
+import { parseProtocolValue, serializeFinalizeRequest, serializeRequest } from "../protocol.js";
 import type { SupportedDocument } from "./document-target.js";
 import type { PythonResolver, ResolvedPython } from "./python-resolver.js";
 
@@ -35,6 +38,23 @@ export interface HelperClient {
     resource: SupportedDocument,
     token: vscode.CancellationToken,
   ): Promise<LocateResponse>;
+
+  protect(
+    snapshot: DocumentSnapshot,
+    target: FormatTarget,
+    configuration: FormatOptions,
+    resource: SupportedDocument,
+    token: vscode.CancellationToken,
+  ): Promise<ProtectResponse>;
+
+  finalize(
+    snapshot: DocumentSnapshot,
+    nonce: string,
+    formatted: readonly FinalizeItem[],
+    configuration: FormatOptions,
+    resource: SupportedDocument,
+    token: vscode.CancellationToken,
+  ): Promise<FormatResponse>;
 
   format(
     snapshot: DocumentSnapshot,
@@ -129,11 +149,11 @@ function killProcess(child: ChildProcessWithoutNullStreams): void {
   }
 }
 
-function runHelperProcess<T extends LocateResponse | FormatResponse>(
+function runHelperProcess<T extends LocateResponse | ProtectResponse | FormatResponse>(
   operation: ProtocolOperation,
   requestBytes: Uint8Array,
   resolvedPython: ResolvedPython,
-  responseKind: "locateResponse" | "formatResponse",
+  responseKind: "locateResponse" | "protectResponse" | "formatResponse",
   dependencies: HelperClientDependencies,
   token: vscode.CancellationToken,
 ): Promise<ProcessResult<T>> {
@@ -285,7 +305,7 @@ export class DefaultHelperClient implements HelperClient {
     configuration: FormatOptions,
     resource: SupportedDocument,
     token: vscode.CancellationToken,
-  ): Promise<LocateResponse | FormatResponse> {
+  ): Promise<LocateResponse | ProtectResponse | FormatResponse> {
     let resolution: Awaited<ReturnType<PythonResolver["resolve"]>>;
     try {
       resolution = await this.dependencies.resolver.resolve(resource, token);
@@ -307,7 +327,11 @@ export class DefaultHelperClient implements HelperClient {
       operation,
       requestBytes,
       resolution.python,
-      operation === "locate" ? "locateResponse" : "formatResponse",
+      operation === "locate"
+        ? "locateResponse"
+        : operation === "protect"
+          ? "protectResponse"
+          : "formatResponse",
       this.dependencies,
       token,
     );
@@ -329,6 +353,67 @@ export class DefaultHelperClient implements HelperClient {
       resource,
       token,
     ) as Promise<LocateResponse>;
+  }
+
+  protect(
+    snapshot: DocumentSnapshot,
+    target: FormatTarget,
+    configuration: FormatOptions,
+    resource: SupportedDocument,
+    token: vscode.CancellationToken,
+  ): Promise<ProtectResponse> {
+    return this.invoke(
+      "protect",
+      snapshot,
+      target,
+      configuration,
+      resource,
+      token,
+    ) as Promise<ProtectResponse>;
+  }
+
+  async finalize(
+    snapshot: DocumentSnapshot,
+    nonce: string,
+    formatted: readonly FinalizeItem[],
+    configuration: FormatOptions,
+    resource: SupportedDocument,
+    token: vscode.CancellationToken,
+  ): Promise<FormatResponse> {
+    let resolution: Awaited<ReturnType<PythonResolver["resolve"]>>;
+    try {
+      resolution = await this.dependencies.resolver.resolve(resource, token);
+    } catch {
+      return requestError("finalize", "PROCESS_FAILED");
+    }
+    if (!resolution.ok) return requestError("finalize", resolution.reason);
+    if (token.isCancellationRequested) return requestError("finalize", "PROCESS_CANCELLED");
+    if (!this.dependencies.isWorkspaceTrusted())
+      return requestError("finalize", "WORKSPACE_UNTRUSTED");
+
+    let requestBytes: Uint8Array;
+    try {
+      const request: FinalizeRequest = {
+        protocolVersion: 1,
+        operation: "finalize",
+        source: snapshot.text,
+        nonce,
+        options: configuration,
+        formatted,
+      };
+      requestBytes = serializeFinalizeRequest(request);
+    } catch {
+      return requestError("finalize", "PROTOCOL_ERROR");
+    }
+    const result = await runHelperProcess<FormatResponse>(
+      "finalize",
+      requestBytes,
+      resolution.python,
+      "formatResponse",
+      this.dependencies,
+      token,
+    );
+    return result.ok ? result.response : requestError("finalize", result.code);
   }
 
   format(

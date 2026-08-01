@@ -1,7 +1,8 @@
 # Inline SQL Toolkit
 
 Inline SQL Toolkit highlights SQL embedded in Python strings and formats selected
-SQL with the bundled `sqlparse` engine. It supports ordinary `.py` files, marimo
+SQL with the bundled `sql-formatter` layout engine. It supports ordinary `.py`
+files, marimo
 (`.mo.py`) programs, and Python cells in Jupyter notebooks. In marimo notebooks
 the `python` and `mo-python` cell languages are supported. SQL-language cells
 and notebook magic commands (`%sql`, `%%sql`, and similar magic syntax) are not
@@ -134,8 +135,8 @@ process starts, no Code Actions are offered, and no edits are applied until
 the workspace is trusted. In a trusted workspace the helper is launched with a
 fixed isolated command and receives only the protocol request on standard
 input. SQL is not written to disk, logged, telemetered, sent over the network,
-passed to a shell/database, or executed. The bundled `sqlparse` code runs
-offline and is a layout engine, not a SQL validator.
+passed to a shell/database, or executed. The bundled `sql-formatter` and
+`sqlparse` code runs offline and is a layout engine, not a SQL validator.
 
 ## Troubleshooting
 

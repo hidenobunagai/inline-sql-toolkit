@@ -18,12 +18,12 @@ input: sqlparse cannot lay out nested expressions correctly.
 
 ## 2. Evaluated alternatives
 
-| Option | Nesting layout | Identifier/function preservation | Dependencies | Verdict |
-|---|---|---|---|---|
-| sqlparse (current) | broken | preserved | 1 vendored package | keep as fallback only |
-| SQLFluff | clean | preserved | 15+ packages (jinja, click, ...) | rejected: vendoring and offline runtime are impractical |
-| sqlglot | no wrap (single line) | **rewrites `substr` to `SUBSTRING`** | none | rejected: changes SQL meaning |
-| **sql-formatter (JS)** | **clean** | **preserved** | small, JS | **selected** |
+| Option                 | Nesting layout        | Identifier/function preservation     | Dependencies                     | Verdict                                                 |
+| ---------------------- | --------------------- | ------------------------------------ | -------------------------------- | ------------------------------------------------------- |
+| sqlparse (current)     | broken                | preserved                            | 1 vendored package               | keep as fallback only                                   |
+| SQLFluff               | clean                 | preserved                            | 15+ packages (jinja, click, ...) | rejected: vendoring and offline runtime are impractical |
+| sqlglot                | no wrap (single line) | **rewrites `substr` to `SUBSTRING`** | none                             | rejected: changes SQL meaning                           |
+| **sql-formatter (JS)** | **clean**             | **preserved**                        | small, JS                        | **selected**                                            |
 
 sql-formatter verification results:
 
@@ -100,12 +100,12 @@ entirely.
 
 ## 7. Risks and mitigations
 
-| Risk | Mitigation |
-|---|---|
-| sql-formatter cannot parse some SQL that sqlparse accepted | parse failure returns a stable skip reason (FORMATTER_FAILED), same as today; golden fixtures per dialect |
-| Marker restore breaks if sql-formatter reorders or rewrites quoted identifiers | idempotency validation re-parses and compares field texts; restore rejects moved markers |
-| Twice the helper round-trips slows formatting | manual command only; benchmark and revisit in Phase 3 |
-| sql-formatter bundle size grows the VSIX | measure; sql-formatter is small (a few hundred KB) |
+| Risk                                                                           | Mitigation                                                                                                |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| sql-formatter cannot parse some SQL that sqlparse accepted                     | parse failure returns a stable skip reason (FORMATTER_FAILED), same as today; golden fixtures per dialect |
+| Marker restore breaks if sql-formatter reorders or rewrites quoted identifiers | idempotency validation re-parses and compares field texts; restore rejects moved markers                  |
+| Twice the helper round-trips slows formatting                                  | manual command only; benchmark and revisit in Phase 3                                                     |
+| sql-formatter bundle size grows the VSIX                                       | measure; sql-formatter is small (a few hundred KB)                                                        |
 
 ## 8. Migration phases
 

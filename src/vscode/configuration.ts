@@ -40,10 +40,7 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
     typeof useSpaceAroundOperators !== "boolean" ||
     typeof expandSelectList !== "boolean" ||
     typeof trimBlankBoundaries !== "boolean" ||
-    (dialect !== "sql" &&
-      dialect !== "mysql" &&
-      dialect !== "postgresql" &&
-      dialect !== "sqlite")
+    (dialect !== "sql" && dialect !== "mysql" && dialect !== "postgresql" && dialect !== "sqlite")
   )
     return { ok: false, reason: "INVALID_CONFIGURATION" };
   return {

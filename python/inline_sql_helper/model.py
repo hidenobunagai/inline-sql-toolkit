@@ -137,6 +137,7 @@ class ProtectCandidate:
 
     range: TextRange
     sql: str
+    single_line: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,6 +149,7 @@ class ProtectSuccess:
     ok: Literal[True]
     nonce: str
     candidates: tuple[ProtectCandidate, ...]
+    skipped: int
 
 
 @dataclass(frozen=True, slots=True)

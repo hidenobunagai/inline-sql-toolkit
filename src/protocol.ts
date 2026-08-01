@@ -1,9 +1,9 @@
 import { REASON_CODES } from "./constants.js";
 
 export type FormatMode = "cursor" | "selection" | "all";
-export type ProtocolOperation = "locate" | "format";
+export type ProtocolOperation = "locate" | "protect" | "finalize" | "format";
 export type ProtocolValueKind =
-  "request" | "locateResponse" | "formatResponse" | "preDispatchError";
+  "request" | "locateResponse" | "protectResponse" | "formatResponse" | "preDispatchError";
 export type ReasonCode = (typeof REASON_CODES)[number];
 
 export interface Position {
@@ -24,6 +24,35 @@ export interface FormatOptions {
   readonly expandSelectList: boolean;
   readonly trimBlankBoundaries: boolean;
   readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
+}
+
+export interface ProtectCandidate {
+  readonly range: TextRange;
+  readonly sql: string;
+  readonly singleLine: boolean;
+}
+
+export interface ProtectResponse {
+  readonly protocolVersion: 1;
+  readonly operation: "protect";
+  readonly ok: true;
+  readonly nonce: string;
+  readonly skipped: number;
+  readonly candidates: readonly ProtectCandidate[];
+}
+
+export interface FinalizeItem {
+  readonly range: TextRange;
+  readonly sql: string;
+}
+
+export interface FinalizeRequest {
+  readonly protocolVersion: 1;
+  readonly operation: "finalize";
+  readonly source: string;
+  readonly nonce: string;
+  readonly options: FormatOptions;
+  readonly formatted: readonly FinalizeItem[];
 }
 
 export interface FormatTarget {
@@ -68,7 +97,7 @@ export interface LocateSuccess {
 
 export interface FormatSuccess {
   readonly protocolVersion: 1;
-  readonly operation: "format";
+  readonly operation: "format" | "finalize";
   readonly ok: true;
   readonly edits: readonly FormatEdit[];
   readonly skips: readonly CandidateSkipPayload[];
@@ -236,7 +265,7 @@ function parseRequest(value: unknown): HelperRequest {
   ]);
   return {
     protocolVersion: requireLiteral(record.protocolVersion, 1),
-    operation: requireEnum(record.operation, ["locate", "format"]),
+    operation: requireEnum(record.operation, ["locate", "protect", "format"]),
     source: requireString(record.source),
     target: parseTarget(record.target),
     options: parseOptions(record.options),
@@ -345,6 +374,36 @@ function parseLocateResponse(value: unknown): LocateResponse {
   };
 }
 
+function parseProtectResponse(value: unknown): ProtectResponse | ErrorResponse {
+  const object = requireObject(value);
+  if (object.ok === false) {
+    return parseErrorResponse(value, "protect");
+  }
+  const record = requireExactObject(value, [
+    "protocolVersion",
+    "operation",
+    "ok",
+    "nonce",
+    "skipped",
+    "candidates",
+  ]);
+  return {
+    protocolVersion: requireLiteral(record.protocolVersion, 1),
+    operation: requireLiteral(record.operation, "protect"),
+    ok: requireLiteral(record.ok, true),
+    nonce: requireString(record.nonce),
+    skipped: requireNonNegativeInteger(record.skipped),
+    candidates: parseArray(record.candidates, (item) => {
+      const candidate = requireExactObject(item, ["range", "sql", "singleLine"]);
+      return {
+        range: parseRange(candidate.range, false),
+        sql: requireString(candidate.sql),
+        singleLine: requireBoolean(candidate.singleLine),
+      };
+    }),
+  };
+}
+
 function parseFormatSuccessObject(value: unknown): FormatSuccess {
   const record = requireExactObject(value, [
     "protocolVersion",
@@ -356,7 +415,7 @@ function parseFormatSuccessObject(value: unknown): FormatSuccess {
   ]);
   return {
     protocolVersion: requireLiteral(record.protocolVersion, 1),
-    operation: requireLiteral(record.operation, "format"),
+    operation: requireEnum(record.operation, ["format", "finalize"]),
     ok: requireLiteral(record.ok, true),
     edits: parseArray(record.edits, parseEdit),
     skips: parseArray(record.skips, parseSkip),
@@ -381,21 +440,27 @@ function assertNever(value: never): never {
 
 export function parseProtocolValue(kind: "request", value: unknown): HelperRequest;
 export function parseProtocolValue(kind: "locateResponse", value: unknown): LocateResponse;
+export function parseProtocolValue(
+  kind: "protectResponse",
+  value: unknown,
+): ProtectResponse | ErrorResponse;
 export function parseProtocolValue(kind: "formatResponse", value: unknown): FormatResponse;
 export function parseProtocolValue(kind: "preDispatchError", value: unknown): ErrorResponse;
 export function parseProtocolValue(
   kind: ProtocolValueKind,
   value: unknown,
-): HelperRequest | LocateResponse | FormatResponse;
+): HelperRequest | LocateResponse | ProtectResponse | ErrorResponse | FormatResponse;
 export function parseProtocolValue(
   kind: ProtocolValueKind,
   value: unknown,
-): HelperRequest | LocateResponse | FormatResponse {
+): HelperRequest | LocateResponse | ProtectResponse | ErrorResponse | FormatResponse {
   switch (kind) {
     case "request":
       return parseRequest(value);
     case "locateResponse":
       return parseLocateResponse(value);
+    case "protectResponse":
+      return parseProtectResponse(value);
     case "formatResponse":
       return parseFormatResponse(value);
     case "preDispatchError":
@@ -407,5 +472,35 @@ export function parseProtocolValue(
 
 export function serializeRequest(request: HelperRequest): Uint8Array {
   const validated = parseRequest(request);
+  return new TextEncoder().encode(JSON.stringify(validated));
+}
+
+function parseFinalizeRequest(value: unknown): FinalizeRequest {
+  const record = requireExactObject(value, [
+    "protocolVersion",
+    "operation",
+    "source",
+    "nonce",
+    "options",
+    "formatted",
+  ]);
+  return {
+    protocolVersion: requireLiteral(record.protocolVersion, 1),
+    operation: requireLiteral(record.operation, "finalize"),
+    source: requireString(record.source),
+    nonce: requireString(record.nonce),
+    options: parseOptions(record.options),
+    formatted: parseArray(record.formatted, (item) => {
+      const itemRecord = requireExactObject(item, ["range", "sql"]);
+      return {
+        range: parseRange(itemRecord.range, false),
+        sql: requireString(itemRecord.sql),
+      };
+    }),
+  };
+}
+
+export function serializeFinalizeRequest(request: FinalizeRequest): Uint8Array {
+  const validated = parseFinalizeRequest(request);
   return new TextEncoder().encode(JSON.stringify(validated));
 }

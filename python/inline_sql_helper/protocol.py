@@ -98,6 +98,12 @@ def require_str(value: object) -> str:
     return value
 
 
+def require_bool(value: object) -> bool:
+    if not isinstance(value, bool):
+        raise ProtocolViolation
+    return value
+
+
 def require_enum(value: object, allowed: set[str]) -> str:
     result = require_str(value)
     if result not in allowed:
@@ -358,7 +364,9 @@ def parse_protect_response(value: object) -> ProtectResponse:
         return parse_error_response(value, ProtocolOperation.PROTECT)
     record = require_exact_dict(
         value,
-        frozenset({"protocolVersion", "operation", "ok", "nonce", "candidates"}),
+        frozenset(
+            {"protocolVersion", "operation", "ok", "nonce", "skipped", "candidates"}
+        ),
     )
     if record["operation"] != "protect" or record["ok"] is not True:
         raise ProtocolViolation
@@ -366,9 +374,12 @@ def parse_protect_response(value: object) -> ProtectResponse:
         ProtectCandidate(
             parse_range(item_record["range"], allow_empty=False),
             require_str(item_record["sql"]),
+            require_bool(item_record["singleLine"]),
         )
         for item in require_list(record["candidates"])
-        for item_record in (require_exact_dict(item, frozenset({"range", "sql"})),)
+        for item_record in (
+            require_exact_dict(item, frozenset({"range", "sql", "singleLine"})),
+        )
     )
     return ProtectSuccess(
         cast(Literal[1], require_literal(record["protocolVersion"], 1)),
@@ -376,6 +387,7 @@ def parse_protect_response(value: object) -> ProtectResponse:
         True,
         require_str(record["nonce"]),
         candidates,
+        require_non_negative_int(record["skipped"]),
     )
 
 
@@ -527,10 +539,12 @@ def response_to_wire(response: HelperResponse) -> dict[str, object]:
             "operation": operation,
             "ok": response.ok,
             "nonce": response.nonce,
+            "skipped": response.skipped,
             "candidates": [
                 {
                     "range": range_to_wire(candidate.range),
                     "sql": candidate.sql,
+                    "singleLine": candidate.single_line,
                 }
                 for candidate in response.candidates
             ],

@@ -219,11 +219,14 @@ def protect_request(
     except UnsafeRestore:
         return error_response(request.operation, ReasonCode.FORMATTER_FAILED)
     candidates: list[ProtectCandidate] = []
+    skipped = 0
     for unit in prepared.selected:
         if isinstance(unit.literal, UnsupportedLiteral):
+            skipped += 1
             continue
         literal_text = prepared.analysis.source_map.slice(unit.span)
         if len(literal_text.encode("utf-8")) > MAX_CANDIDATE_BYTES:
+            skipped += 1
             continue
         try:
             plan = build_protection_plan(
@@ -233,14 +236,18 @@ def protect_request(
                 nonce,
             )
         except UnsafeRestore:
+            skipped += 1
             continue
         candidates.append(
             ProtectCandidate(
                 prepared.analysis.source_map.vscode_range(unit.span),
                 plan.protected_sql,
+                "\n" not in prepared.analysis.source_map.slice(unit.span),
             )
         )
-    return ProtectSuccess(1, ProtocolOperation.PROTECT, True, nonce, tuple(candidates))
+    return ProtectSuccess(
+        1, ProtocolOperation.PROTECT, True, nonce, tuple(candidates), skipped
+    )
 
 
 def _literal_text(literal: SupportedLiteral, content: str) -> str:

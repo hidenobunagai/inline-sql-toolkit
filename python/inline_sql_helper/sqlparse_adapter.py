@@ -114,25 +114,6 @@ def _format_with_sqlparse(sql: str, options: dict[str, object]) -> str:
         raise SqlFormattingError("sqlparse formatting failed") from None
 
 
-_SELECT_LIST_STOP_KEYWORDS = frozenset(
-    {
-        "FROM",
-        "INTO",
-        "WHERE",
-        "GROUP",
-        "ORDER",
-        "HAVING",
-        "LIMIT",
-        "OFFSET",
-        "WINDOW",
-        "UNION",
-        "EXCEPT",
-        "INTERSECT",
-        "FOR",
-    }
-)
-
-
 def _expand_identifier_list(list_token: sqltypes.IdentifierList, indent: str) -> str:
     """Flatten one top-level column list onto one line per column."""
     parts: list[str] = []

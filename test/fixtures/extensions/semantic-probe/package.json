@@ -4,5 +4,5 @@
   "version": "0.0.1",
   "engines": {"vscode": "^1.95.0"},
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:python", "onLanguage:mo-python"]
+  "activationEvents": ["onCommand:inlineSql.semanticProbe.setMode"]
 }

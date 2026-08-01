@@ -203,6 +203,7 @@ export class DefaultFormatController implements FormatController {
     };
 
     let formatted: FormatSuccess;
+    // eslint-disable-next-line no-useless-assignment
     let skipReasons: readonly ReasonCode[] = [];
     try {
       const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));

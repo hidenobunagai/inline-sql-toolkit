@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.1 - 2026-08-01
+
+- Switches SQL highlighting from semantic tokens to TextMate grammar injection
+  so it cannot be overwritten by the Python language server.
+
 ## 0.3.0 - 2026-08-01
 
 - Registers the SQL semantic token provider after Pylance activates so SQL
@@ -41,6 +46,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.1 - 2026-08-01
+
+- Switches SQL highlighting from semantic tokens to TextMate grammar injection
+  so it cannot be overwritten by the Python language server.
 
 ## 0.3.0 - 2026-08-01
 

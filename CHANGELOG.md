@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.2.7 - 2026-08-01
+
+- Registers only the range semantic tokens provider so SQL highlighting is
+  not overwritten by the Python language server.
+
 ## 0.2.6 - 2026-08-01
 
 - Registers semantic tokens as a range provider so SQL highlighting wins over
@@ -20,6 +25,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.2.7 - 2026-08-01
+
+- Registers only the range semantic tokens provider so SQL highlighting is
+  not overwritten by the Python language server.
 
 ## 0.2.6 - 2026-08-01
 

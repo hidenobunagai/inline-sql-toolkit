@@ -49,15 +49,28 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
 
   for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
 
-  const registerSemanticTokens = (): vscode.Disposable => {
+  const registerSemanticTokens = async (): Promise<vscode.Disposable> => {
     const semanticTokens = createInlineSqlSemanticTokensProvider();
+    // Pylance registers its semantic token provider during activation.
+    // Registering afterwards lets our range provider (layer 1) win the
+    // tie-break and stay visible instead of being overwritten.
+    const pylance = vscode.extensions.getExtension("ms-python.vscode-pylance");
+    if (pylance !== undefined && !pylance.isActive) {
+      try {
+        await pylance.activate();
+      } catch {
+        // Best-effort: proceed with our own registration regardless.
+      }
+    }
     return vscode.languages.registerDocumentRangeSemanticTokensProvider(
       INLINE_SQL_SELECTOR,
       semanticTokens.provider,
       semanticTokens.legend,
     );
   };
-  context.subscriptions.push(own(registerSemanticTokens()));
+  void registerSemanticTokens().then((disposable) => {
+    context.subscriptions.push(own(disposable));
+  });
 
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,

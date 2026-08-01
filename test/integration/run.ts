@@ -3,7 +3,11 @@ import * as vscode from "vscode";
 import { type IntegrationScenario, parseScenario } from "../support/integration-scenario.js";
 import { registerMarimoTestSerializer, withTimeout } from "../support/vscode-harness.js";
 import { testOfficialExtensionCompatibility } from "./compatibility.test.js";
-import { testApplyRaces, testStandaloneFormatting } from "./extension.test.js";
+import {
+  testApplyRaces,
+  testDialectFormatting,
+  testStandaloneFormatting,
+} from "./extension.test.js";
 import { testNotebookFormatting } from "./notebooks.test.js";
 import { testSemanticTokenIsolation } from "./semantic-tokens.test.js";
 import { testUntrustedHighlightOnly } from "./untrusted.test.js";
@@ -30,6 +34,7 @@ export function scenarioTests(scenario: IntegrationScenario): readonly (() => Pr
         testNotebookFormatting,
         testSemanticTokenIsolation,
         testApplyRaces,
+        testDialectFormatting,
       ];
     case "untrusted":
       return [testUntrustedHighlightOnly];

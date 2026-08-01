@@ -75,6 +75,31 @@ export async function testApplyRaces(): Promise<void> {
   }
 }
 
+export async function testDialectFormatting(): Promise<void> {
+  const config = vscode.workspace.getConfiguration("inlineSql");
+  const original = config.get("format.dialect");
+  try {
+    const document = await openStandaloneFixture("python");
+    await vscode.window.showTextDocument(document);
+    await configureIntegrationPython(document);
+
+    await config.update("format.dialect", "postgresql", vscode.ConfigurationTarget.Workspace);
+    await replaceWholeDocument(document, preserveFinalNewline(document, 'query = "select id::text from users"'));
+    await vscode.commands.executeCommand("inlineSql.formatAll");
+    assert.equal(
+      document.getText(),
+      preserveFinalNewline(document, 'query = "SELECT id::text FROM users"'),
+    );
+
+    await config.update("format.dialect", "sqlite", vscode.ConfigurationTarget.Workspace);
+    await replaceWholeDocument(document, preserveFinalNewline(document, 'query = "select id::text from users"'));
+    await vscode.commands.executeCommand("inlineSql.formatAll");
+    assert.equal(document.getText(), preserveFinalNewline(document, 'query = "select id::text from users"'));
+  } finally {
+    await config.update("format.dialect", original, vscode.ConfigurationTarget.Workspace);
+  }
+}
+
 export function assertHookSnapshot(value: HookSnapshot | undefined): asserts value is HookSnapshot {
   if (value === undefined) throw new Error("missing integration hook snapshot");
 }

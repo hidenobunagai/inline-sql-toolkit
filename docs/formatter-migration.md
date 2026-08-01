@@ -126,3 +126,53 @@ entirely.
 - Idempotency tests (format twice, identical output).
 - Integration tests: format command end-to-end with a bundled sql-formatter.
 - VSIX verification: sql-formatter files must be in the bundle allowlist.
+
+## 10. Phase 3 detailed design (TS-only helper)
+
+Goal: remove the Python helper entirely; every format runs fully in the
+extension host, eliminating the two round-trips.
+
+### Scope (port to TS)
+
+| Python module | Lines | TS replacement |
+|---|---|---|
+| model.py | 207 | protocol.ts types |
+| protocol.py | 646 | protocol.ts (shared shape already) |
+| detection.py | 90 | `src/python-analysis/detection.ts` |
+| token_bundles.py | 224 | `src/python-analysis/tokenizer.ts` |
+| literals.py | 305 | `src/python-analysis/literals.ts` |
+| positions.py | 131 | `src/python-analysis/positions.ts` |
+| protection.py | 333 | `src/python-analysis/protection.ts` |
+| candidate_formatter.py | 239 | `src/python-analysis/validation.ts` |
+| sqlparse_adapter.py | 214 | deleted (sql-formatter is the only engine) |
+| cli.py + engine.py | 539 | replaced by `format-controller.ts` flow |
+
+### Architecture
+
+- Implement a minimal Python tokenizer in TS: string prefixes (`r`/`f`/`b`),
+  escape sequences, triple-quoted strings, and f-string `{...}` fields.
+- Replace `ast`-based candidate selection with the existing source-map and
+  span machinery; f-string field boundaries come from the tokenizer instead
+  of `ast.FormattedValue`.
+- Keep the protect -> sql-formatter -> finalize pipeline; finalize runs
+  in-process with the same quoted-marker scheme and idempotency check.
+- The Python bootstrap and vendored sqlparse are deleted; `sql-formatter`
+  (already bundled) becomes the only formatting engine.
+
+### Risks and mitigations
+
+- Python lexer edge cases (escaped delimiters, backslash continuations,
+  f-string nesting) are the highest-risk area; port `test_token_bundles.py`
+  and `test_fstring_properties.py` verbatim as parity suites.
+- The Python suite (540 tests) is the oracle; run both suites until the TS
+  suite reaches parity, then delete the Python helper and its tests.
+- VSIX size shrinks: no vendored sqlparse, no python/ bundle, no helper
+  bootstrap.
+
+### Rollout order
+
+1. Protocol and model unification in TS (no behavior change).
+2. Tokenizer + detection port; parity tests.
+3. Protection + finalize + validation port; parity tests.
+4. Swap the format flow to the TS implementation; delete the Python helper,
+   its vendored dependencies, and `inlineSql.pythonPath`/bootstrap.

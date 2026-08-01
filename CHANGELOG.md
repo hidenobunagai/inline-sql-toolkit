@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 - 2026-08-01
+
+- Fixes white corner artifacts in icon PNG by rendering a full-tile dark background with Playwright Chrome.
+
 ## 0.2.3 - 2026-08-01
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.

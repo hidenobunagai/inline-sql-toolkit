@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/hidenobunagai/inline-sql-toolkit/issues"
   },
-  "version": "0.2.3",
+  "version": "0.2.4",
   "icon": "icon.png",
   "private": true,
   "type": "module",
@@ -225,7 +225,7 @@
     "test:integration:untrusted": "bun tools/run_vscode_tests.ts untrusted",
     "test:integration:compatibility": "bun tools/run_vscode_tests.ts compatibility",
     "package:vsix": "bun run build && mkdir -p dist-vsix && vsce package --no-dependencies --out dist-vsix",
-    "verify:vsix": "uv run python tools/verify_vsix.py dist-vsix/inline-sql-toolkit-0.2.3.vsix",
+    "verify:vsix": "uv run python tools/verify_vsix.py dist-vsix/inline-sql-toolkit-0.2.4.vsix",
     "test:vsix-install": "bun tools/install_and_smoke_vsix.ts"
   },
   "dependencies": {

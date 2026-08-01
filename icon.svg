@@ -17,8 +17,8 @@
     </filter>
   </defs>
 
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#2e3248" stroke-width="4"/>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="2" y="2" width="508" height="508" fill="none" stroke="#2e3248" stroke-width="4"/>
 
   <g transform="translate(35, 30)" filter="url(#shadow)">
     <path d="M 130 270 A 70 26 0 0 0 270 270 V 315 A 70 26 0 0 1 130 315 Z" fill="url(#db-body)"/>

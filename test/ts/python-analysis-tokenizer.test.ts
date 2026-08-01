@@ -62,28 +62,35 @@ describe("scanStringSurfaces", () => {
 describe("scanFstringFieldSpans", () => {
   it("returns complete replacement fields including braces", () => {
     const source = 'query = f"select {col} from {tbl}"';
-    const surface = scanStringSurfaces(source)[0]!;
+    const surface = scanStringSurfaces(source)[0];
+    if (surface === undefined) throw new Error("missing f-string surface");
     const fields = scanFstringFieldSpans(source, surface.contentSpan);
-    expect(fields).toEqual([{ start: 17, end: 22 }, { start: 28, end: 33 }]);
+    expect(fields).toEqual([
+      { start: 17, end: 22 },
+      { start: 28, end: 33 },
+    ]);
   });
 
   it("ignores escaped double braces", () => {
     const source = 'q = f"a {{escaped}} {x + y[1]}"';
-    const surface = scanStringSurfaces(source)[0]!;
+    const surface = scanStringSurfaces(source)[0];
+    if (surface === undefined) throw new Error("missing f-string surface");
     const fields = scanFstringFieldSpans(source, surface.contentSpan);
     expect(fields).toEqual([{ start: 20, end: 30 }]);
   });
 
   it("keeps the closing brace deferred across brackets", () => {
     const source = 'q = f"{d[k]}"';
-    const surface = scanStringSurfaces(source)[0]!;
+    const surface = scanStringSurfaces(source)[0];
+    if (surface === undefined) throw new Error("missing f-string surface");
     const fields = scanFstringFieldSpans(source, surface.contentSpan);
     expect(fields).toEqual([{ start: 6, end: 12 }]);
   });
 
   it("handles nested braces in a field", () => {
     const source = 'q = f"{{1: {x}}}"';
-    const surface = scanStringSurfaces(source)[0]!;
+    const surface = scanStringSurfaces(source)[0];
+    if (surface === undefined) throw new Error("missing f-string surface");
     const fields = scanFstringFieldSpans(source, surface.contentSpan);
     expect(fields).toEqual([{ start: 11, end: 14 }]);
   });

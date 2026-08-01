@@ -4,7 +4,12 @@ import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { PositionMappingError, SourceMap, SourceSpan } from "./positions.js";
 import { allocateNonce } from "./protection.js";
 import type { SupportedLiteral, UnsupportedLiteral } from "./tokenizer.js";
-import { type CandidateEdit, formatCandidate, type SqlFormatter } from "./validation.js";
+import {
+  type CandidateEdit,
+  formatCandidate,
+  type ReasonCode,
+  type SqlFormatter,
+} from "./validation.js";
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_CANDIDATE_BYTES = 1024 * 1024;
@@ -21,6 +26,7 @@ export interface EngineResult {
   readonly sourceMap: SourceMap;
   readonly edits: readonly CandidateEdit[];
   readonly skipped: number;
+  readonly skipReasons: readonly ReasonCode[];
   readonly summary: {
     readonly discovered: number;
     readonly selected: number;
@@ -108,16 +114,16 @@ export function formatDocument(
   }
   const selected = selectUnits(units, target, analysis.sourceMap);
   const edits: CandidateEdit[] = [];
-  let skipped = 0;
+  const skipReasons: ReasonCode[] = [];
   let changed = 0;
   let unchanged = 0;
   for (const unit of selected) {
     if (!("contentSpan" in unit.literal)) {
-      skipped++;
+      skipReasons.push("UNSUPPORTED_LITERAL");
       continue;
     }
     if (unit.literal.contentSpan.end - unit.literal.contentSpan.start > MAX_CANDIDATE_BYTES) {
-      skipped++;
+      skipReasons.push("RESOURCE_LIMIT_EXCEEDED");
       continue;
     }
     const result = formatCandidate(
@@ -130,7 +136,7 @@ export function formatDocument(
       sqlFormatter,
     );
     if ("reason" in result) {
-      skipped++;
+      skipReasons.push(result.reason);
     } else if ("replacementText" in result) {
       edits.push(result);
       changed++;
@@ -143,13 +149,14 @@ export function formatDocument(
   return {
     sourceMap: analysis.sourceMap,
     edits,
-    skipped,
+    skipped: skipReasons.length,
+    skipReasons,
     summary: {
       discovered: units.length,
       selected: selected.length,
       changed,
       unchanged,
-      skipped,
+      skipped: skipReasons.length,
     },
   };
 }

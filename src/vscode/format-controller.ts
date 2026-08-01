@@ -203,6 +203,7 @@ export class DefaultFormatController implements FormatController {
     };
 
     let formatted: FormatSuccess;
+    let skipReasons: readonly ReasonCode[] = [];
     try {
       const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
       const result = formatDocument(
@@ -212,6 +213,7 @@ export class DefaultFormatController implements FormatController {
         nonce,
         (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
       );
+      skipReasons = result.skipReasons;
       formatted = {
         protocolVersion: 1,
         operation: "format",
@@ -247,7 +249,7 @@ export class DefaultFormatController implements FormatController {
         changed: formatted.summary.changed,
         skipped: totalSkipped,
       });
-      this.notifications.summary(formatted.summary, totalSkipped);
+      this.notifications.summary(formatted.summary, totalSkipped, skipReasons);
       return;
     }
     const outcome = await this.applicator.apply(resource.document, snapshot, formatted, {
@@ -264,7 +266,7 @@ export class DefaultFormatController implements FormatController {
       skipped: totalSkipped,
     });
     if (totalSkipped > 0) {
-      this.notifications.summary(formatted.summary, totalSkipped);
+      this.notifications.summary(formatted.summary, totalSkipped, skipReasons);
     }
   }
 

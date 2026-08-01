@@ -10,7 +10,7 @@ export interface NotificationSink {
   readonly reason: (code: ReasonCode) => void;
   readonly target: (code: TargetReasonCode) => void;
   readonly emptySelection: () => void;
-  readonly summary: (summary: FormatSummary, skipped: number) => void;
+  readonly summary: (summary: FormatSummary, skipped: number, reasons?: readonly string[]) => void;
 }
 
 function translate(message: string): string {
@@ -93,13 +93,20 @@ function plural(value: number, singular: string, pluralForm: string): string {
 }
 
 /** Build a fixed summary using only numeric result fields. */
-export function summaryMessage(summary: FormatSummary, skipped = summary.skipped): string {
+export function summaryMessage(
+  summary: FormatSummary,
+  skipped = summary.skipped,
+  reasons: readonly string[] = [],
+): string {
   const changed = summary.changed;
   if (changed === 0 && skipped === 0) {
     return translate("Inline SQL is already formatted.");
   }
   if (changed === 0) {
-    return translate(`No changes applied; skipped ${plural(skipped, "candidate", "candidates")}.`);
+    const detail = reasons.length > 0 ? ` (${[...new Set(reasons)].join(", ")})` : "";
+    return translate(
+      `No changes applied; skipped ${plural(skipped, "candidate", "candidates")}${detail}.`,
+    );
   }
   if (skipped === 0) {
     return translate(`Formatted ${plural(changed, "candidate", "candidates")}.`);
@@ -139,8 +146,8 @@ export function createNotifications(
     emptySelection() {
       showInformation(emptySelectionMessage());
     },
-    summary(summary, skipped) {
-      showInformation(summaryMessage(summary, skipped));
+    summary(summary, skipped, reasons) {
+      showInformation(summaryMessage(summary, skipped, reasons));
     },
   };
 }

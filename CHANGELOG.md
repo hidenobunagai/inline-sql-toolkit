@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 - 2026-08-01
+
+- Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
+
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.

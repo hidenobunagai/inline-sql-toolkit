@@ -3,10 +3,10 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-07-25T06:34:09.704589Z"
+exclude-newer = "2026-07-25T06:42:29.171575Z"
 exclude-newer-span = "P7D"
 
 [[package]]
 name = "inline-sql-toolkit-helper"
-version = "0.2.2"
+version = "0.2.3"
 source = { virtual = "." }

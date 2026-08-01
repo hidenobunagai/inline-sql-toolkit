@@ -96,7 +96,7 @@ describe("extension manifest", () => {
         ({ title, description }) => typeof title === "string" && typeof description === "string",
       ),
     ).toBe(true);
-    expect(Object.keys(contributes.configuration?.properties ?? {})).toHaveLength(7);
+    expect(Object.keys(contributes.configuration?.properties ?? {})).toHaveLength(8);
     expect((manifest.contributes as Record<string, unknown>).keybindings).toBeUndefined();
     expect((manifest.contributes as Record<string, unknown>).languages).toBeUndefined();
     expect(manifest.extensionDependencies).toBeUndefined();
@@ -174,6 +174,7 @@ describe("extension manifest", () => {
       "inlineSql.format.useSpaceAroundOperators",
       "inlineSql.format.expandSelectList",
       "inlineSql.format.trimBlankBoundaries",
+      "inlineSql.format.dialect",
       "inlineSql.pythonPath",
     ]) {
       expect(readme).toContain(setting);

@@ -24,6 +24,7 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const operatorSpacingValue = configuration.get<unknown>("format.useSpaceAroundOperators");
   const expandSelectListValue = configuration.get<unknown>("format.expandSelectList");
   const trimBlankBoundariesValue = configuration.get<unknown>("format.trimBlankBoundaries");
+  const dialectValue = configuration.get<unknown>("format.dialect");
   const keywordCase = keywordCaseValue === undefined ? "upper" : keywordCaseValue;
   const indentWidth = indentWidthValue === undefined ? 2 : indentWidthValue;
   const wrapAfter = wrapAfterValue === undefined ? 88 : wrapAfterValue;
@@ -31,13 +32,18 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const expandSelectList = expandSelectListValue === undefined ? true : expandSelectListValue;
   const trimBlankBoundaries =
     trimBlankBoundariesValue === undefined ? true : trimBlankBoundariesValue;
+  const dialect = dialectValue === undefined ? "postgresql" : dialectValue;
   if (
     (keywordCase !== "upper" && keywordCase !== "lower" && keywordCase !== "preserve") ||
     !integerBetween(indentWidth, 1, 8) ||
     !integerBetween(wrapAfter, 20, 500) ||
     typeof useSpaceAroundOperators !== "boolean" ||
     typeof expandSelectList !== "boolean" ||
-    typeof trimBlankBoundaries !== "boolean"
+    typeof trimBlankBoundaries !== "boolean" ||
+    (dialect !== "sql" &&
+      dialect !== "mysql" &&
+      dialect !== "postgresql" &&
+      dialect !== "sqlite")
   )
     return { ok: false, reason: "INVALID_CONFIGURATION" };
   return {
@@ -49,6 +55,7 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
       useSpaceAroundOperators,
       expandSelectList,
       trimBlankBoundaries,
+      dialect,
     },
   };
 }

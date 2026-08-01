@@ -78,6 +78,7 @@ const options: FormatOptions = {
   useSpaceAroundOperators: true,
   expandSelectList: false,
           trimBlankBoundaries: false,
+          dialect: "postgresql",
 };
 
 function success(operation: "locate" | "format"): LocateResponse | FormatResponse {

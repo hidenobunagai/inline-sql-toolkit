@@ -80,6 +80,7 @@ test("rejects non-finite direct numeric values", () => {
           useSpaceAroundOperators: true,
           expandSelectList: false,
           trimBlankBoundaries: false,
+          dialect: "postgresql",
         },
       }),
     ).toThrow(new ProtocolViolation("PROTOCOL_ERROR"));
@@ -101,6 +102,7 @@ test.each(["SELECT '日本語'", "SELECT '𝄞'", "SELECT 'e\u0301'"])(
         useSpaceAroundOperators: true,
         expandSelectList: false,
           trimBlankBoundaries: false,
+          dialect: "postgresql",
       },
     };
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -134,6 +136,7 @@ test("returns only a stable reason code for a private invalid source", () => {
         useSpaceAroundOperators: true,
         expandSelectList: false,
           trimBlankBoundaries: false,
+          dialect: "postgresql",
       },
     });
   } catch (error: unknown) {
@@ -158,6 +161,7 @@ test("constructs fresh values without retaining decoded input objects", () => {
       useSpaceAroundOperators: true,
       expandSelectList: false,
           trimBlankBoundaries: false,
+          dialect: "postgresql",
     },
   };
   const parsed = parseProtocolValue("request", decoded);

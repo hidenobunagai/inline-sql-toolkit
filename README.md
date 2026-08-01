@@ -87,6 +87,8 @@ later atomic precondition.
   indented line in triple-quoted SQL (default `true`).
 - `inlineSql.format.trimBlankBoundaries`: collapse extra blank lines at the
   start and end of triple-quoted SQL to a single line ending (default `true`).
+- `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
+  `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 - `inlineSql.pythonPath`: optional absolute path to a Python 3.12+ interpreter.
   The path is read only in a trusted workspace; invalid or non-string values
   are rejected. VS Code marks this setting restricted in untrusted workspaces,

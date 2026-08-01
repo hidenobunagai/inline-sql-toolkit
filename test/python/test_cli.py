@@ -32,6 +32,7 @@ def request(operation: str = "locate", source: str = 'query = "SELECT 1"') -> by
                 "useSpaceAroundOperators": True,
                 "expandSelectList": False,
                 "trimBlankBoundaries": False,
+                "dialect": "postgresql",
             },
         },
         separators=(",", ":"),

@@ -21,6 +21,7 @@ describe("readFormatOptions", () => {
           useSpaceAroundOperators: true,
           expandSelectList: true,
           trimBlankBoundaries: true,
+          dialect: "postgresql",
         },
       },
     );
@@ -57,6 +58,7 @@ describe("readFormatOptions", () => {
           useSpaceAroundOperators: false,
           expandSelectList: true,
           trimBlankBoundaries: true,
+          dialect: "postgresql",
         },
       },
     );

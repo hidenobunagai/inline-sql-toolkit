@@ -155,6 +155,7 @@ def parse_format_options(value: object) -> FormatOptions:
                 "useSpaceAroundOperators",
                 "expandSelectList",
                 "trimBlankBoundaries",
+                "dialect",
             }
         ),
     )
@@ -167,6 +168,7 @@ def parse_format_options(value: object) -> FormatOptions:
     spacing = record["useSpaceAroundOperators"]
     expand = record["expandSelectList"]
     trim = record["trimBlankBoundaries"]
+    dialect = require_enum(record["dialect"], {"sql", "mysql", "postgresql", "sqlite"})
     if (
         not 1 <= indent_width <= 8
         or not 20 <= wrap_after <= 500
@@ -182,6 +184,7 @@ def parse_format_options(value: object) -> FormatOptions:
         spacing,
         expand,
         trim,
+        cast(Literal["sql", "mysql", "postgresql", "sqlite"], dialect),
     )
 
 
@@ -491,6 +494,7 @@ def request_to_wire(request: HelperRequest) -> dict[str, object]:
             "useSpaceAroundOperators": (request.options.use_space_around_operators),
             "expandSelectList": request.options.expand_select_list,
             "trimBlankBoundaries": request.options.trim_blank_boundaries,
+            "dialect": request.options.dialect,
         },
     }
 

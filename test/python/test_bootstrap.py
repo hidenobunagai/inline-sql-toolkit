@@ -167,7 +167,7 @@ def test_bootstrap_loads_only_packaged_code(tmp_path: Path) -> None:
             b'{"protocolVersion":1,"operation":"locate","source":"query = '
             b'\\"SELECT 1\\"","target":{"mode":"all"},"options":'
             b'{"keywordCase":"upper","indentWidth":2,"wrapAfter":88,'
-            b'"useSpaceAroundOperators":true,"expandSelectList":false,"trimBlankBoundaries":false}}'
+            b'"useSpaceAroundOperators":true,"expandSelectList":false,"trimBlankBoundaries":false,"dialect":"postgresql"}}'
         ),
         cwd=fake_workspace,
         env={"PYTHONPATH": str(fake_workspace)},

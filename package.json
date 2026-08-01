@@ -109,6 +109,18 @@
           "scope": "resource",
           "description": "%configuration.format.trimBlankBoundaries.description%"
         },
+        "inlineSql.format.dialect": {
+          "type": "string",
+          "enum": [
+            "sql",
+            "mysql",
+            "postgresql",
+            "sqlite"
+          ],
+          "default": "postgresql",
+          "scope": "resource",
+          "description": "%configuration.format.dialect.description%"
+        },
         "inlineSql.pythonPath": {
           "type": "string",
           "default": "",

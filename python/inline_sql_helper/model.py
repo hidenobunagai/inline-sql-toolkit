@@ -70,6 +70,7 @@ class FormatOptions:
     use_space_around_operators: bool
     expand_select_list: bool = False
     trim_blank_boundaries: bool = False
+    dialect: Literal["sql", "mysql", "postgresql", "sqlite"] = "postgresql"
 
 
 @dataclass(frozen=True, slots=True)

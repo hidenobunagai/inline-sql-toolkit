@@ -23,6 +23,7 @@ export interface FormatOptions {
   readonly useSpaceAroundOperators: boolean;
   readonly expandSelectList: boolean;
   readonly trimBlankBoundaries: boolean;
+  readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
 }
 
 export interface FormatTarget {
@@ -190,6 +191,7 @@ function parseOptions(value: unknown): FormatOptions {
     "useSpaceAroundOperators",
     "expandSelectList",
     "trimBlankBoundaries",
+    "dialect",
   ]);
   const indentWidth = requireNonNegativeInteger(record.indentWidth);
   const wrapAfter = requireNonNegativeInteger(record.wrapAfter);
@@ -203,6 +205,7 @@ function parseOptions(value: unknown): FormatOptions {
     useSpaceAroundOperators: requireBoolean(record.useSpaceAroundOperators),
     expandSelectList: requireBoolean(record.expandSelectList),
     trimBlankBoundaries: requireBoolean(record.trimBlankBoundaries),
+    dialect: requireEnum(record.dialect, ["sql", "mysql", "postgresql", "sqlite"]),
   };
 }
 

@@ -63,7 +63,8 @@
         "wrapAfter",
         "useSpaceAroundOperators",
         "expandSelectList",
-        "trimBlankBoundaries"
+        "trimBlankBoundaries",
+        "dialect"
       ],
       "properties": {
         "keywordCase": { "enum": ["upper", "lower", "preserve"] },
@@ -71,7 +72,8 @@
         "wrapAfter": { "type": "integer", "minimum": 20, "maximum": 500 },
         "useSpaceAroundOperators": { "type": "boolean" },
         "expandSelectList": { "type": "boolean" },
-        "trimBlankBoundaries": { "type": "boolean" }
+        "trimBlankBoundaries": { "type": "boolean" },
+        "dialect": { "enum": ["sql", "mysql", "postgresql", "sqlite"] }
       }
     },
     "reason": {

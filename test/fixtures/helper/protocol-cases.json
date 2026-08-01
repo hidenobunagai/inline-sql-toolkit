@@ -14,7 +14,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -35,7 +36,8 @@
           "wrapAfter": 20,
           "useSpaceAroundOperators": false,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -59,7 +61,8 @@
           "wrapAfter": 500,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -167,7 +170,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         },
         "extra": true
       }
@@ -187,6 +191,7 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
+          "dialect": "postgresql",
           "extra": true
         }
       }
@@ -205,7 +210,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -223,7 +229,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -244,7 +251,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -268,7 +276,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -292,7 +301,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -310,7 +320,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -328,7 +339,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -349,7 +361,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -367,7 +380,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -385,7 +399,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -403,7 +418,8 @@
           "wrapAfter": 19,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -421,7 +437,8 @@
           "wrapAfter": 501,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -439,7 +456,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -479,7 +497,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },
@@ -497,7 +516,8 @@
           "wrapAfter": 88,
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
-          "trimBlankBoundaries": false
+          "trimBlankBoundaries": false,
+          "dialect": "postgresql"
         }
       }
     },

@@ -1,7 +1,7 @@
 {
   "name": "Inline SQL Python Injection",
   "scopeName": "inline-sql.python.injection",
-  "injectionSelector": "L:source.python -comment -string, L:source.mo-python -comment -string",
+  "injectionSelector": "L:source.python -comment, L:source.mo-python -comment",
   "patterns": [
     {
       "include": "#leadingNewlineTripleDoubleSql"

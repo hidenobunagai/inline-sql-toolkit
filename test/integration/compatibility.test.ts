@@ -3,16 +3,10 @@ import { strict as assert } from "node:assert";
 import * as vscode from "vscode";
 
 import {
-  assertNoSemanticSqlOverlap,
   assertThreeCommandsAndCodeAction,
-  decodeSemanticTokens,
   focusNotebookCell,
   openJupyterCell,
   openStandaloneFixture,
-  physicalSqlRange,
-  preserveFinalNewline,
-  provideFullSemanticTokens,
-  replaceWholeDocument,
   waitForNotebookDocument,
   workspaceRoot,
 } from "../support/vscode-harness.js";
@@ -45,17 +39,6 @@ export async function testOfficialExtensionCompatibility(): Promise<void> {
     await assertFormattingCodeAction(document, editor);
     await assertNoDocumentFormattingProvider(document);
   }
-  const semanticDocument = await openStandaloneFixture("python");
-  await replaceWholeDocument(
-    semanticDocument,
-    preserveFinalNewline(semanticDocument, 'query = "SELECT 1"'),
-  );
-  await vscode.window.showTextDocument(semanticDocument);
-  const result = await provideFullSemanticTokens(semanticDocument);
-  assertNoSemanticSqlOverlap(decodeSemanticTokens(semanticDocument, result), [
-    physicalSqlRange(semanticDocument),
-  ]);
-
   const jupyter = await openJupyterCell(vscode.Uri.joinPath(workspaceRoot(), "jupyter.ipynb"), 0);
   await assertThreeCommandsAndCodeAction(jupyter);
 

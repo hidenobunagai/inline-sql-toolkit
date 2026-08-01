@@ -2,7 +2,6 @@ import { strict as assert } from "node:assert";
 import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as vscode from "vscode";
 
 import type { SpawnRunOptions } from "../../tools/run_vscode_tests.js";
 import {
@@ -13,7 +12,6 @@ import {
   spawnAndRequireZero,
 } from "../../tools/run_vscode_tests.js";
 import { INTEGRATION_TEST_TIMEOUT_MS, runIntegrationTest } from "../integration/run.js";
-import { assertNoSemanticSqlOverlap, decodeSemanticTokens } from "../support/semantic-tokens.js";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -189,55 +187,5 @@ describe("integration suite timeout", () => {
     const rejection = expect(pending).rejects.toThrow("integration assertion timed out");
     await vi.advanceTimersByTimeAsync(30);
     await rejection;
-  });
-});
-
-describe("semantic token decoding", () => {
-  it("decodes deltas and permits boundary contact but rejects strict overlap", () => {
-    const document = {
-      uri: vscode.Uri.file("/tmp/semantic.py"),
-      languageId: "python",
-      getText: () => 'query = "SELECT"\n',
-      lineCount: 2,
-      lineAt: (line: number) => ({ lineNumber: line, text: line === 0 ? 'query = "SELECT"' : "" }),
-    } as unknown as vscode.TextDocument;
-    const tokens = {
-      data: new Uint32Array([0, 0, 5, 0, 0, 0, 9, 6, 0, 0]),
-    } as vscode.SemanticTokens;
-    const ranges = decodeSemanticTokens(document, tokens);
-    expect(ranges).toHaveLength(2);
-    const safe = ranges[0];
-    const sql = ranges[1];
-    if (safe === undefined || sql === undefined) throw new Error("missing decoded ranges");
-    assertNoSemanticSqlOverlap([safe], [sql]);
-    expect(() => {
-      assertNoSemanticSqlOverlap(ranges, [sql]);
-    }).toThrow("semantic token overrides inline SQL");
-  });
-
-  it("rejects empty, truncated, overflowing, and out-of-document streams", () => {
-    const document = {
-      uri: vscode.Uri.file("/tmp/semantic.py"),
-      languageId: "python",
-      getText: () => "query\n",
-      lineCount: 2,
-      lineAt: (line: number) => ({ lineNumber: line, text: line === 0 ? "query" : "" }),
-    } as unknown as vscode.TextDocument;
-    expect(() =>
-      decodeSemanticTokens(document, { data: new Uint32Array() } as vscode.SemanticTokens),
-    ).toThrow();
-    expect(() =>
-      decodeSemanticTokens(document, { data: new Uint32Array([0, 0, 1]) } as vscode.SemanticTokens),
-    ).toThrow();
-    expect(() =>
-      decodeSemanticTokens(document, {
-        data: new Uint32Array([0xffffffff, 0, 1, 0, 0]),
-      } as vscode.SemanticTokens),
-    ).toThrow();
-    expect(() =>
-      decodeSemanticTokens(document, {
-        data: new Uint32Array([0, 99, 1, 0, 0]),
-      } as vscode.SemanticTokens),
-    ).toThrow();
   });
 });

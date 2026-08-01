@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.3 - 2026-08-01
+
+- Restores the original TextMate grammar selector and semantic token tests;
+  highlighting is handled solely by semantic tokens that also cover Python.
+
 ## 0.3.2 - 2026-08-01
 
 - Provides Python semantic tokens alongside SQL tokens so the extension
@@ -52,6 +57,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.3 - 2026-08-01
+
+- Restores the original TextMate grammar selector and semantic token tests;
+  highlighting is handled solely by semantic tokens that also cover Python.
 
 ## 0.3.2 - 2026-08-01
 

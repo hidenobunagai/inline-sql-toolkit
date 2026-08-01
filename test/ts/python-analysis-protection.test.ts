@@ -6,10 +6,10 @@ import {
   allocateNonce,
   buildProtectionPlan,
   markerText,
-  restoreProtected,
-  UnsafeRestore,
   type ProtectedKind,
   type ProtectionPlan,
+  restoreProtected,
+  UnsafeRestore,
 } from "../../src/python-analysis/protection.js";
 import {
   scanFstringFieldSpans,
@@ -76,15 +76,15 @@ describe("markerText", () => {
     expect(markerText(NONCE, "sql_marker", 0, { sqlComment: true, canonicalNewline: true })).toBe(
       `-- __INLINE_SQL_${NONCE}_SQL_MARKER_0__\n`,
     );
-    expect(
-      markerText(NONCE, "sql_marker", 0, { sqlComment: true, canonicalNewline: false }),
-    ).toBe(`-- __INLINE_SQL_${NONCE}_SQL_MARKER_0__`);
+    expect(markerText(NONCE, "sql_marker", 0, { sqlComment: true, canonicalNewline: false })).toBe(
+      `-- __INLINE_SQL_${NONCE}_SQL_MARKER_0__`,
+    );
   });
 
   it("uses a quoted identifier for other fragments", () => {
-    expect(
-      markerText(NONCE, "field", 0, { sqlComment: false, canonicalNewline: false }),
-    ).toBe(`"__INLINE_SQL_${NONCE}_FIELD_0__"`);
+    expect(markerText(NONCE, "field", 0, { sqlComment: false, canonicalNewline: false })).toBe(
+      `"__INLINE_SQL_${NONCE}_FIELD_0__"`,
+    );
   });
 });
 
@@ -107,14 +107,17 @@ describe("buildProtectionPlan and restoreProtected", () => {
     );
   });
 
-  it.each([String.raw`\x41`, String.raw`\u1234`, String.raw`\U0001F600`, String.raw`\123`, String.raw`\q`])(
-    "keeps %j as one escape fragment",
-    (escape) => {
-      const plan = planFor(`query = "SELECT ${escape}"`);
-      expect(plan.fragments.map((fragment) => fragment.sourceText)).toEqual([escape]);
-      expect(plan.fragments[0]?.kind).toBe("python_escape");
-    },
-  );
+  it.each([
+    String.raw`\x41`,
+    String.raw`\u1234`,
+    String.raw`\U0001F600`,
+    String.raw`\123`,
+    String.raw`\q`,
+  ])("keeps %j as one escape fragment", (escape) => {
+    const plan = planFor(`query = "SELECT ${escape}"`);
+    expect(plan.fragments.map((fragment) => fragment.sourceText)).toEqual([escape]);
+    expect(plan.fragments[0]?.kind).toBe("python_escape");
+  });
 
   it("protects a line continuation as one fragment", () => {
     const plan = planFor('query = "SELECT \\\n1"');
@@ -122,13 +125,10 @@ describe("buildProtectionPlan and restoreProtected", () => {
     expect(restoreProtected(plan.protectedSql, plan)).toBe("SELECT \\\n1");
   });
 
-  it.each(["r", "rf", "fr", "R", "RF", "FR"])(
-    "omits python escapes for %s literals",
-    (prefix) => {
-      const plan = planFor(`query = ${prefix}"SELECT \\n {{value}}"`);
-      expect(planKinds(plan)).not.toContain("python_escape");
-    },
-  );
+  it.each(["r", "rf", "fr", "R", "RF", "FR"])("omits python escapes for %s literals", (prefix) => {
+    const plan = planFor(`query = ${prefix}"SELECT \\n {{value}}"`);
+    expect(planKinds(plan)).not.toContain("python_escape");
+  });
 
   it("protects the sql marker as a comment fragment", () => {
     const plan = planFor('query = """-- sql\nselect 1"""');
@@ -139,22 +139,24 @@ describe("buildProtectionPlan and restoreProtected", () => {
 
   it("rejects marker reordering", () => {
     const plan = planFor('query = f"SELECT {a}, {b}"');
-    const swapped = plan.protectedSql.replace(
-      plan.fragments[0]!.marker,
-      plan.fragments[1]!.marker,
-    );
+    const first = plan.fragments[0];
+    const second = plan.fragments[1];
+    if (first === undefined || second === undefined) {
+      throw new Error("expected two protected fragments");
+    }
+    const swapped = plan.protectedSql.replace(first.marker, second.marker);
     expect(() => restoreProtected(swapped, plan)).toThrow(UnsafeRestore);
   });
 
   it("rejects a marker namespace count change", () => {
     const plan = planFor('query = f"SELECT {a}"');
-    expect(() => restoreProtected(plan.protectedSql + plan.fragments[0]!.marker, plan)).toThrow(
-      UnsafeRestore,
-    );
+    const marker = plan.fragments[0];
+    if (marker === undefined) throw new Error("expected a protected fragment");
+    expect(() => restoreProtected(plan.protectedSql + marker.marker, plan)).toThrow(UnsafeRestore);
   });
 
   it("restores quoted markers embedded in sql", () => {
-    const plan = planFor('query = f"SELECT \'{a}\'"');
+    const plan = planFor("query = f\"SELECT '{a}'\"");
     expect(restoreProtected(plan.protectedSql, plan)).toBe("SELECT '{a}'");
   });
 });

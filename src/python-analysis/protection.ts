@@ -70,7 +70,11 @@ function pythonEscapeEnd(source: string, start: number, limit: number): number {
   }
   const widths: Record<string, number> = { x: 2, u: 4, U: 8 };
   if (next in widths) {
-    const end = start + 2 + widths[next]!;
+    const width = widths[next];
+    if (width === undefined) {
+      throw new UnsafeRestore("unterminated fixed-width Python escape");
+    }
+    const end = start + 2 + width;
     if (end > limit) throw new UnsafeRestore("unterminated fixed-width Python escape");
     return end;
   }
@@ -222,7 +226,8 @@ export function buildProtectionPlan(
   const fragments: ProtectedFragment[] = [];
   let previousEnd = literal.contentSpan.start;
   for (let ordinal = 0; ordinal < specs.length; ordinal++) {
-    const item = specs[ordinal]!;
+    const item = specs[ordinal];
+    if (item === undefined) throw new UnsafeRestore("protected source spans overlap");
     const span = item.sourceSpan;
     if (
       span.start < previousEnd ||
@@ -263,11 +268,11 @@ function markerToken(marker: string, nonce: string): string {
   if (marker.startsWith("-- ")) {
     const match = new RegExp(`^-- ${tokenPattern}\\n?$`).exec(marker);
     if (match === null) throw new UnsafeRestore("invalid protected marker");
-    return match[0]!.replace(/^-- /, "").replace(/\n$/, "");
+    return match[0].replace(/^-- /, "").replace(/\n$/, "");
   }
   const match = new RegExp(`^"${tokenPattern}"\\n?$`).exec(marker);
   if (match === null) throw new UnsafeRestore("invalid protected marker");
-  return match[0]!.replace(/^"|"\n?$/g, "");
+  return match[0].replace(/^"|"\n?$/g, "");
 }
 
 /** Restore all protected fragments in one validated ordered scan. */
@@ -279,10 +284,7 @@ export function restoreProtected(formatted: string, plan: ProtectionPlan): strin
     throw new UnsafeRestore("protection namespace count changed");
   }
   const escapedNonce = plan.nonce.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const namespace = new RegExp(
-    `__INLINE_SQL_${escapedNonce}_[A-Z_]+_[0-9]+__`,
-    "g",
-  );
+  const namespace = new RegExp(`__INLINE_SQL_${escapedNonce}_[A-Z_]+_[0-9]+__`, "g");
   const actualTokens = [...formatted.matchAll(namespace)].map((match) => match[0]);
   const expectedTokens = plan.fragments.map((fragment) => markerToken(fragment.marker, plan.nonce));
   if (actualTokens.join("\u0000") !== expectedTokens.join("\u0000")) {
@@ -292,7 +294,10 @@ export function restoreProtected(formatted: string, plan: ProtectionPlan): strin
   const pieces: string[] = [];
   let cursor = 0;
   plan.fragments.forEach((fragment, index) => {
-    const expectedToken = expectedTokens[index]!;
+    const expectedToken = expectedTokens[index];
+    if (expectedToken === undefined) {
+      throw new UnsafeRestore("protected marker sequence changed");
+    }
     const expectedIdentity = `__INLINE_SQL_${plan.nonce}_${fragment.kind.toUpperCase()}_${fragment.ordinal}__`;
     if (expectedToken !== expectedIdentity) {
       throw new UnsafeRestore("protected marker identity changed");
@@ -302,9 +307,7 @@ export function restoreProtected(formatted: string, plan: ProtectionPlan): strin
     let tokenPosition = position;
     if (fragment.marker.startsWith("-- ")) tokenPosition += 3;
     else if (fragment.marker.startsWith('"')) tokenPosition += 1;
-    if (
-      formatted.slice(tokenPosition, tokenPosition + expectedToken.length) !== expectedToken
-    ) {
+    if (formatted.slice(tokenPosition, tokenPosition + expectedToken.length) !== expectedToken) {
       throw new UnsafeRestore("protected marker identity changed");
     }
     if (fragment.requiredOffset !== undefined && position !== fragment.requiredOffset) {

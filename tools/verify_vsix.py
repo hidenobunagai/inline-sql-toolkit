@@ -38,6 +38,7 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
 
 EXACT_FIRST_PARTY_MEMBERS = frozenset(
     {
+        "extension/icon.svg",
         "extension/syntaxes/inline-sql-fstring-islands.tmLanguage.json",
         "extension/syntaxes/inline-sql-python.tmLanguage.json",
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2026-08-01
+
+- Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
 ## 0.2.1 - 2026-08-01
 
 - Normalizes triple-quoted frame boundaries so the opening and closing `"""`

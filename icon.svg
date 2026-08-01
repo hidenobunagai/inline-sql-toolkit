@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b1d2a"/>
+      <stop offset="100%" stop-color="#11121c"/>
+    </linearGradient>
+    <linearGradient id="db-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="db-body" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#2e3248" stroke-width="4"/>
+
+  <!-- Database Cylinder Stack (Flat & Clean) -->
+  <g transform="translate(30, 20)" filter="url(#shadow)">
+    <!-- Layer 3 (Bottom) -->
+    <path d="M 130 270 A 70 26 0 0 0 270 270 V 315 A 70 26 0 0 1 130 315 Z" fill="url(#db-body)"/>
+    <ellipse cx="200" cy="270" rx="70" ry="26" fill="#0284c7"/>
+
+    <!-- Layer 2 (Middle) -->
+    <path d="M 130 205 A 70 26 0 0 0 270 205 V 250 A 70 26 0 0 1 130 250 Z" fill="url(#db-body)"/>
+    <ellipse cx="200" cy="205" rx="70" ry="26" fill="#0369a1"/>
+
+    <!-- Layer 1 (Top) -->
+    <path d="M 130 140 A 70 26 0 0 0 270 140 V 185 A 70 26 0 0 1 130 185 Z" fill="url(#db-body)"/>
+    <ellipse cx="200" cy="140" rx="70" ry="26" fill="url(#db-top)"/>
+
+    <!-- Top Ring Highlight -->
+    <ellipse cx="200" cy="140" rx="54" ry="18" fill="none" stroke="#7dd3fc" stroke-width="3" opacity="0.6"/>
+  </g>
+
+  <!-- Code Card / Format Window Accent -->
+  <g transform="translate(210, 140)" filter="url(#shadow)">
+    <!-- Card Frame -->
+    <rect x="0" y="0" width="220" height="210" rx="18" fill="#1e1e2e" stroke="#313244" stroke-width="3"/>
+    
+    <!-- Code Window Dots -->
+    <circle cx="24" cy="22" r="6" fill="#f38ba8"/>
+    <circle cx="42" cy="22" r="6" fill="#f9e2af"/>
+    <circle cx="60" cy="22" r="6" fill="#a6e3a1"/>
+    
+    <line x1="10" y1="40" x2="210" y2="40" stroke="#313244" stroke-width="2"/>
+
+    <!-- Formatted SQL Code Lines -->
+    <!-- '-- sql' marker -->
+    <rect x="24" y="56" width="55" height="9" rx="4" fill="#6c7086"/>
+    <!-- SELECT -->
+    <rect x="24" y="78" width="70" height="12" rx="4" fill="#cba6f7"/>
+    <!--   id, name -->
+    <rect x="48" y="98" width="85" height="11" rx="4" fill="#89b4fa"/>
+    <!-- FROM -->
+    <rect x="24" y="118" width="55" height="12" rx="4" fill="#cba6f7"/>
+    <!--   users -->
+    <rect x="48" y="138" width="60" height="11" rx="4" fill="#89b4fa"/>
+    <!-- WHERE -->
+    <rect x="24" y="158" width="65" height="12" rx="4" fill="#cba6f7"/>
+    <!--   active = true -->
+    <rect x="48" y="178" width="115" height="11" rx="4" fill="#a6e3a1"/>
+  </g>
+</svg>

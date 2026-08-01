@@ -5,6 +5,8 @@ coverage/
 reports/
 .vscode-test/
 .superpowers/
+.headroom/
+AGENTS.md
 docs/superpowers/
 python/vendor/
 test/fixtures/

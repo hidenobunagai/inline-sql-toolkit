@@ -106,9 +106,9 @@ describe("extension manifest", () => {
       restrictedConfigurations: ["inlineSql.pythonPath"],
     });
     expect(configurationDefaults["[python]"]?.["editor.semanticHighlighting.enabled"]).toBe(false);
-    expect(
-      configurationDefaults["[mo-python]"]?.["editor.semanticHighlighting.enabled"],
-    ).toBe(false);
+    expect(configurationDefaults["[mo-python]"]?.["editor.semanticHighlighting.enabled"]).toBe(
+      false,
+    );
   });
 
   it("maps both injected grammar scopes to their embedded languages", () => {

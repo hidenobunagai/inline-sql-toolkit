@@ -11,14 +11,9 @@ import {
   replaceWholeDocument,
 } from "../support/vscode-harness.js";
 
-function overlapsSql(
-  ranges: readonly vscode.Range[],
-  sqlRanges: readonly vscode.Range[],
-): boolean {
+function overlapsSql(ranges: readonly vscode.Range[], sqlRanges: readonly vscode.Range[]): boolean {
   return ranges.some((range) =>
-    sqlRanges.some(
-      (sql) => range.start.isBefore(sql.end) && sql.start.isBefore(range.end),
-    ),
+    sqlRanges.some((sql) => range.start.isBefore(sql.end) && sql.start.isBefore(range.end)),
   );
 }
 
@@ -38,10 +33,7 @@ export async function testSemanticTokenIsolation(): Promise<void> {
   // While the probe extension is not yet activated, this extension is the
   // only semantic token provider; the editor-level stream must cover the SQL
   // range with its own tokens.
-  const beforeProbe = decodeSemanticTokens(
-    document,
-    await provideFullSemanticTokens(document),
-  );
+  const beforeProbe = decodeSemanticTokens(document, await provideFullSemanticTokens(document));
   assert.ok(
     overlapsSql(beforeProbe, sqlRanges),
     "extension tokens should be served while it is the only semantic token provider",
@@ -54,10 +46,7 @@ export async function testSemanticTokenIsolation(): Promise<void> {
   if (probe === undefined) throw new Error("semantic probe extension was not loaded");
   await probe.activate();
   await vscode.commands.executeCommand("inlineSql.semanticProbe.setMode", "safe");
-  const afterProbe = decodeSemanticTokens(
-    document,
-    await provideFullSemanticTokens(document),
-  );
+  const afterProbe = decodeSemanticTokens(document, await provideFullSemanticTokens(document));
   assert.ok(
     !overlapsSql(afterProbe, sqlRanges),
     "probe-safe mode should leave the SQL range untouched",

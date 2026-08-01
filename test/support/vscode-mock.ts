@@ -544,6 +544,8 @@ export const workspace = new Proxy(
   },
 ) as typeof vscode.workspace;
 
+export const NotebookCellKind = { Code: 2, Markup: 1 } as const;
+
 export const languages = new Proxy(
   {},
   {

@@ -131,6 +131,37 @@ describe("DefaultFormatController", () => {
     expect(value.hook.outcomes).toEqual([{ changed: 2, skipped: 0 }]);
   });
 
+  it("formats every code cell when running all on a notebook", async () => {
+    const first = __mock.document({
+      uri: "file:///workspace/cell1.py",
+      languageId: "python",
+      text: 'q1 = "select 1"',
+    });
+    const second = __mock.document({
+      uri: "file:///workspace/cell2.py",
+      languageId: "python",
+      text: 'q2 = "select 2"',
+    });
+    const notebook = __mock.notebook({
+      uri: "file:///workspace/book.ipynb",
+      notebookType: "jupyter-notebook",
+      cells: [first, second],
+    });
+    __mock.setNotebookDocuments([notebook]);
+    __mock.setActiveNotebook(notebook);
+    const applied: unknown[] = [];
+    const value = setup();
+    __mock.setActiveEditor(__mock.editor(first));
+    (value.hook as { applyWorkspaceEdit: (edit: unknown) => Thenable<boolean> }).applyWorkspaceEdit =
+      (edit) => {
+        applied.push(edit);
+        return Promise.resolve(true);
+      };
+    await value.controller.execute("all");
+    expect(value.hook.outcomes).toEqual([{ changed: 2, skipped: 0 }]);
+    expect(applied).toHaveLength(1);
+  });
+
   it("rejects trust and unsupported targets before formatting", async () => {
     const untrusted = setup();
     untrusted.setTrusted(false);

@@ -3,7 +3,15 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 
 import { REASON_CODES } from "../constants.js";
-import type { FormatMode, FormatSuccess, FormatTarget, Position, ReasonCode } from "../protocol.js";
+import type {
+  FormatMode,
+  FormatOptions,
+  FormatSuccess,
+  FormatTarget,
+  Position,
+  ReasonCode,
+  TextRange,
+} from "../protocol.js";
 import { allocateNonce, formatDocument } from "../python-analysis/engine.js";
 import { PositionMappingError } from "../python-analysis/positions.js";
 import { readFormatOptions } from "./configuration.js";
@@ -127,6 +135,13 @@ export function protocolTarget(
   };
 }
 
+function toVscodeRange(range: TextRange): vscode.Range {
+  return new vscode.Range(
+    new vscode.Position(range.start.line, range.start.character),
+    new vscode.Position(range.end.line, range.end.character),
+  );
+}
+
 /** Collapse single-line literal output so Python syntax stays intact. */
 function collapseReplacement(literalText: string, replacement: string): string {
   if (literalText.includes("\n")) return replacement;
@@ -164,6 +179,82 @@ export class DefaultFormatController implements FormatController {
     this.notifications.target(code);
   }
 
+  private async formatAllCells(
+    notebook: vscode.NotebookDocument,
+    options: FormatOptions,
+    token: vscode.CancellationToken,
+  ): Promise<void> {
+    const edits = new vscode.WorkspaceEdit();
+    let changed = 0;
+    let skipped = 0;
+    const skipReasons: ReasonCode[] = [];
+    for (const cell of notebook.getCells()) {
+      if (cell.kind !== vscode.NotebookCellKind.Code) continue;
+      if (cell.document.languageId !== "python" && cell.document.languageId !== "mo-python") {
+        continue;
+      }
+      if (token.isCancellationRequested) {
+        this.notifyReason("PROCESS_CANCELLED");
+        return;
+      }
+      const text = cell.document.getText();
+      if (Buffer.byteLength(text, "utf8") > MAX_DOCUMENT_BYTES) {
+        skipped++;
+        continue;
+      }
+      try {
+        const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
+        const result = formatDocument(
+          text,
+          options,
+          { mode: "all" },
+          nonce,
+          (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
+        );
+        for (const edit of result.edits) {
+          const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
+          edits.replace(
+            cell.document.uri,
+            toVscodeRange(result.sourceMap.vscodeRange(edit.sourceSpan)),
+            collapseReplacement(literalText, edit.replacementText),
+          );
+        }
+        changed += result.summary.changed;
+        skipped += result.summary.skipped;
+        skipReasons.push(...result.skipReasons);
+      } catch (error) {
+        if (error instanceof PositionMappingError) {
+          this.notifyReason("PROTOCOL_ERROR");
+          return;
+        }
+        skipped++;
+      }
+    }
+    await this.dependencies.hooks.afterHelperResponse(() => {});
+    if (changed === 0) {
+      this.complete({ changed: 0, skipped });
+      this.notifications.summary(
+        { discovered: 0, selected: 0, changed: 0, unchanged: 0, skipped },
+        skipped,
+        skipReasons,
+      );
+      return;
+    }
+    const applied = await this.dependencies.hooks.applyWorkspaceEdit(edits);
+    if (!applied) {
+      this.notifyReason("APPLY_EDIT_FAILED");
+      return;
+    }
+    this.complete({ changed, skipped });
+    if (skipped > 0) {
+      this.notifications.summary(
+        { discovered: 0, selected: 0, changed, unchanged: 0, skipped },
+        skipped,
+        skipReasons,
+      );
+    }
+  }
+
   private async runFormatting(
     mode: FormatMode,
     invocation: FormatInvocation | undefined,
@@ -189,6 +280,10 @@ export class DefaultFormatController implements FormatController {
     if (protocol === undefined) {
       this.complete({ changed: 0, skipped: 0 });
       this.notifications.emptySelection();
+      return;
+    }
+    if (mode === "all" && resource.notebook !== undefined) {
+      await this.formatAllCells(resource.notebook, options.options, token);
       return;
     }
     const text = resource.document.getText();

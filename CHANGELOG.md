@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.19 - 2026-08-02
+
+- Scopes full-document semantic tokens to the `mo-python` cell language so
+  they reach marimo cells regardless of the notebook type.
+
 ## 0.3.18 - 2026-08-02
 
 - Re-registers semantic tokens while any notebook is open (not only marimo),

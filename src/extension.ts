@@ -67,10 +67,11 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     const register = (): vscode.Disposable =>
       vscode.Disposable.from(
         // Full-document tokens for marimo cells (mo-python is the marimo
-        // cell language and never matches plain files), where unfocused
-        // cells need them; plain files keep relying on Pylance's tokens.
+        // cell language and never matches plain files; sql cells are notebook
+        // cells only), where unfocused cells need them; plain files keep
+        // relying on Pylance's tokens.
         vscode.languages.registerDocumentSemanticTokensProvider(
-          [{ language: "mo-python" }],
+          [{ language: "mo-python" }, { scheme: "vscode-notebook-cell", language: "sql" }],
           semanticTokens.provider,
           semanticTokens.legend,
         ),

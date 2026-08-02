@@ -18,6 +18,7 @@ export type TargetResolution =
 export const INLINE_SQL_SELECTOR: vscode.DocumentSelector = [
   { language: "python" },
   { language: "mo-python" },
+  { scheme: "vscode-notebook-cell", language: "sql" },
   { notebookType: "jupyter-notebook", language: "python" },
   { notebookType: "marimo-notebook", language: "python" },
   { notebookType: "marimo-notebook", language: "mo-python" },
@@ -28,6 +29,7 @@ const notebookPairs = new Set([
   "jupyter-notebook\0python",
   "marimo-notebook\0python",
   "marimo-notebook\0mo-python",
+  "marimo-notebook\0sql",
 ]);
 
 export function findNotebookCell(

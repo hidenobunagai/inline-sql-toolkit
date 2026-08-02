@@ -209,4 +209,25 @@ describe("semantic tokens provider", () => {
     const tokens = sqlTokensForSource('query = f"SELECT {column} FROM users"');
     expect(tokens.map((token) => token.text)).toEqual(["SELECT", "FROM", "users"]);
   });
+
+  it("treats a raw sql document as one whole sql literal", () => {
+    const document = __mock.document({
+      uri: "vscode-notebook-cell:///query.sql#0",
+      languageId: "sql",
+      text: "SELECT user_id FROM transactions WHERE amount > 0",
+    });
+    const { provider } = createInlineSqlSemanticTokensProvider();
+    const token = new vscode.CancellationTokenSource().token;
+    const semantic = provider.provideDocumentSemanticTokens(document, token);
+    if (semantic === null || semantic === undefined) {
+      throw new Error("expected semantic tokens to be provided");
+    }
+    const tokens = (
+      semantic as unknown as { readonly tokens: readonly MockSemanticToken[] }
+    ).tokens;
+    const types = tokens.map((item) => item.tokenType);
+    expect(types).toContain("inlineSqlKeyword");
+    expect(types).toContain("inlineSqlNumber");
+    expect(types).toContain("inlineSqlIdentifier");
+  });
 });

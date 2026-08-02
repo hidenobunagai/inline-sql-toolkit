@@ -332,9 +332,10 @@ export function createInlineSqlSemanticTokensProvider(): {
     builder: vscode.SemanticTokensBuilder,
     token: vscode.CancellationToken,
     range?: vscode.Range,
+    asSqlDocument = false,
   ): boolean => {
     const literals = findSqlLiterals(text);
-    if (literals.length === 0) return false;
+    if (!asSqlDocument && literals.length === 0) return false;
     const sqlRanges = literals.map(
       (literal) =>
         new vscode.Range(
@@ -367,6 +368,18 @@ export function createInlineSqlSemanticTokensProvider(): {
         builder.push(new vscode.Range(start, end), sqlToken.type, []);
       }
     }
+    if (asSqlDocument && literals.length === 0) {
+      const whole: SqlLiteralSpan = { start: 0, end: text.length, expressions: [] };
+      for (const sqlToken of tokenizeSqlLiteral(whole, text)) {
+        if (isCancellationRequested(token)) return false;
+        const start = offsetToPosition(sqlToken.start, lineStarts);
+        const end = offsetToPosition(sqlToken.start + sqlToken.length, lineStarts);
+        if (range !== undefined && !range.intersection(new vscode.Range(start, end))) {
+          continue;
+        }
+        builder.push(new vscode.Range(start, end), sqlToken.type, []);
+      }
+    }
     return true;
   };
   const provider: vscode.DocumentSemanticTokensProvider &
@@ -381,7 +394,9 @@ export function createInlineSqlSemanticTokensProvider(): {
       }
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
-      if (!build(text, lineStarts, builder, token)) return null;
+      if (!build(text, lineStarts, builder, token, undefined, document.languageId === "sql")) {
+        return null;
+      }
       return builder.build();
     },
     provideDocumentRangeSemanticTokens(
@@ -395,7 +410,9 @@ export function createInlineSqlSemanticTokensProvider(): {
       }
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
-      if (!build(text, lineStarts, builder, token, range)) return null;
+      if (!build(text, lineStarts, builder, token, range, document.languageId === "sql")) {
+        return null;
+      }
       return builder.build();
     },
   };

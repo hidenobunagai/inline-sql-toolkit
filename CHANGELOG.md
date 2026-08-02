@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.17 - 2026-08-02
+
+- Re-registers semantic tokens only while a marimo notebook is open, and
+  re-registers immediately whenever one opens, instead of on a fixed timer.
+
 ## 0.3.16 - 2026-08-02
 
 - Aligns the closing triple-quote of a formatted literal with its base indent

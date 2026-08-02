@@ -89,6 +89,17 @@ describe("formatCandidate", () => {
     }
   });
 
+  it("preserves the base indent of an indented triple-quoted literal", () => {
+    const source = 'q = """\n    --sql\n    select 1\n    """';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe('"""\n    --sql\n    SELECT\n      1\n"""');
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

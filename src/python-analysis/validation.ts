@@ -52,6 +52,26 @@ function literalText(literal: SupportedLiteral, content: string): string {
 }
 
 /** Keep triple-quoted frame boundaries on their own lines. */
+/** Return the leading whitespace of the first content line as the base indent. */
+function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): string {
+  const content = analysis.sourceMap.slice(literal.contentSpan);
+  const firstLine = content.split("\n").find((line) => line.trim() !== "");
+  return /^[ \t]*/.exec(firstLine ?? "")?.[0] ?? "";
+}
+
+/** Apply a shared base indent to every non-empty formatted line. */
+function applyBaseIndent(text: string, baseIndent: string): string {
+  if (baseIndent === "") return text;
+  return text
+    .split("\n")
+    .map((line) => {
+      if (line === "") return line;
+      const stripped = line.startsWith(baseIndent) ? line.slice(baseIndent.length) : line;
+      return `${baseIndent}${stripped}`;
+    })
+    .join("\n");
+}
+
 function normalizeFrame(content: string, literal: SupportedLiteral): string {
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   let normalized = content;
@@ -81,7 +101,8 @@ function formatOnce(
     }
   }
   const restored = restoreProtected(formatted, plan);
-  return literalText(literal, normalizeFrame(restored, literal));
+  const indented = applyBaseIndent(restored, baseIndentOf(analysis, literal));
+  return literalText(literal, normalizeFrame(indented, literal));
 }
 
 /** Replace one half-open source span while preserving all surrounding text. */

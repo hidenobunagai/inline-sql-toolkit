@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.18 - 2026-08-02
+
+- Re-registers semantic tokens while any notebook is open (not only marimo),
+  and extends the re-registration window to 60 seconds for slow first starts.
+
 ## 0.3.17 - 2026-08-02
 
 - Re-registers semantic tokens only while a marimo notebook is open, and

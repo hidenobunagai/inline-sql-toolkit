@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.10 - 2026-08-02
+
+- Indents SQL body one level below the literal's base indent, keeping nested
+  lines one level deeper than `SELECT` for readable paragraph formatting.
+
 ## 0.2.5 - 2026-08-01
 
 - Removes dark square background box for a 100% transparent background logo icon.

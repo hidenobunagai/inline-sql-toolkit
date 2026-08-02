@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.5 - 2026-08-01
+
+- Preserves the base indentation of indented SQL literals so formatted SQL
+  stays aligned with the surrounding Python code.
+
 ## 0.3.4 - 2026-08-01
 
 - Formats every code cell when `inlineSql.formatAll` runs in a notebook; the
@@ -62,6 +67,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.5 - 2026-08-01
+
+- Preserves the base indentation of indented SQL literals so formatted SQL
+  stays aligned with the surrounding Python code.
 
 ## 0.3.4 - 2026-08-01
 

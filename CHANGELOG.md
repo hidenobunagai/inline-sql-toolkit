@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.6 - 2026-08-01
+
+- Keeps CRLF frame boundaries idempotent so formatting does not add blank
+  lines above `--sql` markers on Windows.
+
 ## 0.3.5 - 2026-08-01
 
 - Preserves the base indentation of indented SQL literals so formatted SQL
@@ -67,6 +72,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.6 - 2026-08-01
+
+- Keeps CRLF frame boundaries idempotent so formatting does not add blank
+  lines above `--sql` markers on Windows.
 
 ## 0.3.5 - 2026-08-01
 

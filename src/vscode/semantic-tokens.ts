@@ -331,7 +331,6 @@ export function createInlineSqlSemanticTokensProvider(): {
     lineStarts: readonly number[],
     builder: vscode.SemanticTokensBuilder,
     token: vscode.CancellationToken,
-    range?: vscode.Range,
     asSqlDocument = false,
   ): boolean => {
     const literals = findSqlLiterals(text);
@@ -349,9 +348,6 @@ export function createInlineSqlSemanticTokensProvider(): {
       if (semanticType === undefined) continue;
       const start = offsetToPosition(pyToken.start, lineStarts);
       const end = offsetToPosition(pyToken.end, lineStarts);
-      if (range !== undefined && !range.intersection(new vscode.Range(start, end))) {
-        continue;
-      }
       if (sqlRanges.some((sql) => sql.intersection(new vscode.Range(start, end)))) {
         continue;
       }
@@ -362,9 +358,6 @@ export function createInlineSqlSemanticTokensProvider(): {
         if (isCancellationRequested(token)) return false;
         const start = offsetToPosition(sqlToken.start, lineStarts);
         const end = offsetToPosition(sqlToken.start + sqlToken.length, lineStarts);
-        if (range !== undefined && !range.intersection(new vscode.Range(start, end))) {
-          continue;
-        }
         builder.push(new vscode.Range(start, end), sqlToken.type, []);
       }
     }
@@ -374,9 +367,6 @@ export function createInlineSqlSemanticTokensProvider(): {
         if (isCancellationRequested(token)) return false;
         const start = offsetToPosition(sqlToken.start, lineStarts);
         const end = offsetToPosition(sqlToken.start + sqlToken.length, lineStarts);
-        if (range !== undefined && !range.intersection(new vscode.Range(start, end))) {
-          continue;
-        }
         builder.push(new vscode.Range(start, end), sqlToken.type, []);
       }
     }
@@ -394,7 +384,7 @@ export function createInlineSqlSemanticTokensProvider(): {
       }
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
-      if (!build(text, lineStarts, builder, token, undefined, document.languageId === "sql")) {
+      if (!build(text, lineStarts, builder, token, document.languageId === "sql")) {
         return null;
       }
       return builder.build();
@@ -410,7 +400,7 @@ export function createInlineSqlSemanticTokensProvider(): {
       }
       const lineStarts = computeLineStarts(text);
       const builder = new vscode.SemanticTokensBuilder(legend);
-      if (!build(text, lineStarts, builder, token, range, document.languageId === "sql")) {
+      if (!build(text, lineStarts, builder, token, document.languageId === "sql")) {
         return null;
       }
       return builder.build();

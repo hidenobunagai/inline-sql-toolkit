@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.12 - 2026-08-02
+
+- Provides semantic tokens as a full-document provider and registers after
+  the marimo extension activates, so notebook cells keep the SQL highlights
+  instead of falling back to another provider's tokens.
+
 ## 0.3.11 - 2026-08-02
 
 - Unifies the `--sql` marker position: markers on their own line move to sit

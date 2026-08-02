@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 
 import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";
 import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
-import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
+import { INLINE_SQL_SELECTOR, PLAIN_PYTHON_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
 import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
@@ -66,17 +66,18 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     }
     const register = (): vscode.Disposable =>
       vscode.Disposable.from(
-        // Full-document tokens for all notebook cells, where unfocused cells
-        // need them; plain files keep relying on Pylance's tokens. Both the
-        // range and document providers are ours, so focused and unfocused
-        // cells render the same token stream instead of mixing providers.
+        // Full-document tokens for notebook cells only. Cells fall back to
+        // this provider when no range provider matches, so focused and
+        // unfocused cells render the same token stream without merging.
         vscode.languages.registerDocumentSemanticTokensProvider(
           [{ scheme: "vscode-notebook-cell" }],
           semanticTokens.provider,
           semanticTokens.legend,
         ),
+        // Range tokens for plain Python files, which keep Pylance's
+        // full-document tokens instead of replacing them.
         vscode.languages.registerDocumentRangeSemanticTokensProvider(
-          INLINE_SQL_SELECTOR,
+          PLAIN_PYTHON_SELECTOR,
           semanticTokens.provider,
           semanticTokens.legend,
         ),

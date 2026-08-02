@@ -24,6 +24,12 @@ export const INLINE_SQL_SELECTOR: vscode.DocumentSelector = [
   { notebookType: "marimo-notebook", language: "mo-python" },
 ];
 
+/** Plain Python files only; notebook cells use the full-document provider. */
+export const PLAIN_PYTHON_SELECTOR: vscode.DocumentSelector = [
+  { scheme: "file", language: "python" },
+  { scheme: "untitled", language: "python" },
+];
+
 const standaloneLanguages = new Set(["python", "mo-python"]);
 const notebookPairs = new Set([
   "jupyter-notebook\0python",

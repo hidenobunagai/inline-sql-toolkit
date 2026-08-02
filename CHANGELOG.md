@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.24 - 2026-08-02
+
+- Returns every semantic token from the range provider instead of clipping
+  to the visible range, so notebook cells no longer show blank (unstyled)
+  gaps for off-screen SQL tokens.
+
 ## 0.3.23 - 2026-08-02
 
 - Adds an `Inline SQL Toolkit: Debug Semantic Tokens` command that dumps the

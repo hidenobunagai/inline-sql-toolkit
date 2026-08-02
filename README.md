@@ -32,20 +32,34 @@ query = "SELECT id, name FROM users WHERE active = true"
 ### Marker triple-quoted string
 
 ```python
-query = """
--- sql
+query = """--sql
 select id, name
 from users
 where active = true
 """
 ```
 
+Formatting keeps the `--sql` marker directly after the opening quote, indents
+the SQL one level below the literal's base indent, and aligns the closing
+triple quote with the base indent:
+
+```python
+query = """--sql
+  select id, name
+  from users
+  where active = true
+"""
+```
+
+A marker on its own line is normalized to the opening quote, so both styles
+produce the same output. With the default `keywordCase: upper`, keywords are
+uppercased.
+
 ### Complex f-string
 
 ```python
 account_id = get_account_id()
-query = f"""
--- sql
+query = f"""--sql
 SELECT id, name
 FROM users
 WHERE account_id = {account_id}
@@ -108,7 +122,8 @@ is found when either condition holds:
 
 1. The first logical, non-blank line starts with `-- sql` or `--sql` after
    horizontal whitespace. Matching is case-insensitive and the marker text is
-   preserved.
+   preserved. On format, a marker on its own line moves to sit directly after
+   the opening quote (`"""--sql`), so both input styles produce one output.
 2. After removing only physically present ASCII space, tab, CR, and LF
    characters, the source starts with one of `SELECT`, `WITH`, `INSERT`,
    `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, or

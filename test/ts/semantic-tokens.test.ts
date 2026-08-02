@@ -222,9 +222,8 @@ describe("semantic tokens provider", () => {
     if (semantic === null || semantic === undefined) {
       throw new Error("expected semantic tokens to be provided");
     }
-    const tokens = (
-      semantic as unknown as { readonly tokens: readonly MockSemanticToken[] }
-    ).tokens;
+    const tokens = (semantic as unknown as { readonly tokens: readonly MockSemanticToken[] })
+      .tokens;
     const types = tokens.map((item) => item.tokenType);
     expect(types).toContain("inlineSqlKeyword");
     expect(types).toContain("inlineSqlNumber");

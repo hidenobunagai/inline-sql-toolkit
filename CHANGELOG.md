@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.22 - 2026-08-02
+
+- Splits the semantic tokens providers: full-document tokens for notebook
+  cells only, range tokens for plain Python files only, so the two never
+  merge and cells render a stable token stream.
+
 ## 0.3.21 - 2026-08-02
 
 - Provides full-document semantic tokens for every notebook cell so focused

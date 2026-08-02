@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.13 - 2026-08-02
+
+- Re-registers the semantic tokens provider on a timer after activation so it
+  stays the most recent provider once marimo-lsp finishes starting up.
+
 ## 0.3.12 - 2026-08-02
 
 - Provides semantic tokens as a full-document provider and registers after

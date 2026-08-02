@@ -51,20 +51,30 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
 
   const registerSemanticTokens = async (): Promise<vscode.Disposable> => {
     const semanticTokens = createInlineSqlSemanticTokensProvider();
-    // Register after Pylance activates so our provider (which also supplies
-    // Python tokens) replaces Pylance's tokens instead of being overwritten.
-    try {
-      const pylance = vscode.extensions.getExtension("ms-python.vscode-pylance");
-      if (pylance !== undefined && !pylance.isActive) {
-        await pylance.activate();
+    // Register after Pylance and the marimo extension activate so our provider
+    // (which also supplies Python tokens) replaces their tokens in both plain
+    // files and notebook cells instead of being overwritten.
+    for (const id of ["ms-python.vscode-pylance", "marimo-team.vscode-marimo"]) {
+      try {
+        const extension = vscode.extensions.getExtension(id);
+        if (extension !== undefined && !extension.isActive) {
+          await extension.activate();
+        }
+      } catch {
+        // Best-effort: proceed with our own registration regardless.
       }
-    } catch {
-      // Best-effort: proceed with our own registration regardless.
     }
-    return vscode.languages.registerDocumentRangeSemanticTokensProvider(
-      INLINE_SQL_SELECTOR,
-      semanticTokens.provider,
-      semanticTokens.legend,
+    return vscode.Disposable.from(
+      vscode.languages.registerDocumentSemanticTokensProvider(
+        INLINE_SQL_SELECTOR,
+        semanticTokens.provider,
+        semanticTokens.legend,
+      ),
+      vscode.languages.registerDocumentRangeSemanticTokensProvider(
+        INLINE_SQL_SELECTOR,
+        semanticTokens.provider,
+        semanticTokens.legend,
+      ),
     );
   };
   void registerSemanticTokens().then((disposable) => {

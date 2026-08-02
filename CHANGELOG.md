@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.11 - 2026-08-02
+
+- Unifies the `--sql` marker position: markers on their own line move to sit
+  directly after the opening quote, and SQL indents from the literal's line.
+
 ## 0.3.10 - 2026-08-02
 
 - Indents SQL body one level below the literal's base indent, keeping nested

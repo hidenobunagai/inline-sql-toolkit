@@ -98,7 +98,7 @@ describe("DefaultFormatController", () => {
   });
 
   it("summarizes unchanged and all-skipped results", async () => {
-    const unchanged = setup('query = """\nSELECT\n  1\n"""');
+    const unchanged = setup('query = """\n  SELECT\n    1\n"""');
     await unchanged.controller.execute("all");
     expect(unchanged.note.calls).toEqual(["summary:0:0"]);
     const skipped = setup('query = "select 1" "x"');

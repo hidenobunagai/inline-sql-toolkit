@@ -60,7 +60,12 @@ function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): st
 }
 
 /** Shift SQL body lines so they sit one level below the base indent. */
-function applyBaseIndent(text: string, baseIndent: string, extraIndent: string): string {
+function applyBaseIndent(
+  text: string,
+  baseIndent: string,
+  extraIndent: string,
+  tripleQuoted: boolean,
+): string {
   const lines = text.split("\n");
   const nonEmpty = lines
     .map((line, index) => ({ line, index }))
@@ -68,15 +73,17 @@ function applyBaseIndent(text: string, baseIndent: string, extraIndent: string):
   if (nonEmpty.length === 0) return text;
   const first = nonEmpty[0];
   if (first === undefined) return text;
-  const markerIndex = first.index;
-  const body = nonEmpty.slice(1);
+  const firstTrimmed = first.line.trim();
+  const isMarker = firstTrimmed.startsWith("--sql") || firstTrimmed.startsWith("-- sql");
+  const keepsFirstLine = !tripleQuoted || isMarker;
+  const shifted = keepsFirstLine ? nonEmpty.slice(1) : nonEmpty;
   const minIndent =
-    body.length === 0
+    shifted.length === 0
       ? 0
-      : Math.min(...body.map(({ line }) => /^[ \t]*/.exec(line)?.[0].length ?? 0));
+      : Math.min(...shifted.map(({ line }) => /^[ \t]*/.exec(line)?.[0].length ?? 0));
   return lines
     .map((line, index) => {
-      if (line.trim() === "" || index === markerIndex) return line;
+      if (line.trim() === "" || (keepsFirstLine && index === first.index)) return line;
       return `${baseIndent}${extraIndent}${line.slice(minIndent)}`;
     })
     .join("\n");
@@ -137,6 +144,7 @@ function formatOnce(
     restored,
     baseIndentOf(analysis, literal),
     " ".repeat(options.indentWidth),
+    literal.delimiter.length === 3,
   );
   return literalText(literal, normalizeFrame(indented, literal, analysis));
 }

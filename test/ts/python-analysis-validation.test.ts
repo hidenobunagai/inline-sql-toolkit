@@ -44,7 +44,7 @@ describe("formatCandidate", () => {
   });
 
   it("returns unchanged for already formatted SQL", () => {
-    const source = 'query = """\nSELECT\n  1\n"""';
+    const source = 'query = """\n  SELECT\n    1\n"""';
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     expect(result).toEqual({ sourceSpan: literal.span });
@@ -83,7 +83,7 @@ describe("formatCandidate", () => {
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
-      expect(result.replacementText).toBe('"""\nSELECT\n  1\n"""');
+      expect(result.replacementText).toBe('"""\n  SELECT\n    1\n"""');
     } else {
       throw new Error("expected a changed candidate");
     }

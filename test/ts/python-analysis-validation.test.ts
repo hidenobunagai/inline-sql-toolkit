@@ -94,7 +94,7 @@ describe("formatCandidate", () => {
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
-      expect(result.replacementText).toBe('"""\n    --sql\n    SELECT\n      1\n"""');
+      expect(result.replacementText).toBe('"""\n    --sql\n      SELECT\n        1\n"""');
     } else {
       throw new Error("expected a changed candidate");
     }

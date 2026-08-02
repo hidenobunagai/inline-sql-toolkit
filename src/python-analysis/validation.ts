@@ -59,15 +59,18 @@ function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): st
   return /^[ \t]*/.exec(firstLine ?? "")?.[0] ?? "";
 }
 
-/** Apply a shared base indent to every non-empty formatted line. */
-function applyBaseIndent(text: string, baseIndent: string): string {
+/** Apply a shared base indent plus one extra level to SQL lines. */
+function applyBaseIndent(text: string, baseIndent: string, extraIndent: string): string {
   if (baseIndent === "") return text;
-  return text
-    .split("\n")
+  const lines = text.split("\n");
+  let seenContent = false;
+  return lines
     .map((line) => {
       if (line === "") return line;
-      const stripped = line.startsWith(baseIndent) ? line.slice(baseIndent.length) : line;
-      return `${baseIndent}${stripped}`;
+      const indent = seenContent ? `${baseIndent}${extraIndent}` : baseIndent;
+      seenContent = true;
+      const stripped = line.startsWith(indent) ? line.slice(indent.length) : line;
+      return `${indent}${stripped}`;
     })
     .join("\n");
 }
@@ -105,7 +108,11 @@ function formatOnce(
     }
   }
   const restored = restoreProtected(formatted, plan);
-  const indented = applyBaseIndent(restored, baseIndentOf(analysis, literal));
+  const indented = applyBaseIndent(
+    restored,
+    baseIndentOf(analysis, literal),
+    " ".repeat(options.indentWidth),
+  );
   return literalText(literal, normalizeFrame(indented, literal));
 }
 

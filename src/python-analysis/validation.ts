@@ -61,7 +61,6 @@ function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): st
 
 /** Apply a shared base indent plus one extra level to SQL lines. */
 function applyBaseIndent(text: string, baseIndent: string, extraIndent: string): string {
-  if (baseIndent === "") return text;
   const lines = text.split("\n");
   let seenContent = false;
   return lines

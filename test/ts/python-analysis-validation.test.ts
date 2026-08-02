@@ -73,7 +73,7 @@ describe("formatCandidate", () => {
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
-      expect(result.replacementText).toContain("-- sql\nSELECT\n  1");
+      expect(result.replacementText).toContain("-- sql\n  SELECT");
     }
     expect(result).not.toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
   });
@@ -105,7 +105,7 @@ describe("formatCandidate", () => {
     const { analysis, literal, detection } = analyzeOne(source);
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
-      expect(result.replacementText).toBe('"""--sql\nSELECT\n  1\n"""');
+      expect(result.replacementText).toBe('"""--sql\n  SELECT\n  1\n"""');
     } else {
       throw new Error("expected a changed candidate");
     }

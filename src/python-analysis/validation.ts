@@ -52,24 +52,40 @@ function literalText(literal: SupportedLiteral, content: string): string {
 }
 
 /** Keep triple-quoted frame boundaries on their own lines. */
-/** Return the leading whitespace of the first content line as the base indent. */
+/** Return the base indent: the marker line's indent, or the literal line's
+ * indent when the marker sits right after the opening quote. */
 function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): string {
   const content = analysis.sourceMap.slice(literal.contentSpan);
-  const firstLine = content.split("\n").find((line) => line.trim() !== "");
-  return /^[ \t]*/.exec(firstLine ?? "")?.[0] ?? "";
+  const lines = content.split("\n");
+  const firstNonEmpty = lines.find((line) => line.trim() !== "");
+  if (firstNonEmpty === undefined) return "";
+  if (firstNonEmpty !== lines[0]) {
+    return /^[ \t]*/.exec(firstNonEmpty)?.[0] ?? "";
+  }
+  const line = analysis.sourceMap.vscodeFromOffset(literal.span.start).line;
+  const lineStart = analysis.sourceMap.lineStarts[line] ?? 0;
+  return /^[ \t]*/.exec(analysis.sourceMap.text.slice(lineStart, literal.span.start))?.[0] ?? "";
 }
 
-/** Apply a shared base indent plus one extra level to SQL lines. */
+/** Shift SQL body lines so they sit one level below the base indent. */
 function applyBaseIndent(text: string, baseIndent: string, extraIndent: string): string {
   const lines = text.split("\n");
-  let seenContent = false;
+  const nonEmpty = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line.trim() !== "");
+  if (nonEmpty.length === 0) return text;
+  const first = nonEmpty[0];
+  if (first === undefined) return text;
+  const markerIndex = first.index;
+  const body = nonEmpty.slice(1);
+  const minIndent =
+    body.length === 0
+      ? 0
+      : Math.min(...body.map(({ line }) => /^[ \t]*/.exec(line)?.[0].length ?? 0));
   return lines
-    .map((line) => {
-      if (line === "") return line;
-      const indent = seenContent ? `${baseIndent}${extraIndent}` : baseIndent;
-      seenContent = true;
-      const stripped = line.startsWith(indent) ? line.slice(indent.length) : line;
-      return `${indent}${stripped}`;
+    .map((line, index) => {
+      if (line.trim() === "" || index === markerIndex) return line;
+      return `${baseIndent}${extraIndent}${line.slice(minIndent)}`;
     })
     .join("\n");
 }

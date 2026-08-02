@@ -49,12 +49,6 @@
         "command": "inlineSql.formatAll",
         "title": "%command.formatAll.title%",
         "description": "%command.formatAll.description%"
-      },
-      {
-        "command": "inlineSql.debugSemanticTokens",
-        "title": "Inline SQL Toolkit: Debug Semantic Tokens",
-        "category": "Inline SQL Toolkit",
-        "description": "Dump the active cell's language, text, and SQL tokens to the output panel."
       }
     ],
     "configuration": {
@@ -121,25 +115,14 @@
     },
     "grammars": [
       {
-        "scopeName": "inline-sql.python.injection",
-        "path": "./syntaxes/inline-sql-python.tmLanguage.json",
+        "scopeName": "inline-sql.injection",
+        "path": "./syntaxes/inline-sql.tmLanguage.json",
         "injectTo": [
           "source.python",
           "source.mo-python"
         ],
         "embeddedLanguages": {
-          "meta.embedded.inline.sql": "sql"
-        }
-      },
-      {
-        "scopeName": "inline-sql.fstring-islands.injection",
-        "path": "./syntaxes/inline-sql-fstring-islands.tmLanguage.json",
-        "injectTo": [
-          "source.python",
-          "source.mo-python"
-        ],
-        "embeddedLanguages": {
-          "meta.embedded.inline.python": "python"
+          "meta.embedded.sql": "sql"
         }
       }
     ],
@@ -205,17 +188,7 @@
           ]
         }
       }
-    ],
-    "configurationDefaults": {
-      "editor.semanticTokenColorCustomizations": {
-        "rules": {
-          "inlineSqlKeyword": "#569CD6",
-          "inlineSqlString": "#CE9178",
-          "inlineSqlNumber": "#B5CEA8",
-          "inlineSqlComment": "#6A9955"
-        }
-      }
-    }
+    ]
   },
   "packageManager": "bun@1.3.8",
   "scripts": {

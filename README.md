@@ -91,10 +91,14 @@ later atomic precondition.
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 
-The extension contributes semantic tokens for both the Python code and the SQL
-it embeds, registered after the Python language server activates. SQL tokens
-are applied on top of the Python tokens so SQL highlighting is not overwritten
-by the language server; `editor.semanticHighlighting.enabled` stays on.
+The extension highlights inline SQL with an injected TextMate grammar: SQL
+strings that start with `-- sql` (or a leading SQL keyword) are embedded as
+`meta.embedded.sql` and colored with the theme's SQL rules. The grammar follows
+the same approach as the popular `inline-sql-syntax` extension and works in
+plain files and notebook cells alike. Because the highlighting is grammar-based,
+a language server's semantic tokens can override it; if SQL highlighting
+disappears, disable semantic highlighting for the language server
+(`editor.semanticHighlighting.enabled: false`) or for the server itself.
 
 ## Detection and supported syntax
 

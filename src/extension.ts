@@ -2,11 +2,9 @@ import * as vscode from "vscode";
 
 import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";
 import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
-import { registerDebugCommands } from "./vscode/debug.js";
-import { INLINE_SQL_SELECTOR, PLAIN_PYTHON_SELECTOR } from "./vscode/document-target.js";
+import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
-import { createInlineSqlSemanticTokensProvider } from "./vscode/semantic-tokens.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
 
 interface ActiveExtensionState {
@@ -49,87 +47,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   );
 
   for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
-  for (const disposable of registerDebugCommands(context)) own(disposable);
-
-  const registerSemanticTokens = async (): Promise<vscode.Disposable> => {
-    const semanticTokens = createInlineSqlSemanticTokensProvider();
-    // Register after Pylance and the marimo extension activate so our provider
-    // (which also supplies Python tokens) replaces their tokens in both plain
-    // files and notebook cells instead of being overwritten.
-    for (const id of ["ms-python.vscode-pylance", "marimo-team.vscode-marimo"]) {
-      try {
-        const extension = vscode.extensions.getExtension(id);
-        if (extension !== undefined && !extension.isActive) {
-          await extension.activate();
-        }
-      } catch {
-        // Best-effort: proceed with our own registration regardless.
-      }
-    }
-    const register = (): vscode.Disposable =>
-      vscode.Disposable.from(
-        // Full-document tokens for notebook cells only. Cells fall back to
-        // this provider when no range provider matches, so focused and
-        // unfocused cells render the same token stream without merging.
-        vscode.languages.registerDocumentSemanticTokensProvider(
-          [{ scheme: "vscode-notebook-cell" }],
-          semanticTokens.provider,
-          semanticTokens.legend,
-        ),
-        // Range tokens for plain Python files, which keep Pylance's
-        // full-document tokens instead of replacing them.
-        vscode.languages.registerDocumentRangeSemanticTokensProvider(
-          PLAIN_PYTHON_SELECTOR,
-          semanticTokens.provider,
-          semanticTokens.legend,
-        ),
-      );
-    let current = register();
-    // marimo-lsp registers its semantic tokens provider asynchronously after
-    // the marimo extension activates (the server starts via uvx), which would
-    // otherwise overwrite ours. Re-register on a timer so our provider is
-    // always the most recent registration while a marimo notebook is open.
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const stopTimers = (): void => {
-      for (const timer of timers) clearTimeout(timer);
-      timers.length = 0;
-    };
-    const startTimers = (): void => {
-      stopTimers();
-      for (const delay of [3000, 8000, 15000, 30000, 60000]) {
-        timers.push(
-          setTimeout(() => {
-            current.dispose();
-            current = register();
-          }, delay),
-        );
-      }
-    };
-    const onOpenNotebook = vscode.workspace.onDidOpenNotebookDocument(() => {
-      current.dispose();
-      current = register();
-      startTimers();
-    });
-    const onCloseNotebook = vscode.workspace.onDidCloseNotebookDocument(() => {
-      if (vscode.workspace.notebookDocuments.length === 0) {
-        stopTimers();
-      }
-    });
-    if (vscode.workspace.notebookDocuments.length > 0) {
-      startTimers();
-    }
-    return {
-      dispose(): void {
-        stopTimers();
-        onOpenNotebook.dispose();
-        onCloseNotebook.dispose();
-        current.dispose();
-      },
-    };
-  };
-  void registerSemanticTokens().then((disposable) => {
-    context.subscriptions.push(own(disposable));
-  });
 
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,

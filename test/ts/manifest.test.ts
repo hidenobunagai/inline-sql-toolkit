@@ -85,7 +85,6 @@ describe("extension manifest", () => {
       "inlineSql.formatAtCursor",
       "inlineSql.formatSelection",
       "inlineSql.formatAll",
-      "inlineSql.debugSemanticTokens",
     ]);
     expect(
       contributes.commands?.every(
@@ -103,7 +102,7 @@ describe("extension manifest", () => {
     });
   });
 
-  it("maps both injected grammar scopes to their embedded languages", () => {
+  it("maps the injected grammar scope to its embedded language", () => {
     const manifest = loadPackageJson();
     const contributes = (manifest.contributes ?? {}) as {
       readonly grammars?: readonly unknown[];
@@ -111,19 +110,11 @@ describe("extension manifest", () => {
 
     expect(contributes.grammars).toEqual([
       {
-        scopeName: "inline-sql.python.injection",
-        path: "./syntaxes/inline-sql-python.tmLanguage.json",
+        scopeName: "inline-sql.injection",
+        path: "./syntaxes/inline-sql.tmLanguage.json",
         injectTo: ["source.python", "source.mo-python"],
         embeddedLanguages: {
-          "meta.embedded.inline.sql": "sql",
-        },
-      },
-      {
-        scopeName: "inline-sql.fstring-islands.injection",
-        path: "./syntaxes/inline-sql-fstring-islands.tmLanguage.json",
-        injectTo: ["source.python", "source.mo-python"],
-        embeddedLanguages: {
-          "meta.embedded.inline.python": "python",
+          "meta.embedded.sql": "sql",
         },
       },
     ]);

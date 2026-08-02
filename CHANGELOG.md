@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.27 - 2026-08-02
+
+- Switches SQL highlighting to an injected TextMate grammar (the same
+  approach as `inline-sql-syntax`), replacing the semantic tokens provider.
+  SQL strings starting with `-- sql` or a leading SQL keyword are embedded
+  as `meta.embedded.sql` and colored with the theme's SQL rules in both
+  plain files and notebook cells. If a language server's semantic tokens
+  override the grammar, disable semantic highlighting for that server.
+
 ## 0.3.26 - 2026-08-02
 
 - Drops the fixed colors for `inlineSqlIdentifier` and `inlineSqlOperator`

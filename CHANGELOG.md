@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.15 - 2026-08-02
+
+- Indents the first SQL line too when a triple-quoted literal has no `--sql`
+  marker, so a leading `SELECT` lines up with the rest of the query.
+
 ## 0.3.14 - 2026-08-02
 
 - Restricts full-document semantic tokens to notebook cells so plain Python

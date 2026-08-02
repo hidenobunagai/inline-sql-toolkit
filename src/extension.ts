@@ -64,18 +64,39 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
         // Best-effort: proceed with our own registration regardless.
       }
     }
-    return vscode.Disposable.from(
-      vscode.languages.registerDocumentSemanticTokensProvider(
-        INLINE_SQL_SELECTOR,
-        semanticTokens.provider,
-        semanticTokens.legend,
-      ),
-      vscode.languages.registerDocumentRangeSemanticTokensProvider(
-        INLINE_SQL_SELECTOR,
-        semanticTokens.provider,
-        semanticTokens.legend,
-      ),
-    );
+    const register = (): vscode.Disposable =>
+      vscode.Disposable.from(
+        vscode.languages.registerDocumentSemanticTokensProvider(
+          INLINE_SQL_SELECTOR,
+          semanticTokens.provider,
+          semanticTokens.legend,
+        ),
+        vscode.languages.registerDocumentRangeSemanticTokensProvider(
+          INLINE_SQL_SELECTOR,
+          semanticTokens.provider,
+          semanticTokens.legend,
+        ),
+      );
+    let current = register();
+    // marimo-lsp registers its semantic tokens provider asynchronously after
+    // the marimo extension activates (the server starts via uvx), which would
+    // otherwise overwrite ours. Re-register on a timer so our provider is
+    // always the most recent registration.
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (const delay of [3000, 8000, 15000, 30000]) {
+      timers.push(
+        setTimeout(() => {
+          current.dispose();
+          current = register();
+        }, delay),
+      );
+    }
+    return {
+      dispose(): void {
+        for (const timer of timers) clearTimeout(timer);
+        current.dispose();
+      },
+    };
   };
   void registerSemanticTokens().then((disposable) => {
     context.subscriptions.push(own(disposable));

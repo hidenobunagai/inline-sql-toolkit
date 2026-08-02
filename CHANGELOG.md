@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.26 - 2026-08-02
+
+- Drops the fixed colors for `inlineSqlIdentifier` and `inlineSqlOperator`
+  so columns and operators use the theme's base color and stand out from
+  SQL keywords.
+
 ## 0.3.25 - 2026-08-02
 
 - Provides default colors for the `inlineSql*` semantic token types so

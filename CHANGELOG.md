@@ -12,6 +12,11 @@
 
 - Fixes SVG comment syntax error (`--`) that caused XML rendering error text in icon PNG.
 
+## 0.3.9 - 2026-08-01
+
+- Indents SQL one level even when the `--sql` marker sits directly after the
+  opening quote, so f-string and plain literals format consistently.
+
 ## 0.3.8 - 2026-08-01
 
 - Keeps a `--sql` marker adjacent to the opening quote (`"""--sql`) on its
@@ -82,6 +87,11 @@
 ## 0.2.2 - 2026-08-01
 
 - Updates extension icon to a clean, minimalist developer logo without Python branding or AI effects.
+
+## 0.3.9 - 2026-08-01
+
+- Indents SQL one level even when the `--sql` marker sits directly after the
+  opening quote, so f-string and plain literals format consistently.
 
 ## 0.3.8 - 2026-08-01
 

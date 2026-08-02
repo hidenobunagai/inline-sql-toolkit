@@ -210,10 +210,8 @@
       "editor.semanticTokenColorCustomizations": {
         "rules": {
           "inlineSqlKeyword": "#569CD6",
-          "inlineSqlIdentifier": "#9CDCFE",
           "inlineSqlString": "#CE9178",
           "inlineSqlNumber": "#B5CEA8",
-          "inlineSqlOperator": "#D4D4D4",
           "inlineSqlComment": "#6A9955"
         }
       }

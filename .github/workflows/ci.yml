@@ -102,17 +102,16 @@ jobs:
       - run: bun run package:vsix
       - name: Verify VSIX inventory and provenance
         run: |
-          uv run python tools/verify_vsix.py \
-            dist-vsix/inline-sql-toolkit-0.2.0.vsix \
-            --report reports/vsix-components.osv.json
-          sha256sum dist-vsix/inline-sql-toolkit-0.2.0.vsix > reports/inline-sql-toolkit.vsix.sha256
-          unzip -Z1 dist-vsix/inline-sql-toolkit-0.2.0.vsix > reports/vsix-inventory.txt
+          vsix="dist-vsix/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
+          uv run python tools/verify_vsix.py "$vsix" --report reports/vsix-components.osv.json
+          sha256sum "$vsix" > reports/inline-sql-toolkit.vsix.sha256
+          unzip -Z1 "$vsix" > reports/vsix-inventory.txt
           cp THIRD_PARTY_NOTICES.md reports/THIRD_PARTY_NOTICES.md
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: "20"
       - run: node --check dist/extension.js
-      - run: cp dist-vsix/inline-sql-toolkit-0.2.0.vsix package-artifact/
+      - run: cp "dist-vsix/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix" package-artifact/
       - run: cp reports/inline-sql-toolkit.vsix.sha256 reports/vsix-inventory.txt reports/THIRD_PARTY_NOTICES.md package-artifact/
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -144,7 +143,7 @@ jobs:
         with:
           bun-version: "1.3.8"
       - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun tools/install_and_smoke_vsix.ts package-artifact/inline-sql-toolkit-0.2.0.vsix
+      - run: bun tools/install_and_smoke_vsix.ts "package-artifact/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
 
   osv-packaged-components:
     needs: package

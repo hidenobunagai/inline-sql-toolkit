@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.16 - 2026-08-02
+
+- Aligns the closing triple-quote of a formatted literal with its base indent
+  (e.g. inside loops) instead of leaving it at the left edge.
+
 ## 0.3.15 - 2026-08-02
 
 - Indents the first SQL line too when a triple-quoted literal has no `--sql`

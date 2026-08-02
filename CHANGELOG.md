@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.25 - 2026-08-02
+
+- Provides default colors for the `inlineSql*` semantic token types so
+  highlighting stays consistent on themes that do not define them.
+
 ## 0.3.24 - 2026-08-02
 
 - Returns every semantic token from the range provider instead of clipping

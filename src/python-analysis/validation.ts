@@ -75,8 +75,12 @@ function applyBaseIndent(text: string, baseIndent: string): string {
 function normalizeFrame(content: string, literal: SupportedLiteral): string {
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   let normalized = content;
-  if (!normalized.startsWith("\n")) normalized = `\n${normalized}`;
-  if (!normalized.endsWith("\n")) normalized = `${normalized}\n`;
+  if (!normalized.startsWith("\n") && !normalized.startsWith("\r\n")) {
+    normalized = `\n${normalized}`;
+  }
+  if (!normalized.endsWith("\n") && !normalized.endsWith("\r")) {
+    normalized = `${normalized}\n`;
+  }
   return normalized;
 }
 

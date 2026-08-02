@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.21 - 2026-08-02
+
+- Provides full-document semantic tokens for every notebook cell so focused
+  and unfocused cells render the same token stream instead of mixing ours
+  with Pylance's or marimo-lsp's tokens.
+
 ## 0.3.20 - 2026-08-02
 
 - Adds semantic tokens for marimo SQL cells, whose language id is `sql`, so

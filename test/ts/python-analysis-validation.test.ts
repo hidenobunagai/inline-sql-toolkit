@@ -100,6 +100,17 @@ describe("formatCandidate", () => {
     }
   });
 
+  it("keeps a marker adjacent to the opening quote on its own line", () => {
+    const source = 'q = """--sql\nselect 1\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe('"""--sql\nSELECT\n  1\n"""');
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

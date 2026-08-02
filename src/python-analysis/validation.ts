@@ -75,10 +75,17 @@ function applyBaseIndent(text: string, baseIndent: string, extraIndent: string):
     .join("\n");
 }
 
-function normalizeFrame(content: string, literal: SupportedLiteral): string {
+function normalizeFrame(
+  content: string,
+  literal: SupportedLiteral,
+  analysis: DocumentAnalysis,
+): string {
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
+  const sourceContent = analysis.sourceMap.slice(literal.contentSpan);
+  const firstLine = sourceContent.split("\n")[0]?.trim() ?? "";
+  const startsWithMarker = firstLine.startsWith("--sql") || firstLine.startsWith("-- sql");
   let normalized = content;
-  if (!normalized.startsWith("\n") && !normalized.startsWith("\r\n")) {
+  if (!startsWithMarker && !normalized.startsWith("\n") && !normalized.startsWith("\r\n")) {
     normalized = `\n${normalized}`;
   }
   if (!normalized.endsWith("\n") && !normalized.endsWith("\r")) {
@@ -113,7 +120,7 @@ function formatOnce(
     baseIndentOf(analysis, literal),
     " ".repeat(options.indentWidth),
   );
-  return literalText(literal, normalizeFrame(indented, literal));
+  return literalText(literal, normalizeFrame(indented, literal, analysis));
 }
 
 /** Replace one half-open source span while preserving all surrounding text. */

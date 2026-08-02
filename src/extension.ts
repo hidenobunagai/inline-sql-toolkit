@@ -94,7 +94,7 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     };
     const startTimers = (): void => {
       stopTimers();
-      for (const delay of [3000, 8000, 15000, 30000]) {
+      for (const delay of [3000, 8000, 15000, 30000, 60000]) {
         timers.push(
           setTimeout(() => {
             current.dispose();
@@ -103,23 +103,17 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
         );
       }
     };
-    const onOpenNotebook = vscode.workspace.onDidOpenNotebookDocument((notebook) => {
-      if (notebook.notebookType !== "marimo-notebook") return;
+    const onOpenNotebook = vscode.workspace.onDidOpenNotebookDocument(() => {
       current.dispose();
       current = register();
       startTimers();
     });
-    const onCloseNotebook = vscode.workspace.onDidCloseNotebookDocument((notebook) => {
-      if (notebook.notebookType !== "marimo-notebook") return;
-      if (
-        vscode.workspace.notebookDocuments.every((item) => item.notebookType !== "marimo-notebook")
-      ) {
+    const onCloseNotebook = vscode.workspace.onDidCloseNotebookDocument(() => {
+      if (vscode.workspace.notebookDocuments.length === 0) {
         stopTimers();
       }
     });
-    if (
-      vscode.workspace.notebookDocuments.some((item) => item.notebookType === "marimo-notebook")
-    ) {
+    if (vscode.workspace.notebookDocuments.length > 0) {
       startTimers();
     }
     return {

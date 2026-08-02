@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";
 import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
+import { registerDebugCommands } from "./vscode/debug.js";
 import { INLINE_SQL_SELECTOR, PLAIN_PYTHON_SELECTOR } from "./vscode/document-target.js";
 import { createEditApplicator } from "./vscode/edit-applicator.js";
 import { createFormatController } from "./vscode/format-controller.js";
@@ -48,6 +49,7 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   );
 
   for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
+  for (const disposable of registerDebugCommands(context)) own(disposable);
 
   const registerSemanticTokens = async (): Promise<vscode.Disposable> => {
     const semanticTokens = createInlineSqlSemanticTokensProvider();

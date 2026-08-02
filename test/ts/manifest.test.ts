@@ -85,6 +85,7 @@ describe("extension manifest", () => {
       "inlineSql.formatAtCursor",
       "inlineSql.formatSelection",
       "inlineSql.formatAll",
+      "inlineSql.debugSemanticTokens",
     ]);
     expect(
       contributes.commands?.every(

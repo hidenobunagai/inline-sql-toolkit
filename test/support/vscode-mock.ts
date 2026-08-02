@@ -171,6 +171,17 @@ export class Range {
   }
 }
 
+export class Disposable implements vscode.Disposable {
+  static from(...disposables: readonly { dispose(): void }[]): vscode.Disposable {
+    return {
+      dispose(): void {
+        for (const disposable of disposables) disposable.dispose();
+      },
+    };
+  }
+  dispose(): void {}
+}
+
 export class Selection extends Range {
   readonly anchor: Position;
   readonly active: Position;
@@ -518,6 +529,17 @@ export const window = new Proxy(
         return state.activeEditor === undefined ? [] : [state.activeEditor];
       if (property === "onDidChangeActiveTextEditor")
         return windowState.onDidChangeActiveTextEditor.event;
+      if (property === "createOutputChannel")
+        return () => ({
+          appendLine(line: string): void {
+            void line;
+          },
+          append(line: string): void {
+            void line;
+          },
+          show(): void {},
+          dispose(): void {},
+        });
       return failUnimplemented(`window.${String(property)}`);
     },
   },

@@ -49,6 +49,12 @@
         "command": "inlineSql.formatAll",
         "title": "%command.formatAll.title%",
         "description": "%command.formatAll.description%"
+      },
+      {
+        "command": "inlineSql.debugSemanticTokens",
+        "title": "Inline SQL Toolkit: Debug Semantic Tokens",
+        "category": "Inline SQL Toolkit",
+        "description": "Dump the active cell's language, text, and SQL tokens to the output panel."
       }
     ],
     "configuration": {

@@ -194,6 +194,7 @@ describe("extension activation lifecycle", () => {
       COMMANDS.cursor,
       COMMANDS.selection,
       COMMANDS.all,
+      "inlineSql.debugSemanticTokens",
     ]);
 
     __mock.fireTrustGrant();
@@ -204,6 +205,7 @@ describe("extension activation lifecycle", () => {
       COMMANDS.cursor,
       COMMANDS.selection,
       COMMANDS.all,
+      "inlineSql.debugSemanticTokens",
     ]);
     deactivate();
     expect(__mock.codeActionRegistrations()).toHaveLength(0);
@@ -228,6 +230,7 @@ describe("extension activation lifecycle", () => {
       COMMANDS.cursor,
       COMMANDS.selection,
       COMMANDS.all,
+      "inlineSql.debugSemanticTokens",
     ]);
     deactivate();
   });

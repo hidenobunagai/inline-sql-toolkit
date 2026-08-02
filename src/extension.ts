@@ -86,19 +86,47 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     // marimo-lsp registers its semantic tokens provider asynchronously after
     // the marimo extension activates (the server starts via uvx), which would
     // otherwise overwrite ours. Re-register on a timer so our provider is
-    // always the most recent registration.
+    // always the most recent registration while a marimo notebook is open.
     const timers: ReturnType<typeof setTimeout>[] = [];
-    for (const delay of [3000, 8000, 15000, 30000]) {
-      timers.push(
-        setTimeout(() => {
-          current.dispose();
-          current = register();
-        }, delay),
-      );
+    const stopTimers = (): void => {
+      for (const timer of timers) clearTimeout(timer);
+      timers.length = 0;
+    };
+    const startTimers = (): void => {
+      stopTimers();
+      for (const delay of [3000, 8000, 15000, 30000]) {
+        timers.push(
+          setTimeout(() => {
+            current.dispose();
+            current = register();
+          }, delay),
+        );
+      }
+    };
+    const onOpenNotebook = vscode.workspace.onDidOpenNotebookDocument((notebook) => {
+      if (notebook.notebookType !== "marimo-notebook") return;
+      current.dispose();
+      current = register();
+      startTimers();
+    });
+    const onCloseNotebook = vscode.workspace.onDidCloseNotebookDocument((notebook) => {
+      if (notebook.notebookType !== "marimo-notebook") return;
+      if (
+        vscode.workspace.notebookDocuments.every((item) => item.notebookType !== "marimo-notebook")
+      ) {
+        stopTimers();
+      }
+    });
+    if (
+      vscode.workspace.notebookDocuments.some((item) => item.notebookType === "marimo-notebook")
+    ) {
+      startTimers();
     }
     return {
       dispose(): void {
-        for (const timer of timers) clearTimeout(timer);
+        stopTimers();
+        onOpenNotebook.dispose();
+        onCloseNotebook.dispose();
         current.dispose();
       },
     };

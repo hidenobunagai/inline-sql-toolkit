@@ -485,6 +485,7 @@ const windowState = {
 };
 const workspaceState = {
   onDidOpenNotebookDocument: new EventEmitter<vscode.NotebookDocument>(),
+  onDidCloseNotebookDocument: new EventEmitter<vscode.NotebookDocument>(),
   onDidGrantWorkspaceTrust: new EventEmitter<void>(),
   onDidChangeConfiguration: new EventEmitter<vscode.ConfigurationChangeEvent>(),
   onDidChangeTextDocument: new EventEmitter<vscode.TextDocumentChangeEvent>(),
@@ -531,6 +532,8 @@ export const workspace = new Proxy(
       if (property === "getConfiguration") return getMockConfiguration;
       if (property === "onDidOpenNotebookDocument")
         return workspaceState.onDidOpenNotebookDocument.event;
+      if (property === "onDidCloseNotebookDocument")
+        return workspaceState.onDidCloseNotebookDocument.event;
       if (property === "onDidGrantWorkspaceTrust")
         return workspaceState.onDidGrantWorkspaceTrust.event;
       if (property === "onDidChangeConfiguration")
@@ -672,6 +675,7 @@ export const __mock: VscodeMockControl = {
     state.semanticTokenRegistrations.length = 0;
     windowState.onDidChangeActiveTextEditor.dispose();
     workspaceState.onDidOpenNotebookDocument.dispose();
+    workspaceState.onDidCloseNotebookDocument.dispose();
     workspaceState.onDidGrantWorkspaceTrust.dispose();
     workspaceState.onDidChangeConfiguration.dispose();
     workspaceState.onDidChangeTextDocument.dispose();

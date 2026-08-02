@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.14 - 2026-08-02
+
+- Restricts full-document semantic tokens to notebook cells so plain Python
+  files keep using Pylance's tokens (fixes blank highlighting on Windows).
+
 ## 0.3.13 - 2026-08-02
 
 - Re-registers the semantic tokens provider on a timer after activation so it

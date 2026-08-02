@@ -93,6 +93,7 @@ function normalizeFrame(
   content: string,
   literal: SupportedLiteral,
   analysis: DocumentAnalysis,
+  baseIndent: string,
 ): string {
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   const sourceContent = analysis.sourceMap.slice(literal.contentSpan);
@@ -116,7 +117,7 @@ function normalizeFrame(
   if (!normalized.endsWith("\n") && !normalized.endsWith("\r")) {
     normalized = `${normalized}\n`;
   }
-  return normalized;
+  return `${normalized}${baseIndent}`;
 }
 
 /** Protect, format, restore, and wrap one literal exactly once. */
@@ -140,13 +141,14 @@ function formatOnce(
     }
   }
   const restored = restoreProtected(formatted, plan);
+  const baseIndent = baseIndentOf(analysis, literal);
   const indented = applyBaseIndent(
     restored,
-    baseIndentOf(analysis, literal),
+    baseIndent,
     " ".repeat(options.indentWidth),
     literal.delimiter.length === 3,
   );
-  return literalText(literal, normalizeFrame(indented, literal, analysis));
+  return literalText(literal, normalizeFrame(indented, literal, analysis, baseIndent));
 }
 
 /** Replace one half-open source span while preserving all surrounding text. */

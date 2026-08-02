@@ -53,13 +53,13 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     const semanticTokens = createInlineSqlSemanticTokensProvider();
     // Register after Pylance activates so our provider (which also supplies
     // Python tokens) replaces Pylance's tokens instead of being overwritten.
-    const pylance = vscode.extensions.getExtension("ms-python.vscode-pylance");
-    if (pylance !== undefined && !pylance.isActive) {
-      try {
+    try {
+      const pylance = vscode.extensions.getExtension("ms-python.vscode-pylance");
+      if (pylance !== undefined && !pylance.isActive) {
         await pylance.activate();
-      } catch {
-        // Best-effort: proceed with our own registration regardless.
       }
+    } catch {
+      // Best-effort: proceed with our own registration regardless.
     }
     return vscode.languages.registerDocumentRangeSemanticTokensProvider(
       INLINE_SQL_SELECTOR,

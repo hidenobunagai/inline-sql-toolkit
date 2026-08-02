@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.23 - 2026-08-02
+
+- Adds an `Inline SQL Toolkit: Debug Semantic Tokens` command that dumps the
+  active cell's language, text, and SQL tokens to the output panel.
+
 ## 0.3.22 - 2026-08-02
 
 - Splits the semantic tokens providers: full-document tokens for notebook

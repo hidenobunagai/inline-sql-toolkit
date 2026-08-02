@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.20 - 2026-08-02
+
+- Adds semantic tokens for marimo SQL cells, whose language id is `sql`, so
+  they keep the SQL highlights instead of the marimo-lsp token stream.
+
 ## 0.3.19 - 2026-08-02
 
 - Scopes full-document semantic tokens to the `mo-python` cell language so

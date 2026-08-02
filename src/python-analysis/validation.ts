@@ -52,16 +52,8 @@ function literalText(literal: SupportedLiteral, content: string): string {
 }
 
 /** Keep triple-quoted frame boundaries on their own lines. */
-/** Return the base indent: the marker line's indent, or the literal line's
- * indent when the marker sits right after the opening quote. */
+/** Return the leading whitespace of the literal's source line. */
 function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): string {
-  const content = analysis.sourceMap.slice(literal.contentSpan);
-  const lines = content.split("\n");
-  const firstNonEmpty = lines.find((line) => line.trim() !== "");
-  if (firstNonEmpty === undefined) return "";
-  if (firstNonEmpty !== lines[0]) {
-    return /^[ \t]*/.exec(firstNonEmpty)?.[0] ?? "";
-  }
   const line = analysis.sourceMap.vscodeFromOffset(literal.span.start).line;
   const lineStart = analysis.sourceMap.lineStarts[line] ?? 0;
   return /^[ \t]*/.exec(analysis.sourceMap.text.slice(lineStart, literal.span.start))?.[0] ?? "";
@@ -97,10 +89,21 @@ function normalizeFrame(
 ): string {
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   const sourceContent = analysis.sourceMap.slice(literal.contentSpan);
-  const firstLine = sourceContent.split("\n")[0]?.trim() ?? "";
-  const startsWithMarker = firstLine.startsWith("--sql") || firstLine.startsWith("-- sql");
+  const firstNonEmptyLine = sourceContent.split("\n").find((line) => line.trim() !== "");
+  const startsWithMarker =
+    firstNonEmptyLine?.trim().startsWith("--sql") || firstNonEmptyLine?.trim().startsWith("-- sql");
+  const lines = content.split("\n");
+  const markerIndex = lines.findIndex((line) => {
+    const trimmed = line.trim();
+    return trimmed.startsWith("--sql") || trimmed.startsWith("-- sql");
+  });
   let normalized = content;
-  if (!startsWithMarker && !normalized.startsWith("\n") && !normalized.startsWith("\r\n")) {
+  if (startsWithMarker) {
+    if (markerIndex > 0) {
+      const markerLine = lines[markerIndex];
+      normalized = [markerLine?.trim() ?? "", ...lines.slice(markerIndex + 1)].join("\n");
+    }
+  } else if (!normalized.startsWith("\n") && !normalized.startsWith("\r\n")) {
     normalized = `\n${normalized}`;
   }
   if (!normalized.endsWith("\n") && !normalized.endsWith("\r")) {

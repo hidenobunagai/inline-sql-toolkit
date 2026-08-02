@@ -66,13 +66,11 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
     }
     const register = (): vscode.Disposable =>
       vscode.Disposable.from(
-        // Full-document tokens only for notebook cells, where unfocused cells
-        // need them; plain files keep relying on Pylance's document tokens.
+        // Full-document tokens for marimo cells (mo-python is the marimo
+        // cell language and never matches plain files), where unfocused
+        // cells need them; plain files keep relying on Pylance's tokens.
         vscode.languages.registerDocumentSemanticTokensProvider(
-          [
-            { notebookType: "marimo-notebook", language: "python" },
-            { notebookType: "marimo-notebook", language: "mo-python" },
-          ],
+          [{ language: "mo-python" }],
           semanticTokens.provider,
           semanticTokens.legend,
         ),

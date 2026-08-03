@@ -27,6 +27,7 @@ const DEFAULTS: FormatOptions = {
   useSpaceAroundOperators: true,
   expandSelectList: true,
   trimBlankBoundaries: true,
+  replaceOrdinals: true,
   dialect: "postgresql",
 };
 

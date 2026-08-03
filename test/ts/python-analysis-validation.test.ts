@@ -15,6 +15,7 @@ const OPTIONS: FormatOptions = {
   useSpaceAroundOperators: true,
   expandSelectList: true,
   trimBlankBoundaries: true,
+  replaceOrdinals: true,
   dialect: "postgresql",
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);
@@ -106,6 +107,42 @@ describe("formatCandidate", () => {
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe('"""--sql\n  SELECT\n    1\n"""');
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("replaces GROUP BY ordinals with the referenced column names", () => {
+    const source =
+      'query = """--sql\nSELECT user_id, date_trunc(\'month\', paid_at) AS ym FROM payments GROUP BY 1, 2\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    user_id,\n    date_trunc(\'month\', paid_at) AS ym\n  FROM\n    payments\n  GROUP BY\n    user_id,\n    ym\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("keeps ordinals when replaceOrdinals is disabled", () => {
+    const source = 'query = """--sql\nSELECT user_id FROM payments GROUP BY 1\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const disabled = { ...OPTIONS, replaceOrdinals: false };
+    const result = formatCandidate(
+      source,
+      analysis,
+      literal,
+      detection,
+      disabled,
+      NONCE,
+      formatter,
+    );
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    user_id\n  FROM\n    payments\n  GROUP BY\n    1\n"""',
+      );
     } else {
       throw new Error("expected a changed candidate");
     }

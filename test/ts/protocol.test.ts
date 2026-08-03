@@ -80,6 +80,7 @@ test("rejects non-finite direct numeric values", () => {
           useSpaceAroundOperators: true,
           expandSelectList: false,
           trimBlankBoundaries: false,
+          replaceOrdinals: false,
           dialect: "postgresql",
         },
       }),
@@ -102,6 +103,7 @@ test.each(["SELECT '日本語'", "SELECT '𝄞'", "SELECT 'e\u0301'"])(
         useSpaceAroundOperators: true,
         expandSelectList: false,
         trimBlankBoundaries: false,
+        replaceOrdinals: false,
         dialect: "postgresql",
       },
     };
@@ -136,6 +138,7 @@ test("returns only a stable reason code for a private invalid source", () => {
         useSpaceAroundOperators: true,
         expandSelectList: false,
         trimBlankBoundaries: false,
+        replaceOrdinals: false,
         dialect: "postgresql",
       },
     });
@@ -161,6 +164,7 @@ test("constructs fresh values without retaining decoded input objects", () => {
       useSpaceAroundOperators: true,
       expandSelectList: false,
       trimBlankBoundaries: false,
+      replaceOrdinals: false,
       dialect: "postgresql",
     },
   };

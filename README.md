@@ -102,6 +102,9 @@ later atomic precondition.
   indented line in triple-quoted SQL (default `true`).
 - `inlineSql.format.trimBlankBoundaries`: collapse extra blank lines at the
   start and end of triple-quoted SQL to a single line ending (default `true`).
+- `inlineSql.format.replaceOrdinals`: replace `GROUP BY` / `ORDER BY` ordinal
+  numbers (`1`, `2`, ...) with the referenced column names, preferring
+  aliases (default `true`).
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 

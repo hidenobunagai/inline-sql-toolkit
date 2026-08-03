@@ -19,5 +19,6 @@
   "semanticTokenTypes.inlineSqlOperator.description": "インライン SQL リテラル内の SQL 演算子。",
   "semanticTokenTypes.inlineSqlComment.description": "インライン SQL リテラル内の SQL コメント。",
   "semanticTokenTypes.inlineSqlIdentifier.description": "インライン SQL リテラル内の SQL 識別子。",
-  "untrustedWorkspaces.description": "このワークスペースを信頼するまで Inline SQL のフォーマットは無効です。"
+  "untrustedWorkspaces.description": "このワークスペースを信頼するまで Inline SQL のフォーマットは無効です。",
+  "configuration.format.replaceOrdinals.description": "フォーマット時に、GROUP BY および ORDER BY の序数 (1, 2, ...) を参照先の列名 (エイリアス優先) に置き換えます。"
 }

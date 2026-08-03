@@ -7,7 +7,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "source": "query = \"SELECT 1\"",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -15,7 +17,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -28,7 +31,10 @@
         "source": "query = \"select '𝄞'\"",
         "target": {
           "mode": "cursor",
-          "cursor": { "line": 0, "character": 9 }
+          "cursor": {
+            "line": 0,
+            "character": 9
+          }
         },
         "options": {
           "keywordCase": "lower",
@@ -37,7 +43,8 @@
           "useSpaceAroundOperators": false,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -51,8 +58,14 @@
         "target": {
           "mode": "selection",
           "selection": {
-            "start": { "line": 0, "character": 0 },
-            "end": { "line": 1, "character": 0 }
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
           }
         },
         "options": {
@@ -62,7 +75,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -75,8 +89,14 @@
         "ok": true,
         "candidates": [
           {
-            "start": { "line": 2, "character": 4 },
-            "end": { "line": 2, "character": 12 }
+            "start": {
+              "line": 2,
+              "character": 4
+            },
+            "end": {
+              "line": 2,
+              "character": 12
+            }
           }
         ]
       }
@@ -88,7 +108,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "ok": false,
-        "error": { "code": "DOCUMENT_PARSE_FAILED" }
+        "error": {
+          "code": "DOCUMENT_PARSE_FAILED"
+        }
       }
     },
     {
@@ -101,16 +123,28 @@
         "edits": [
           {
             "range": {
-              "start": { "line": 1, "character": 0 },
-              "end": { "line": 1, "character": 8 }
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 8
+              }
             },
             "expectedText": "select 1",
             "newText": "SELECT 1"
           },
           {
             "range": {
-              "start": { "line": 3, "character": 0 },
-              "end": { "line": 3, "character": 10 }
+              "start": {
+                "line": 3,
+                "character": 0
+              },
+              "end": {
+                "line": 3,
+                "character": 10
+              }
             },
             "expectedText": "select '𝄞'",
             "newText": "SELECT '𝄞'"
@@ -119,8 +153,14 @@
         "skips": [
           {
             "range": {
-              "start": { "line": 5, "character": 0 },
-              "end": { "line": 5, "character": 8 }
+              "start": {
+                "line": 5,
+                "character": 0
+              },
+              "end": {
+                "line": 5,
+                "character": 8
+              }
             },
             "reason": "UNSAFE_RAW_STRING"
           }
@@ -141,7 +181,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "ok": false,
-        "error": { "code": "FORMATTER_FAILED" }
+        "error": {
+          "code": "FORMATTER_FAILED"
+        }
       }
     },
     {
@@ -151,7 +193,9 @@
         "protocolVersion": 1,
         "operation": "unknown",
         "ok": false,
-        "error": { "code": "PROTOCOL_ERROR" }
+        "error": {
+          "code": "PROTOCOL_ERROR"
+        }
       }
     }
   ],
@@ -163,7 +207,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -171,7 +217,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         },
         "extra": true
       }
@@ -183,7 +230,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -192,7 +241,8 @@
           "expandSelectList": false,
           "trimBlankBoundaries": false,
           "dialect": "postgresql",
-          "extra": true
+          "extra": true,
+          "replaceOrdinals": true
         }
       }
     },
@@ -203,7 +253,9 @@
         "protocolVersion": 0,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -211,7 +263,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -222,7 +275,9 @@
         "protocolVersion": 2,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -230,7 +285,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -243,7 +299,10 @@
         "source": "",
         "target": {
           "mode": "cursor",
-          "cursor": { "line": -1, "character": 0 }
+          "cursor": {
+            "line": -1,
+            "character": 0
+          }
         },
         "options": {
           "keywordCase": "upper",
@@ -252,7 +311,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -266,8 +326,14 @@
         "target": {
           "mode": "selection",
           "selection": {
-            "start": { "line": 2, "character": 0 },
-            "end": { "line": 1, "character": 0 }
+            "start": {
+              "line": 2,
+              "character": 0
+            },
+            "end": {
+              "line": 1,
+              "character": 0
+            }
           }
         },
         "options": {
@@ -277,7 +343,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -291,8 +358,14 @@
         "target": {
           "mode": "selection",
           "selection": {
-            "start": { "line": 1, "character": 2 },
-            "end": { "line": 1, "character": 2 }
+            "start": {
+              "line": 1,
+              "character": 2
+            },
+            "end": {
+              "line": 1,
+              "character": 2
+            }
           }
         },
         "options": {
@@ -302,7 +375,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -313,7 +387,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "cursor" },
+        "target": {
+          "mode": "cursor"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -321,7 +397,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -332,7 +409,9 @@
         "protocolVersion": 1,
         "operation": "locate",
         "source": "",
-        "target": { "mode": "selection" },
+        "target": {
+          "mode": "selection"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -340,7 +419,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -353,7 +433,10 @@
         "source": "",
         "target": {
           "mode": "all",
-          "cursor": { "line": 0, "character": 0 }
+          "cursor": {
+            "line": 0,
+            "character": 0
+          }
         },
         "options": {
           "keywordCase": "upper",
@@ -362,7 +445,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -373,7 +457,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 0,
@@ -381,7 +467,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -392,7 +479,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 9,
@@ -400,7 +489,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -411,7 +501,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -419,7 +511,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -430,7 +523,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -438,7 +533,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -449,7 +545,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": true,
@@ -457,7 +555,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -468,7 +567,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "upper",
           "indentWidth": 2,
@@ -498,7 +599,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -509,7 +611,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "source": "",
-        "target": { "mode": "all" },
+        "target": {
+          "mode": "all"
+        },
         "options": {
           "keywordCase": "uppercase",
           "indentWidth": 2,
@@ -517,7 +621,8 @@
           "useSpaceAroundOperators": true,
           "expandSelectList": false,
           "trimBlankBoundaries": false,
-          "dialect": "postgresql"
+          "dialect": "postgresql",
+          "replaceOrdinals": true
         }
       }
     },
@@ -528,7 +633,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "ok": false,
-        "error": { "code": "PROTOCOL_ERROR" },
+        "error": {
+          "code": "PROTOCOL_ERROR"
+        },
         "edits": []
       }
     },
@@ -552,7 +659,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "ok": false,
-        "error": { "code": "UNKNOWN_REASON" }
+        "error": {
+          "code": "UNKNOWN_REASON"
+        }
       }
     },
     {
@@ -562,7 +671,9 @@
         "protocolVersion": 1,
         "operation": "unknown",
         "ok": false,
-        "error": { "code": "PROTOCOL_ERROR" }
+        "error": {
+          "code": "PROTOCOL_ERROR"
+        }
       }
     },
     {
@@ -572,7 +683,9 @@
         "protocolVersion": 1,
         "operation": "unknown",
         "ok": false,
-        "error": { "code": "PROTOCOL_ERROR" }
+        "error": {
+          "code": "PROTOCOL_ERROR"
+        }
       }
     },
     {
@@ -582,7 +695,9 @@
         "protocolVersion": 1,
         "operation": "format",
         "ok": false,
-        "error": { "code": "PROTOCOL_ERROR" }
+        "error": {
+          "code": "PROTOCOL_ERROR"
+        }
       }
     },
     {
@@ -622,8 +737,14 @@
         "ok": true,
         "candidates": [
           {
-            "start": { "line": 1, "character": 1 },
-            "end": { "line": 1, "character": 1 }
+            "start": {
+              "line": 1,
+              "character": 1
+            },
+            "end": {
+              "line": 1,
+              "character": 1
+            }
           }
         ]
       }
@@ -638,8 +759,14 @@
         "edits": [
           {
             "range": {
-              "start": { "line": 1, "character": 0 },
-              "end": { "line": 1, "character": 8 }
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 8
+              }
             },
             "expectedText": 7,
             "newText": "SELECT 1"
@@ -665,8 +792,14 @@
         "edits": [
           {
             "range": {
-              "start": { "line": 1, "character": 0 },
-              "end": { "line": 1, "character": 1 }
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 1
+              }
             },
             "expectedText": "",
             "newText": "X"
@@ -692,16 +825,28 @@
         "edits": [
           {
             "range": {
-              "start": { "line": 1, "character": 0 },
-              "end": { "line": 1, "character": 8 }
+              "start": {
+                "line": 1,
+                "character": 0
+              },
+              "end": {
+                "line": 1,
+                "character": 8
+              }
             },
             "expectedText": "select 1",
             "newText": "SELECT 1"
           },
           {
             "range": {
-              "start": { "line": 1, "character": 4 },
-              "end": { "line": 1, "character": 12 }
+              "start": {
+                "line": 1,
+                "character": 4
+              },
+              "end": {
+                "line": 1,
+                "character": 12
+              }
             },
             "expectedText": "ct 1 + 2",
             "newText": "CT 1 + 2"
@@ -727,16 +872,28 @@
         "edits": [
           {
             "range": {
-              "start": { "line": 0, "character": 10 },
-              "end": { "line": 0, "character": 12 }
+              "start": {
+                "line": 0,
+                "character": 10
+              },
+              "end": {
+                "line": 0,
+                "character": 12
+              }
             },
             "expectedText": "aa",
             "newText": "AA"
           },
           {
             "range": {
-              "start": { "line": 0, "character": 0 },
-              "end": { "line": 0, "character": 2 }
+              "start": {
+                "line": 0,
+                "character": 0
+              },
+              "end": {
+                "line": 0,
+                "character": 2
+              }
             },
             "expectedText": "bb",
             "newText": "BB"

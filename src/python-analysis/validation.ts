@@ -2,6 +2,7 @@ import { REASON_CODES } from "../constants.js";
 import type { FormatOptions } from "../protocol.js";
 import { detectSql, type SqlDetection } from "./detection.js";
 import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
+import { replaceOrdinals } from "./ordinals.js";
 import { SourceSpan } from "./positions.js";
 import { buildProtectionPlan, restoreProtected, UnsafeRestore } from "./protection.js";
 import type { SupportedLiteral } from "./tokenizer.js";
@@ -141,9 +142,10 @@ function formatOnce(
     }
   }
   const restored = restoreProtected(formatted, plan);
+  const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   const baseIndent = baseIndentOf(analysis, literal);
   const indented = applyBaseIndent(
-    restored,
+    resolved,
     baseIndent,
     " ".repeat(options.indentWidth),
     literal.delimiter.length === 3,

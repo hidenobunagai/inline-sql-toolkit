@@ -19,5 +19,6 @@
   "semanticTokenTypes.inlineSqlOperator.description": "An SQL operator inside an inline SQL literal.",
   "semanticTokenTypes.inlineSqlComment.description": "An SQL comment inside an inline SQL literal.",
   "semanticTokenTypes.inlineSqlIdentifier.description": "An SQL identifier inside an inline SQL literal.",
-  "untrustedWorkspaces.description": "Inline SQL formatting is disabled until this workspace is trusted."
+  "untrustedWorkspaces.description": "Inline SQL formatting is disabled until this workspace is trusted.",
+  "configuration.format.replaceOrdinals.description": "Replaces GROUP BY and ORDER BY ordinal numbers (1, 2, ...) with the referenced column names (alias preferred) when formatting."
 }

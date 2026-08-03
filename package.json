@@ -99,6 +99,12 @@
           "scope": "resource",
           "description": "%configuration.format.trimBlankBoundaries.description%"
         },
+        "inlineSql.format.replaceOrdinals": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "%configuration.format.replaceOrdinals.description%"
+        },
         "inlineSql.format.dialect": {
           "type": "string",
           "enum": [

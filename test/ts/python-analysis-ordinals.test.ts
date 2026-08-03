@@ -1,0 +1,74 @@
+import { describe, expect, it } from "vitest";
+
+import { replaceOrdinals } from "../../src/python-analysis/ordinals.js";
+
+describe("replaceOrdinals", () => {
+  it("prefers the alias over the expression", () => {
+    const sql = "SELECT user_id, date_trunc('month', paid_at) AS ym FROM payments GROUP BY 1, 2";
+    expect(replaceOrdinals(sql)).toBe(
+      "SELECT user_id, date_trunc('month', paid_at) AS ym FROM payments GROUP BY user_id, ym",
+    );
+  });
+
+  it("uses implicit aliases after function calls", () => {
+    expect(replaceOrdinals("SELECT SUM(amount) paid FROM t GROUP BY 1")).toBe(
+      "SELECT SUM(amount) paid FROM t GROUP BY paid",
+    );
+  });
+
+  it("copies the expression when no alias exists", () => {
+    expect(replaceOrdinals("SELECT a + b, c FROM t GROUP BY 1, 2")).toBe(
+      "SELECT a + b, c FROM t GROUP BY a + b, c",
+    );
+  });
+
+  it("keeps aggregate columns without an alias untouched", () => {
+    expect(replaceOrdinals("SELECT count(*) FROM t GROUP BY 1")).toBe(
+      "SELECT count(*) FROM t GROUP BY 1",
+    );
+  });
+
+  it("replaces ORDER BY ordinals too", () => {
+    expect(replaceOrdinals("SELECT a, b FROM t ORDER BY 1, 2")).toBe(
+      "SELECT a, b FROM t ORDER BY a, b",
+    );
+  });
+
+  it("does not treat arithmetic expressions as ordinals", () => {
+    expect(replaceOrdinals("SELECT a FROM t GROUP BY 1 + 2")).toBe(
+      "SELECT a FROM t GROUP BY 1 + 2",
+    );
+  });
+
+  it("leaves out-of-range ordinals untouched", () => {
+    expect(replaceOrdinals("SELECT a FROM t GROUP BY 99")).toBe("SELECT a FROM t GROUP BY 99");
+  });
+
+  it("resolves ordinals inside subqueries against their own select list", () => {
+    const sql =
+      "SELECT user_id, total FROM (SELECT user_id, SUM(x) total FROM t GROUP BY 1) s GROUP BY 1, 2";
+    expect(replaceOrdinals(sql)).toBe(
+      "SELECT user_id, total FROM (SELECT user_id, SUM(x) total FROM t GROUP BY user_id) s GROUP BY user_id, total",
+    );
+  });
+
+  it("handles a case expression alias", () => {
+    const sql = "SELECT CASE WHEN x THEN y ELSE z END tier FROM t GROUP BY 1";
+    expect(replaceOrdinals(sql)).toBe(
+      "SELECT CASE WHEN x THEN y ELSE z END tier FROM t GROUP BY tier",
+    );
+  });
+
+  it("flattens multi-line expressions", () => {
+    const sql = "SELECT\n  date_trunc('month', paid_at) AS ym\nFROM t\nGROUP BY 1";
+    expect(replaceOrdinals(sql)).toBe(
+      "SELECT\n  date_trunc('month', paid_at) AS ym\nFROM t\nGROUP BY ym",
+    );
+  });
+
+  it("keeps qualified single columns without aliases", () => {
+    expect(replaceOrdinals("SELECT s.amount FROM sales s GROUP BY 1")).toBe(
+      "SELECT s.amount FROM sales s GROUP BY s.amount",
+    );
+  });
+});

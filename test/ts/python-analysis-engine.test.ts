@@ -21,6 +21,7 @@ const OPTIONS: FormatOptions = {
   useSpaceAroundOperators: true,
   expandSelectList: true,
   trimBlankBoundaries: true,
+  replaceOrdinals: true,
   dialect: "postgresql",
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);

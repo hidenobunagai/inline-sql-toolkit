@@ -23,6 +23,7 @@ export interface FormatOptions {
   readonly useSpaceAroundOperators: boolean;
   readonly expandSelectList: boolean;
   readonly trimBlankBoundaries: boolean;
+  readonly replaceOrdinals: boolean;
   readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
 }
 
@@ -220,6 +221,7 @@ function parseOptions(value: unknown): FormatOptions {
     "useSpaceAroundOperators",
     "expandSelectList",
     "trimBlankBoundaries",
+    "replaceOrdinals",
     "dialect",
   ]);
   const indentWidth = requireNonNegativeInteger(record.indentWidth);
@@ -234,6 +236,7 @@ function parseOptions(value: unknown): FormatOptions {
     useSpaceAroundOperators: requireBoolean(record.useSpaceAroundOperators),
     expandSelectList: requireBoolean(record.expandSelectList),
     trimBlankBoundaries: requireBoolean(record.trimBlankBoundaries),
+    replaceOrdinals: requireBoolean(record.replaceOrdinals),
     dialect: requireEnum(record.dialect, ["sql", "mysql", "postgresql", "sqlite"]),
   };
 }

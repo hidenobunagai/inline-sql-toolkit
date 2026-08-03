@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.30 - 2026-08-02
+
+- Fixes f-string fields attached to identifiers (e.g. `id_{table_id}`) gaining
+  a space when formatted: field markers are now bare identifiers instead of
+  quoted strings, so the formatter keeps them joined.
+
 ## 0.3.29 - 2026-08-02
 
 - Fixes ordinal replacement corrupting `SELECT *` queries: a star column is

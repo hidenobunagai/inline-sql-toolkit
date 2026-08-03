@@ -134,6 +134,29 @@ function breakTrailingFieldMarkers(text: string): string {
   return `${text.slice(0, lineStart)}${before.trimEnd()}\n${indent}${text.slice(markerStart)}`;
 }
 
+/** Move a leading comma after a line comment back before the comment. */
+function moveCommasBeforeLineComments(text: string): string {
+  const lines = text.split("\n");
+  const result: string[] = [];
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index] ?? "";
+    const next = lines[index + 1];
+    const commentMatch = /^(.*?)(--[^\r\n]*)$/.exec(line);
+    const commaMatch = next === undefined ? null : /^(\s*),\s*$/.exec(next);
+    if (commentMatch !== null && commaMatch !== null) {
+      const beforeComment = commentMatch[1] ?? "";
+      const comment = commentMatch[2] ?? "";
+      result.push(`${beforeComment.trimEnd()}, ${comment}`);
+      index += 2;
+      continue;
+    }
+    result.push(line);
+    index += 1;
+  }
+  return result.join("\n");
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -155,6 +178,7 @@ function formatOnce(
     }
   }
   formatted = breakTrailingFieldMarkers(formatted);
+  formatted = moveCommasBeforeLineComments(formatted);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   const baseIndent = baseIndentOf(analysis, literal);

@@ -194,6 +194,20 @@ GROUP BY
     }
   });
 
+  it("moves a comma before a trailing line comment", () => {
+    const source =
+      'query = """--sql\nSELECT\n    order_id --テキスト\n,\n    order_date --テキスト\n,\n    amount\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    order_id, --テキスト\n    order_date, --テキスト\n    amount\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

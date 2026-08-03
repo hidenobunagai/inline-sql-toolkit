@@ -71,4 +71,16 @@ describe("replaceOrdinals", () => {
       "SELECT s.amount FROM sales s GROUP BY s.amount",
     );
   });
+
+  it("never replaces an ordinal with a star column", () => {
+    expect(replaceOrdinals("SELECT * FROM table ORDER BY 1, 3")).toBe(
+      "SELECT * FROM table ORDER BY 1, 3",
+    );
+  });
+
+  it("skips the star column and replaces the following column", () => {
+    expect(replaceOrdinals("SELECT *, a FROM t GROUP BY 1, 2")).toBe(
+      "SELECT *, a FROM t GROUP BY 1, a",
+    );
+  });
 });

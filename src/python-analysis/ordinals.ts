@@ -31,7 +31,7 @@ interface PendingScope {
 }
 
 const TOKEN_PATTERN =
-  /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|[<>!=+\-*/%,.;:(){}]+|\[|\]/g;
+  /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|,|;|\(|\)|\.|\[|\]|[<>!=+\-*/%:|&^~]+/g;
 
 const AGGREGATE_FUNCTIONS = new Set([
   "any_value",
@@ -148,7 +148,7 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     alias = last.text;
     expressionEnd = last.start;
   }
-  const aggregate = AGGREGATE_FUNCTIONS.has(first.text.toLowerCase());
+  const aggregate = AGGREGATE_FUNCTIONS.has(first.text.toLowerCase()) || first.text === "*";
   return {
     expressionStart: first.start,
     expressionEnd,

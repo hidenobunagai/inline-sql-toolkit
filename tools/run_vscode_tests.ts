@@ -138,10 +138,7 @@ export async function copyScenarioWorkspace(
   );
 }
 
-const fixtureExtensions = [
-  ["marimo-language", "inline-sql-tests.marimo-language-0.0.1"],
-  ["semantic-probe", "inline-sql-tests.inline-sql-semantic-probe-0.0.1"],
-] as const;
+const fixtureExtensions = [["marimo-language", "inline-sql-tests.marimo-language-0.0.1"]] as const;
 
 export async function findInstalledExtensionRoot(
   extensionsDir: string,
@@ -366,10 +363,7 @@ async function verifyProductGrammarManifest(root: string): Promise<void> {
     await fs.readFile(path.join(root, "package.json"), "utf8"),
   ) as GrammarContributionManifest;
   const grammars = manifest.contributes?.grammars ?? [];
-  const expected = new Map([
-    ["inline-sql.python.injection", { embedded: "sql", target: "source.python" }],
-    ["inline-sql.fstring-islands.injection", { embedded: "python", target: "source.python" }],
-  ]);
+  const expected = new Map([["inline-sql.injection", { embedded: "sql" }]]);
   const seen = new Set<string>();
   for (const grammar of grammars) {
     if (typeof grammar.scopeName === "string") {
@@ -395,7 +389,7 @@ async function verifyProductGrammarManifest(root: string): Promise<void> {
     if (
       typeof embedded !== "object" ||
       embedded === null ||
-      (embedded as Record<string, unknown>)[`meta.embedded.inline.${requirement.embedded}`] !==
+      (embedded as Record<string, unknown>)[`meta.embedded.${requirement.embedded}`] !==
         requirement.embedded
     ) {
       throw new Error(`grammar ${scope} has an unexpected embedded language`);

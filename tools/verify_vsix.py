@@ -33,14 +33,15 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
         "extension/dist/extension.js",
         "extension/dist/package.json",
         "extension/icon.png",
+        "extension/third_party/inline-sql-syntax/LICENSE",
+        "extension/third_party/inline-sql-syntax/highlight-sql-string.json",
     }
 )
 
 EXACT_FIRST_PARTY_MEMBERS = frozenset(
     {
         "extension/icon.svg",
-        "extension/syntaxes/inline-sql-fstring-islands.tmLanguage.json",
-        "extension/syntaxes/inline-sql-python.tmLanguage.json",
+        "extension/syntaxes/inline-sql.tmLanguage.json",
     }
 )
 

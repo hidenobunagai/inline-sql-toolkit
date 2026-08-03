@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.28 - 2026-08-02
+
+- Replaces `GROUP BY` / `ORDER BY` ordinal numbers with the referenced column
+  names when formatting (alias preferred, expression otherwise). Disable with
+  `inlineSql.format.replaceOrdinals: false`. Aggregate columns without an
+  alias and unresolvable ordinals are left untouched.
+
 ## 0.3.27 - 2026-08-02
 
 - Switches SQL highlighting to an injected TextMate grammar (the same

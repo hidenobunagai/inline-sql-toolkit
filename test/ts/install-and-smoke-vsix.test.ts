@@ -82,6 +82,7 @@ describe("offline VSIX install smoke command", () => {
     "resolves the hashed VS Code layout used by recent archives",
     async () => {
       const { root, executable } = await makeVscodeRoot();
+      await rm(path.join(root, "resources", "app", "out", "cli.js"));
       const hashed = path.join(root, "e4c7e7b1d6", "resources", "app", "out");
       await mkdir(hashed, { recursive: true });
       await writeFile(path.join(hashed, "cli.js"), "module.exports = {};\n");

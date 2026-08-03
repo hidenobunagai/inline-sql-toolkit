@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.33 - 2026-08-02
+
+- Treats `DISTRIBUTE` as a clause end so a trailing `GROUP BY` ordinal still
+  resolves, and breaks `DISTRIBUTE RANDOM` onto its own line.
+
 ## 0.3.32 - 2026-08-02
 
 - Moves a comma that the formatter placed on its own line back before a

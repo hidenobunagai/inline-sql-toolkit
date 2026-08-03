@@ -43,6 +43,8 @@ export function buildSmokeCommand(input: InstallLaunchInput): readonly string[] 
     "--disable-updates",
     "--skip-welcome",
     "--skip-release-notes",
+    "--no-sandbox",
+    "--disable-gpu",
   ];
 }
 

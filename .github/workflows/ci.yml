@@ -121,7 +121,14 @@ jobs:
         with:
           bun-version: "1.3.8"
       - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun tools/install_and_smoke_vsix.ts "package-artifact/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
+      - name: Install and smoke test VSIX
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a bun tools/install_and_smoke_vsix.ts "package-artifact/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
+          else
+            bun tools/install_and_smoke_vsix.ts "package-artifact/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
+          fi
 
   osv-packaged-components:
     needs: package

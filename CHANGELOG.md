@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.32 - 2026-08-02
+
+- Moves a comma that the formatter placed on its own line back before a
+  trailing line comment (e.g. `order_id --テキスト` followed by a lone `,`).
+
 ## 0.3.31 - 2026-08-02
 
 - Fixes ordinal replacement for SQL that begins with an f-string field

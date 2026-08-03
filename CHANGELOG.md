@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.29 - 2026-08-02
+
+- Fixes ordinal replacement corrupting `SELECT *` queries: a star column is
+  never copied into GROUP BY / ORDER BY, and commas are tokenized separately
+  so columns like `*, a` are not merged into one expression.
+
 ## 0.3.28 - 2026-08-02
 
 - Replaces `GROUP BY` / `ORDER BY` ordinal numbers with the referenced column

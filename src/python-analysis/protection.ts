@@ -46,7 +46,7 @@ export function markerText(
 ): string {
   const token = `__INLINE_SQL_${nonce}_${kind.toUpperCase()}_${ordinal}__`;
   if (options.sqlComment) return `-- ${token}${options.canonicalNewline ? "\n" : ""}`;
-  return `"${token}"${options.canonicalNewline ? "\n" : ""}`;
+  return `${token}${options.canonicalNewline ? "\n" : ""}`;
 }
 
 function intersectsAny(span: SourceSpan, blocked: readonly SourceSpan[]): boolean {
@@ -280,9 +280,9 @@ function markerToken(marker: string, nonce: string): string {
     if (match === null) throw new UnsafeRestore("invalid protected marker");
     return match[0].replace(/^-- /, "").replace(/\n$/, "");
   }
-  const match = new RegExp(`^"${tokenPattern}"\\n?$`).exec(marker);
+  const match = new RegExp(`^${tokenPattern}\\n?$`).exec(marker);
   if (match === null) throw new UnsafeRestore("invalid protected marker");
-  return match[0].replace(/^"|"\n?$/g, "");
+  return match[0].replace(/\n$/, "");
 }
 
 /** Restore all protected fragments in one validated ordered scan. */

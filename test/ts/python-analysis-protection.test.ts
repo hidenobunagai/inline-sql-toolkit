@@ -81,9 +81,9 @@ describe("markerText", () => {
     );
   });
 
-  it("uses a quoted identifier for other fragments", () => {
+  it("uses a bare identifier for other fragments", () => {
     expect(markerText(NONCE, "field", 0, { sqlComment: false, canonicalNewline: false })).toBe(
-      `"__INLINE_SQL_${NONCE}_FIELD_0__"`,
+      `__INLINE_SQL_${NONCE}_FIELD_0__`,
     );
   });
 });

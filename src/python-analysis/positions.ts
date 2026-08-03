@@ -99,11 +99,10 @@ export class SourceMap {
       start = match.index + match[0].length;
     }
     lines.push(lineMap(text, start, text.length, text.length));
-    const frozen = lines;
     return new SourceMap(
       text,
-      frozen,
-      frozen.map((line) => line.start),
+      lines,
+      lines.map((line) => line.start),
     );
   }
 
@@ -172,16 +171,5 @@ export class SourceMap {
   /** Convert a source span to a half-open VS Code range. */
   vscodeRange(span: SourceSpan): TextRange {
     return { start: this.vscodeFromOffset(span.start), end: this.vscodeFromOffset(span.end) };
-  }
-
-  /** Return every source offset that can be represented by VS Code. */
-  vscodeBoundaries(): readonly number[] {
-    const offsets: number[] = [];
-    for (const record of this.lines) {
-      for (let offset = record.start; offset <= record.contentEnd; offset++) {
-        offsets.push(offset);
-      }
-    }
-    return offsets;
   }
 }

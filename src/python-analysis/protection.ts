@@ -259,15 +259,14 @@ export function buildProtectionPlan(
     });
     previousEnd = span.end;
   }
-  const frozen = fragments;
   return {
     nonce,
     protectedSql: maskFragments(
       sourceMap.slice(literal.contentSpan),
       literal.contentSpan.start,
-      frozen,
+      fragments,
     ),
-    fragments: frozen,
+    fragments,
   };
 }
 

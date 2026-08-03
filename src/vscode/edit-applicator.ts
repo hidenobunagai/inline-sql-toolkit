@@ -210,9 +210,3 @@ export class DefaultEditApplicator implements EditApplicator {
     }
   }
 }
-
-export function createEditApplicator(
-  dependencies: EditApplicatorDependencies = {},
-): EditApplicator {
-  return new DefaultEditApplicator(dependencies);
-}

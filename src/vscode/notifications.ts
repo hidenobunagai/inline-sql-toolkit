@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 
-import { REASON_CODES } from "../constants.js";
 import type { FormatSummary, ReasonCode } from "../protocol.js";
 
 export type TargetReasonCode =
@@ -30,16 +29,10 @@ function assertNever(value: never): never {
 
 export function reasonMessage(code: ReasonCode): string {
   switch (code) {
-    case "PYTHON_NOT_FOUND":
-      return translate("Install Python 3.12 or later.");
-    case "PYTHON_VERSION_UNSUPPORTED":
-      return translate("Inline SQL formatting requires Python 3.12 or later.");
     case "WORKSPACE_UNTRUSTED":
       return translate("Inline SQL formatting requires a trusted workspace.");
     case "INVALID_CONFIGURATION":
       return translate("An Inline SQL setting has an invalid value.");
-    case "DOCUMENT_PARSE_FAILED":
-      return translate("The current Python document could not be parsed.");
     case "NO_SQL_CANDIDATE":
       return translate("No inline SQL candidate was found.");
     case "UNSUPPORTED_LITERAL":
@@ -54,8 +47,6 @@ export function reasonMessage(code: ReasonCode): string {
       return translate("The SQL formatter could not format the selected candidate.");
     case "RESOURCE_LIMIT_EXCEEDED":
       return translate("The document or formatting result exceeded a safety limit.");
-    case "PROCESS_TIMEOUT":
-      return translate("The Inline SQL helper timed out.");
     case "PROCESS_CANCELLED":
       return translate("Inline SQL formatting was cancelled.");
     case "PROCESS_FAILED":
@@ -150,8 +141,4 @@ export function createNotifications(
       showInformation(summaryMessage(summary, skipped, reasons));
     },
   };
-}
-
-export function allReasonCodes(): readonly ReasonCode[] {
-  return REASON_CODES;
 }

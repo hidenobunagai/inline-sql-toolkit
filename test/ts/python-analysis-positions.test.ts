@@ -19,15 +19,6 @@ describe("SourceMap position conversion", () => {
     expect(sourceMap.vscodeFromOffset(offset)).toEqual({ line, character });
     expect(sourceMap.offsetFromVscode(line, character)).toBe(offset);
   });
-
-  it.each([
-    ["a\nb", [0, 1, 2, 3]],
-    ["a\rb", [0, 1, 2, 3]],
-    ["a\r\nb", [0, 1, 3, 4]],
-    ["a\n", [0, 1, 2]],
-  ] as const)("covers each physical line boundary for %j", (text, expected) => {
-    expect(SourceMap.fromText(text).vscodeBoundaries()).toEqual(expected);
-  });
 });
 
 describe("SourceMap offset conversion", () => {

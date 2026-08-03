@@ -1,18 +1,12 @@
 import * as vscode from "vscode";
 
 import type { TextRange } from "../protocol.js";
-import { discover } from "../python-analysis/engine.js";
+import { discover, MAX_DOCUMENT_BYTES } from "../python-analysis/engine.js";
 import { analyzeDocument } from "../python-analysis/literals.js";
 import { COMMANDS } from "./commands.js";
 import { readFormatOptions } from "./configuration.js";
 import { INLINE_SQL_SELECTOR, resolveSupportedDocument } from "./document-target.js";
 import { strictPosition } from "./edit-applicator.js";
-
-const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
-
-function cancellationRequested(token: vscode.CancellationToken): boolean {
-  return token.isCancellationRequested;
-}
 
 export interface CodeActionDependencies {
   readonly isWorkspaceTrusted: () => boolean;
@@ -27,15 +21,7 @@ export class LocateCache {
   }
 
   set(uri: vscode.Uri, version: number, ranges: readonly TextRange[]): void {
-    const key = `${uri.toString()}\0${version}`;
-    this.values.delete(key);
-    const frozen = ranges.map((range) =>
-      Object.freeze({
-        start: Object.freeze({ ...range.start }),
-        end: Object.freeze({ ...range.end }),
-      }),
-    );
-    this.values.set(key, Object.freeze(frozen));
+    this.values.set(`${uri.toString()}\0${version}`, ranges);
     if (this.values.size > 32) {
       const oldest = this.values.keys().next().value;
       if (oldest !== undefined) this.values.delete(oldest);
@@ -80,7 +66,7 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
     document: vscode.TextDocument,
     token: vscode.CancellationToken,
   ): readonly TextRange[] | undefined {
-    if (cancellationRequested(token) || !this.dependencies.isWorkspaceTrusted()) return undefined;
+    if (token.isCancellationRequested || !this.dependencies.isWorkspaceTrusted()) return undefined;
 
     let resource: ReturnType<typeof resolveSupportedDocument>;
     try {
@@ -98,21 +84,12 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
     const cached = this.cache.get(document.uri, document.version);
     if (cached !== undefined) return cached;
 
-    const version = document.version;
     const analysis = analyzeDocument(text);
     const candidates = discover(analysis).map((unit) =>
       analysis.sourceMap.vscodeRange(unit.literal.span),
     );
-    if (
-      cancellationRequested(token) ||
-      document.version !== version ||
-      !this.dependencies.isWorkspaceTrusted()
-    ) {
-      this.cache.deleteUri(document.uri);
-      return undefined;
-    }
-    this.cache.set(document.uri, version, candidates);
-    return this.cache.get(document.uri, version);
+    this.cache.set(document.uri, document.version, candidates);
+    return this.cache.get(document.uri, document.version);
   }
 
   provideCodeActions(
@@ -144,7 +121,7 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
     if (
       malformed ||
       !intersects ||
-      cancellationRequested(token) ||
+      token.isCancellationRequested ||
       !this.dependencies.isWorkspaceTrusted()
     ) {
       return [];

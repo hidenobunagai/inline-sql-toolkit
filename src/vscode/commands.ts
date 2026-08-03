@@ -25,18 +25,6 @@ function createCommandDisposables(controller: FormatController): readonly Comman
 }
 
 /** Register only the three public commands contributed by the extension. */
-export function registerCommands(
-  context: vscode.ExtensionContext,
-  controller: FormatController,
-): void {
-  context.subscriptions.push(...createCommandDisposables(controller));
-}
-
-/**
- * Activation uses this variant to own module state independently of VS Code's
- * context subscription lifecycle. The public registration function remains a
- * void API for callers that only need to add the disposables to a context.
- */
 export function registerCommandsAndGetDisposables(
   context: vscode.ExtensionContext,
   controller: FormatController,

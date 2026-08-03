@@ -7,28 +7,3 @@ dependencies = []
 [tool.uv]
 package = false
 native-tls = true
-
-[tool.ruff]
-target-version = "py312"
-line-length = 88
-exclude = ["python/vendor", "test/fixtures"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "ANN", "PT"]
-
-[tool.ty.src]
-include = [
-  "python/bootstrap.py",
-  "python/inline_sql_helper",
-  "tools",
-  "test/python",
-]
-exclude = ["python/vendor"]
-
-[tool.ty.environment]
-extra-paths = ["python", "python/vendor", "tools"]
-
-[tool.pytest.ini_options]
-pythonpath = ["python", "python/vendor"]
-testpaths = ["test/python"]
-addopts = ["--strict-config", "--strict-markers"]

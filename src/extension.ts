@@ -3,8 +3,8 @@ import * as vscode from "vscode";
 import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";
 import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
 import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
-import { createEditApplicator } from "./vscode/edit-applicator.js";
-import { createFormatController } from "./vscode/format-controller.js";
+import { DefaultEditApplicator } from "./vscode/edit-applicator.js";
+import { DefaultFormatController } from "./vscode/format-controller.js";
 import { createTestHooks } from "./vscode/test-hooks.js";
 
 interface ActiveExtensionState {
@@ -34,10 +34,10 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   const hooks = createTestHooks(context);
   for (const subscription of context.subscriptions.slice(hookSubscriptionStart)) own(subscription);
 
-  const applicator = createEditApplicator({
+  const applicator = new DefaultEditApplicator({
     applyWorkspaceEdit: hooks.applyWorkspaceEdit,
   });
-  const controller = createFormatController({ applicator, hooks });
+  const controller = new DefaultFormatController({ applicator, hooks });
   const cache = new LocateCache();
   const provider = new InlineSqlCodeActionProvider(
     {

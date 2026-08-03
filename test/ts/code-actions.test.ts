@@ -7,7 +7,7 @@ import {
   InlineSqlCodeActionProvider,
   LocateCache,
 } from "../../src/vscode/code-actions.js";
-import { COMMANDS, registerCommands } from "../../src/vscode/commands.js";
+import { COMMANDS, registerCommandsAndGetDisposables } from "../../src/vscode/commands.js";
 import type { FormatController } from "../../src/vscode/format-controller.js";
 import { __mock } from "../support/vscode-mock.js";
 
@@ -39,7 +39,7 @@ describe("public command registration", () => {
     const execute = vi.fn<FormatController["execute"]>(() => Promise.resolve());
     const controller = { execute } as unknown as FormatController;
     const extensionContext = context();
-    registerCommands(extensionContext, controller);
+    registerCommandsAndGetDisposables(extensionContext, controller);
 
     expect(__mock.commandRegistrations().map(({ command }) => command)).toEqual([
       COMMANDS.cursor,
@@ -56,7 +56,7 @@ describe("public command registration", () => {
   it("routes a Code Action invocation through the same command table", async () => {
     const execute = vi.fn<FormatController["execute"]>(() => Promise.resolve());
     const extensionContext = context();
-    registerCommands(extensionContext, { execute });
+    registerCommandsAndGetDisposables(extensionContext, { execute });
     const value = document();
     const range = new vscode.Range(0, 10, 0, 16);
     await vscode.commands.executeCommand(COMMANDS.selection, {

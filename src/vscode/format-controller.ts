@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 
 import * as vscode from "vscode";
 
-import { REASON_CODES } from "../constants.js";
 import type {
   FormatMode,
   FormatOptions,
@@ -12,7 +11,7 @@ import type {
   ReasonCode,
   TextRange,
 } from "../protocol.js";
-import { allocateNonce, formatDocument } from "../python-analysis/engine.js";
+import { allocateNonce, formatDocument, MAX_DOCUMENT_BYTES } from "../python-analysis/engine.js";
 import { PositionMappingError } from "../python-analysis/positions.js";
 import { readFormatOptions } from "./configuration.js";
 import {
@@ -47,8 +46,6 @@ export interface FormatControllerDependencies {
   readonly hooks: IntegrationTestHooks;
   readonly notifications?: NotificationSink;
 }
-
-export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 
 export type InvocationTargetResolution = TargetResolution;
 
@@ -384,13 +381,9 @@ export class DefaultFormatController implements FormatController {
 
     let windowWithProgress: typeof vscode.window.withProgress | undefined;
     try {
-      windowWithProgress = (
-        vscode.window as unknown as {
-          withProgress?: typeof vscode.window.withProgress;
-        }
-      ).withProgress;
+      windowWithProgress = (vscode.window as Partial<typeof vscode.window>).withProgress;
     } catch {
-      // The unit-test host intentionally omits optional progress UI members.
+      // The unit-test host throws for optional progress UI members.
       windowWithProgress = undefined;
     }
     if (windowWithProgress === undefined) {
@@ -407,11 +400,3 @@ export class DefaultFormatController implements FormatController {
     );
   }
 }
-
-export function createFormatController(
-  dependencies: FormatControllerDependencies,
-): FormatController {
-  return new DefaultFormatController(dependencies);
-}
-
-export { REASON_CODES };

@@ -159,18 +159,10 @@ function moveCommasBeforeLineComments(text: string): string {
 
 /** Break a trailing DISTRIBUTE clause onto its own line. */
 function breakTrailingDistributeLines(text: string): string {
-  const lines = text.split("\n");
-  const result: string[] = [];
-  for (const line of lines) {
-    const match = /^(\s*)(.*?)\s+(DISTRIBUTE\b.*)$/i.exec(line);
-    if (match !== null && match[2] !== undefined && match[2].trim() !== "") {
-      result.push(`${match[1]}${match[2].trimEnd()}`);
-      result.push(`${match[1]}${match[3]}`);
-    } else {
-      result.push(line);
-    }
-  }
-  return result.join("\n");
+  return text.replace(
+    /^([ \t]*)(.*?)\s+(DISTRIBUTE\b.*)$/gim,
+    (_, indent: string, before: string, rest: string) => `${indent}${before}\n${indent}${rest}`,
+  );
 }
 
 /** Protect, format, restore, and wrap one literal exactly once. */

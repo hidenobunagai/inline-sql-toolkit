@@ -459,7 +459,8 @@ export async function launchScenario(
     ]);
     await writeScenarioUserSettings(options.scenario, userDataDir);
     const executable = await (
-      dependencies.download ?? (async (version) => downloadAndUnzipVSCode(version))
+      dependencies.download ??
+      (async (version) => downloadAndUnzipVSCode({ version, extractSync: true }))
     )(options.vscodeVersion);
     const officialMarimoExtensionRoot = await installFixtureExtensions(
       options.scenario,

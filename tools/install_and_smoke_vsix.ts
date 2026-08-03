@@ -135,7 +135,7 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
       'query = "select id, name from users"\n',
       "utf8",
     );
-    const executable = await downloadAndUnzipVSCode("stable");
+    const executable = await downloadAndUnzipVSCode({ version: "stable", extractSync: true });
     const driver = path.join(ROOT, "test", "fixtures", "extensions", "vsix-driver");
     const input = { executable, vsix, driver, workspace, userData, extensions };
     const install = buildInstallInvocation(input);

@@ -121,6 +121,19 @@ function normalizeFrame(
   return `${normalized}${baseIndent}`;
 }
 
+/** Move a field marker that ends the formatted SQL onto its own line. */
+function breakTrailingFieldMarkers(text: string): string {
+  const markerPattern = /(__INLINE_SQL_[0-9a-f]{32}_[A-Z_]+_[0-9]+__)\s*$/;
+  const match = markerPattern.exec(text);
+  if (match === null || match[1] === undefined) return text;
+  const markerStart = match.index;
+  const lineStart = text.lastIndexOf("\n", markerStart - 1) + 1;
+  const before = text.slice(lineStart, markerStart);
+  if (before.trim() === "") return text;
+  const indent = /^[ \t]*/.exec(before)?.[0] ?? "";
+  return `${text.slice(0, lineStart)}${before.trimEnd()}\n${indent}${text.slice(markerStart)}`;
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -141,6 +154,7 @@ function formatOnce(
       formatted = formatted.replace(fragment.marker + lineEnding, fragment.marker);
     }
   }
+  formatted = breakTrailingFieldMarkers(formatted);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   const baseIndent = baseIndentOf(analysis, literal);

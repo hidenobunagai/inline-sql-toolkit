@@ -31,7 +31,7 @@ interface PendingScope {
 }
 
 const TOKEN_PATTERN =
-  /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|,|;|\(|\)|\.|\[|\]|[<>!=+\-*/%:|&^~]+/g;
+  /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*"|`(?:\\.|[^`\\])*`|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|,|;|\(|\)|\.|\[|\]|\{|\}|[<>!=+\-*/%:|&^~]+/g;
 
 const AGGREGATE_FUNCTIONS = new Set([
   "any_value",
@@ -81,6 +81,21 @@ function tokenize(sql: string): SqlToken[] {
   let match: RegExpExecArray | null;
   let depth = 0;
   while ((match = TOKEN_PATTERN.exec(sql)) !== null) {
+    if (match[0] === "{") {
+      let end = match.index + 1;
+      let braceDepth = 1;
+      while (end < sql.length && braceDepth > 0) {
+        if (sql[end] === "{") {
+          braceDepth += 1;
+        } else if (sql[end] === "}") {
+          braceDepth -= 1;
+        }
+        end += 1;
+      }
+      tokens.push({ text: sql.slice(match.index, end), start: match.index, end, depth });
+      TOKEN_PATTERN.lastIndex = end;
+      continue;
+    }
     const text = match[0];
     tokens.push({ text, start: match.index, end: match.index + text.length, depth });
     if (text === "(") {
@@ -116,7 +131,8 @@ function isSelectStart(tokens: readonly SqlToken[], index: number): boolean {
     text === "union" ||
     text === "except" ||
     text === "intersect" ||
-    text.startsWith("--")
+    text.startsWith("--") ||
+    text.startsWith("{")
   );
 }
 
@@ -203,9 +219,18 @@ export function replaceOrdinals(sql: string): string {
       if (clause === undefined) continue;
       for (const [start, end] of clause.itemRanges) {
         const itemTokens = tokens.slice(start, end);
-        const item = itemTokens[0];
-        if (item === undefined || itemTokens.length !== 1 || !isNumberToken(item)) continue;
-        const ordinal = Number.parseInt(item.text, 10);
+        let ordinalToken: SqlToken | undefined;
+        if (itemTokens.length === 1) {
+          ordinalToken = itemTokens[0];
+        } else if (
+          itemTokens.length === 2 &&
+          itemTokens[1] !== undefined &&
+          itemTokens[1].text.startsWith("{")
+        ) {
+          ordinalToken = itemTokens[0];
+        }
+        if (ordinalToken === undefined || !isNumberToken(ordinalToken)) continue;
+        const ordinal = Number.parseInt(ordinalToken.text, 10);
         const column = scope.columns[ordinal - 1];
         if (column === undefined) continue;
         const text =
@@ -214,7 +239,7 @@ export function replaceOrdinals(sql: string): string {
             ? undefined
             : flatten(sql.slice(column.expressionStart, column.expressionEnd)));
         if (text === undefined || text.length === 0) continue;
-        replacements.push({ start: item.start, end: item.end, text });
+        replacements.push({ start: ordinalToken.start, end: ordinalToken.end, text });
       }
     }
   };

@@ -148,6 +148,52 @@ describe("formatCandidate", () => {
     }
   });
 
+  it("replaces ordinals after a leading f-string field and breaks the trailing field", () => {
+    const source = `query = f"""--sql
+{write_clause}
+SELECT
+  a,
+  b,
+  c,
+  d,
+  e
+FROM
+  t
+GROUP BY
+  1,
+  2,
+  3,
+  4,
+  5 {distribution_clause}
+"""`;
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        `f"""--sql
+  {write_clause}
+  SELECT
+    a,
+    b,
+    c,
+    d,
+    e
+  FROM
+    t
+  GROUP BY
+    a,
+    b,
+    c,
+    d,
+    e
+    {distribution_clause}
+"""`,
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

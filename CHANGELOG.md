@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.31 - 2026-08-02
+
+- Fixes ordinal replacement for SQL that begins with an f-string field
+  (e.g. `{write_clause}` before `SELECT`), and moves a field that ends the
+  formatted SQL onto its own line (e.g. `{distribution_clause}` after
+  `GROUP BY`).
+
 ## 0.3.30 - 2026-08-02
 
 - Fixes f-string fields attached to identifiers (e.g. `id_{table_id}`) gaining

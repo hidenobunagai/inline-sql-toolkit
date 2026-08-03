@@ -48,19 +48,43 @@ export function buildSmokeCommand(input: InstallLaunchInput): readonly string[] 
   ];
 }
 
-export function resolveCliScript(executable: string): string {
-  return process.platform === "darwin"
-    ? path.resolve(executable, "../../Resources/app/out/cli.js")
-    : path.resolve(path.dirname(executable), "resources/app/out/cli.js");
+export async function resolveCliScript(executable: string): Promise<string> {
+  const roots =
+    process.platform === "darwin"
+      ? [path.resolve(executable, "../..")]
+      : [path.dirname(executable)];
+  for (const root of roots) {
+    const direct = path.join(root, "resources", "app", "out", "cli.js");
+    try {
+      await fs.access(direct);
+      return direct;
+    } catch {
+      // fall through to the hashed layout used by VS Code 1.131.0+ archives
+    }
+    try {
+      for (const entry of await fs.readdir(root)) {
+        const candidate = path.join(root, entry, "resources", "app", "out", "cli.js");
+        try {
+          await fs.access(candidate);
+          return candidate;
+        } catch {
+          // keep searching
+        }
+      }
+    } catch {
+      // no readable children
+    }
+  }
+  throw new Error(`cannot locate VS Code cli.js for ${executable}`);
 }
 
-export function buildInstallInvocation(input: InstallLaunchInput): {
+export async function buildInstallInvocation(input: InstallLaunchInput): Promise<{
   readonly command: string;
   readonly args: readonly string[];
-} {
+}> {
   return {
     command: input.executable,
-    args: [resolveCliScript(input.executable), ...buildInstallCommand(input).slice(1)],
+    args: [await resolveCliScript(input.executable), ...buildInstallCommand(input).slice(1)],
   };
 }
 
@@ -138,7 +162,7 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
     const executable = await downloadAndUnzipVSCode({ version: "stable", extractSync: true });
     const driver = path.join(ROOT, "test", "fixtures", "extensions", "vsix-driver");
     const input = { executable, vsix, driver, workspace, userData, extensions };
-    const install = buildInstallInvocation(input);
+    const install = await buildInstallInvocation(input);
     await runCommand(
       install.command,
       install.args,

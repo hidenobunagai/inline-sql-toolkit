@@ -194,6 +194,20 @@ GROUP BY
     }
   });
 
+  it("breaks a trailing DISTRIBUTE clause onto its own line", () => {
+    const source =
+      'query = """--sql\nSELECT\n  a,\n  b,\n  c\nFROM\n  t\nGROUP BY\n  1,\n  2,\n  3 DISTRIBUTE RANDOM\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    a,\n    b,\n    c\n  FROM\n    t\n  GROUP BY\n    a,\n    b,\n    c\n    DISTRIBUTE RANDOM\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("moves a comma before a trailing line comment", () => {
     const source =
       'query = """--sql\nSELECT\n    order_id --テキスト\n,\n    order_date --テキスト\n,\n    amount\n"""';

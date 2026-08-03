@@ -291,7 +291,17 @@ export function replaceOrdinals(sql: string): string {
       }
       if (
         token.text === ")" ||
-        isKeyword(token, "having", "order", "limit", "offset", "union", "except", "intersect")
+        isKeyword(
+          token,
+          "having",
+          "order",
+          "limit",
+          "offset",
+          "union",
+          "except",
+          "intersect",
+          "distribute",
+        )
       ) {
         closeClause(scope, index);
       }

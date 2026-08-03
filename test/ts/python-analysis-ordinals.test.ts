@@ -78,6 +78,12 @@ describe("replaceOrdinals", () => {
     );
   });
 
+  it("treats DISTRIBUTE as a clause end so trailing ordinals still resolve", () => {
+    expect(replaceOrdinals("SELECT a, b, c FROM t GROUP BY 1, 2, 3 DISTRIBUTE RANDOM")).toBe(
+      "SELECT a, b, c FROM t GROUP BY a, b, c DISTRIBUTE RANDOM",
+    );
+  });
+
   it("skips the star column and replaces the following column", () => {
     expect(replaceOrdinals("SELECT *, a FROM t GROUP BY 1, 2")).toBe(
       "SELECT *, a FROM t GROUP BY 1, a",

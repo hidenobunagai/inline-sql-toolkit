@@ -157,6 +157,22 @@ function moveCommasBeforeLineComments(text: string): string {
   return result.join("\n");
 }
 
+/** Break a trailing DISTRIBUTE clause onto its own line. */
+function breakTrailingDistributeLines(text: string): string {
+  const lines = text.split("\n");
+  const result: string[] = [];
+  for (const line of lines) {
+    const match = /^(\s*)(.*?)\s+(DISTRIBUTE\b.*)$/i.exec(line);
+    if (match !== null && match[2] !== undefined && match[2].trim() !== "") {
+      result.push(`${match[1]}${match[2].trimEnd()}`);
+      result.push(`${match[1]}${match[3]}`);
+    } else {
+      result.push(line);
+    }
+  }
+  return result.join("\n");
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -179,6 +195,7 @@ function formatOnce(
   }
   formatted = breakTrailingFieldMarkers(formatted);
   formatted = moveCommasBeforeLineComments(formatted);
+  formatted = breakTrailingDistributeLines(formatted);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   const baseIndent = baseIndentOf(analysis, literal);

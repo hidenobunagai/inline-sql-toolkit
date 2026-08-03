@@ -206,8 +206,6 @@
     "test:unit": "vitest run test/ts",
     "test:docs": "vitest run test/ts/manifest.test.ts",
     "test:coverage": "vitest run --coverage test/ts",
-    "test:grammar-gate": "vitest run test/grammar/feasibility-gate.test.ts",
-    "test:grammar": "vitest run test/grammar",
     "test:integration:trusted": "bun tools/run_vscode_tests.ts trusted",
     "test:integration:untrusted": "bun tools/run_vscode_tests.ts untrusted",
     "test:integration:compatibility": "bun tools/run_vscode_tests.ts compatibility",

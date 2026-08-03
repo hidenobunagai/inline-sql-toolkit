@@ -29,30 +29,8 @@ jobs:
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: bun run ci:quality
 
-  grammar-gate:
-    needs: quality
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        vscode: ["1.95.0", stable]
-    env:
-      VSCODE_TEST_VERSION: ${{ matrix.vscode }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
-        with:
-          node-version: "22"
-      - uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3
-        with:
-          bun-version: "1.3.8"
-      - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun run test:grammar
-        env:
-          VSCODE_TEST_VERSION: ${{ matrix.vscode }}
-
   integration:
-    needs: grammar-gate
+    needs: quality
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:

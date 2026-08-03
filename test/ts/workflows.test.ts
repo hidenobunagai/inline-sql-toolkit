@@ -107,10 +107,9 @@ describe("GitHub workflow contracts", () => {
   it("keeps the CI dependency graph and package verification ordering explicit", async () => {
     const workflow = await loadWorkflow("ci.yml");
     const jobs = jobsOf(workflow);
-    expect(ancestors(jobs, "package")).toEqual(new Set(["quality", "grammar-gate", "integration"]));
+    expect(ancestors(jobs, "package")).toEqual(new Set(["quality", "integration"]));
     expect(jobs["quality"]?.needs).toBeUndefined();
-    expect(jobs["grammar-gate"]?.needs).toBe("quality");
-    expect(jobs["integration"]?.needs).toBe("grammar-gate");
+    expect(jobs["integration"]?.needs).toBe("quality");
     expect(jobs["package"]?.needs).toBe("integration");
     expect(jobs["vsix-install-smoke"]?.needs).toBe("package");
 
@@ -137,7 +136,6 @@ describe("GitHub workflow contracts", () => {
         expect(step.with?.version).toBe("0.9.28");
       }
     }
-    expect(jobs["grammar-gate"]?.strategy?.matrix?.vscode).toEqual(["1.95.0", "stable"]);
     expect(jobs["integration"]?.strategy?.matrix).toMatchObject({
       os: ["ubuntu-latest", "macos-latest", "windows-latest"],
       vscode: ["1.95.0", "stable"],

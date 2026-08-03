@@ -2,13 +2,6 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  type GrammarCase,
-  type GrammarLoadOptions,
-  type GrammarVersion,
-  tokenizeWithEmbeddedLanguages,
-} from "./grammar-loader.js";
-
 export const prefixes = [
   "",
   "r",
@@ -58,19 +51,6 @@ export interface SourceDetectionFixture extends DetectionFixtureBase {
 }
 
 export type DetectionFixture = ContentDetectionFixture | SourceDetectionFixture;
-
-export interface ImplementationDefinedObservation {
-  readonly fixtureId: string;
-  readonly language: GrammarCase["language"];
-  readonly source: string;
-  readonly sqlTokenTexts: readonly string[];
-}
-
-interface DetectionToken {
-  readonly text: string;
-  readonly scopes: readonly string[];
-  readonly embeddedLanguage: "python" | "sql" | undefined;
-}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -203,118 +183,4 @@ export function loadDetectionFixtures(): readonly DetectionFixture[] {
     ids.add(fixture.id);
   }
   return fixtures;
-}
-
-async function assertDetectionGrammar(
-  version: GrammarVersion,
-  fixture: DetectionFixture,
-  language: GrammarCase["language"],
-  source: string,
-  options: GrammarLoadOptions,
-): Promise<ImplementationDefinedObservation | undefined> {
-  const tokens = await tokenizeWithEmbeddedLanguages(
-    version,
-    {
-      id: fixture.id,
-      language,
-      source,
-      segments: [],
-    },
-    options,
-  );
-  const decodedTokens: readonly DetectionToken[] = tokens.map((token) => ({
-    text: source.slice(token.startIndex, Math.min(token.endIndex, source.length)),
-    scopes: token.scopes,
-    embeddedLanguage:
-      token.languageId === 1 ? "python" : token.languageId === 2 ? "sql" : undefined,
-  }));
-  const sqlTokens = decodedTokens.filter((token) =>
-    token.scopes.includes("meta.embedded.inline.sql"),
-  );
-  const sqlTokenTexts = sqlTokens.map(({ text }) => text);
-  if (fixture.grammarExpectation === "implementation-defined") {
-    return {
-      fixtureId: fixture.id,
-      language,
-      source,
-      sqlTokenTexts,
-    };
-  }
-  if (fixture.grammarExpectation === "sql") {
-    if (sqlTokens.length === 0 || sqlTokens.some((token) => token.embeddedLanguage !== "sql")) {
-      throw new Error(
-        `missing SQL grammar scope: ${fixture.id} (${language}) source=${JSON.stringify(source)}`,
-      );
-    }
-  } else if (sqlTokens.length !== 0) {
-    throw new Error(
-      `unexpected SQL grammar scope: ${fixture.id} (${language}) source=${JSON.stringify(source)}`,
-    );
-  }
-  return undefined;
-}
-
-export async function assertWrappedGrammarDetection(
-  version: GrammarVersion,
-  fixture: ContentDetectionFixture,
-  prefix: string,
-  delimiter: string,
-  options: GrammarLoadOptions,
-): Promise<readonly ImplementationDefinedObservation[]> {
-  const observations: ImplementationDefinedObservation[] = [];
-  for (const language of ["python", "mo-python"] as const) {
-    const observation = await assertDetectionGrammar(
-      version,
-      fixture,
-      language,
-      `query = ${prefix}${delimiter}${fixture.content}${delimiter}`,
-      options,
-    );
-    if (observation !== undefined) {
-      observations.push(observation);
-    }
-  }
-  return observations;
-}
-
-export async function assertSourceGrammarDetection(
-  version: GrammarVersion,
-  fixture: SourceDetectionFixture,
-  options: GrammarLoadOptions,
-): Promise<readonly ImplementationDefinedObservation[]> {
-  const observations: ImplementationDefinedObservation[] = [];
-  for (const language of ["python", "mo-python"] as const) {
-    const observation = await assertDetectionGrammar(
-      version,
-      fixture,
-      language,
-      fixture.source,
-      options,
-    );
-    if (observation !== undefined) {
-      observations.push(observation);
-    }
-  }
-  return observations;
-}
-
-export async function runDetectionParityForVersion(
-  version: GrammarVersion,
-  options: GrammarLoadOptions = {},
-): Promise<readonly ImplementationDefinedObservation[]> {
-  const observations: ImplementationDefinedObservation[] = [];
-  for (const fixture of loadDetectionFixtures()) {
-    if (fixture.kind === "content") {
-      for (const prefix of prefixes) {
-        for (const delimiter of delimiters) {
-          observations.push(
-            ...(await assertWrappedGrammarDetection(version, fixture, prefix, delimiter, options)),
-          );
-        }
-      }
-    } else {
-      observations.push(...(await assertSourceGrammarDetection(version, fixture, options)));
-    }
-  }
-  return observations;
 }

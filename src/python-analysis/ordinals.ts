@@ -147,6 +147,10 @@ function isOperator(token: SqlToken | undefined): boolean {
   return token !== undefined && /^[+\-*/%<>=!~|&^]+$/.test(token.text);
 }
 
+function isCommentToken(token: SqlToken): boolean {
+  return token.text.startsWith("--") || token.text.startsWith("/*");
+}
+
 /** Extract alias and aggregate flag from one select-list item. */
 function columnOf(tokens: readonly SqlToken[], start: number, end: number): SelectColumn {
   const slice = tokens.slice(start, end);
@@ -169,10 +173,11 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     alias = last.text;
     expressionEnd = secondLast.start;
   } else if (
+    secondLast !== undefined &&
     isNameToken(last) &&
     !RESERVED.has(last.text.toLowerCase()) &&
     !simpleColumn &&
-    !isOperator(secondLast)
+    (!isOperator(secondLast) || isCommentToken(secondLast))
   ) {
     alias = last.text;
     expressionEnd = last.start;
@@ -188,6 +193,20 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
 
 function flatten(text: string): string {
   return text.replace(/\s+/g, " ").trim();
+}
+
+/** Copy a select expression without comments, preserving original spacing. */
+function expressionText(sql: string, tokens: readonly SqlToken[], column: SelectColumn): string {
+  let result = "";
+  let cursor = column.expressionStart;
+  for (const token of tokens) {
+    if (token.start < column.expressionStart || token.end > column.expressionEnd) continue;
+    if (!isCommentToken(token)) continue;
+    result += sql.slice(cursor, token.start);
+    cursor = token.end;
+  }
+  result += sql.slice(cursor, column.expressionEnd);
+  return flatten(result);
 }
 
 /**
@@ -241,7 +260,9 @@ export function replaceOrdinals(sql: string): string {
             .slice(1)
             .every(
               (token) =>
-                ORDINAL_SUFFIXES.has(token.text.toLowerCase()) || token.text.startsWith("{"),
+                ORDINAL_SUFFIXES.has(token.text.toLowerCase()) ||
+                token.text.startsWith("{") ||
+                isCommentToken(token),
             )
         ) {
           ordinalToken = firstItemToken;
@@ -251,10 +272,7 @@ export function replaceOrdinals(sql: string): string {
         const column = scope.columns[ordinal - 1];
         if (column === undefined) continue;
         const text =
-          column.alias ??
-          (column.aggregate
-            ? undefined
-            : flatten(sql.slice(column.expressionStart, column.expressionEnd)));
+          column.alias ?? (column.aggregate ? undefined : expressionText(sql, tokens, column));
         if (text === undefined || text.length === 0) continue;
         replacements.push({ start: ordinalToken.start, end: ordinalToken.end, text });
       }

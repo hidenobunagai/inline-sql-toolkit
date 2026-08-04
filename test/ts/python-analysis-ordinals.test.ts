@@ -125,4 +125,28 @@ describe("replaceOrdinals", () => {
       "SELECT a, b FROM t GROUP BY a, b WITH ROLLUP",
     );
   });
+
+  it("does not copy comments from the select expression", () => {
+    expect(replaceOrdinals("SELECT userid /* テキスト */, amount FROM t GROUP BY 1, 2")).toBe(
+      "SELECT userid /* テキスト */, amount FROM t GROUP BY userid, amount",
+    );
+    expect(replaceOrdinals("SELECT userid -- テキスト\nFROM t GROUP BY 1")).toBe(
+      "SELECT userid -- テキスト\nFROM t GROUP BY userid",
+    );
+    expect(replaceOrdinals("SELECT date_trunc('month', /* c */ paid_at) FROM t GROUP BY 1")).toBe(
+      "SELECT date_trunc('month', /* c */ paid_at) FROM t GROUP BY date_trunc('month', paid_at)",
+    );
+  });
+
+  it("treats comments as whitespace between expression and implicit alias", () => {
+    expect(replaceOrdinals("SELECT a /* c */ b FROM t GROUP BY 1")).toBe(
+      "SELECT a /* c */ b FROM t GROUP BY b",
+    );
+  });
+
+  it("still resolves ordinals followed by a comment", () => {
+    expect(replaceOrdinals("SELECT a, b FROM t GROUP BY 1 /* c */, 2")).toBe(
+      "SELECT a, b FROM t GROUP BY a /* c */, b",
+    );
+  });
 });

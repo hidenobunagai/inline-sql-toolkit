@@ -52,6 +52,9 @@ const AGGREGATE_FUNCTIONS = new Set([
   "xmlagg",
 ]);
 
+/** Directional / position suffixes allowed after an ordinal in ORDER BY / GROUP BY items. */
+const ORDINAL_SUFFIXES = new Set(["asc", "desc", "nulls", "first", "last"]);
+
 /** Keywords that can never be a column alias inside a select list. */
 const RESERVED = new Set([
   "as",
@@ -124,6 +127,10 @@ function isSelectStart(tokens: readonly SqlToken[], index: number): boolean {
   if (index === 0) return true;
   const previous = tokens[index - 1];
   const text = previous?.text.toLowerCase() ?? "";
+  if (text === "all") {
+    const before = tokens[index - 2]?.text.toLowerCase() ?? "";
+    return before === "union" || before === "except";
+  }
   return (
     text === "(" ||
     text === ";" ||
@@ -149,10 +156,16 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     return { expressionStart: 0, expressionEnd: 0, alias: undefined, aggregate: false };
   }
   const secondLast = slice[slice.length - 2];
-  const simpleColumn = slice.length === 1 || (slice.length === 3 && slice[1]?.text === ".");
+  const simpleColumn =
+    slice.length % 2 === 1 &&
+    slice.every((token, i) => (i % 2 === 0 ? isNameToken(token) : token.text === "."));
   let alias: string | undefined;
   let expressionEnd = last.end;
-  if (secondLast !== undefined && isKeyword(secondLast, "as") && isNameToken(last)) {
+  if (
+    secondLast !== undefined &&
+    isKeyword(secondLast, "as") &&
+    (isNameToken(last) || /^["`]/.test(last.text))
+  ) {
     alias = last.text;
     expressionEnd = secondLast.start;
   } else if (
@@ -220,14 +233,18 @@ export function replaceOrdinals(sql: string): string {
       for (const [start, end] of clause.itemRanges) {
         const itemTokens = tokens.slice(start, end);
         let ordinalToken: SqlToken | undefined;
-        if (itemTokens.length === 1) {
-          ordinalToken = itemTokens[0];
-        } else if (
-          itemTokens.length === 2 &&
-          itemTokens[1] !== undefined &&
-          itemTokens[1].text.startsWith("{")
+        const firstItemToken = itemTokens[0];
+        if (
+          firstItemToken !== undefined &&
+          isNumberToken(firstItemToken) &&
+          itemTokens
+            .slice(1)
+            .every(
+              (token) =>
+                ORDINAL_SUFFIXES.has(token.text.toLowerCase()) || token.text.startsWith("{"),
+            )
         ) {
-          ordinalToken = itemTokens[0];
+          ordinalToken = firstItemToken;
         }
         if (ordinalToken === undefined || !isNumberToken(ordinalToken)) continue;
         const ordinal = Number.parseInt(ordinalToken.text, 10);
@@ -297,10 +314,12 @@ export function replaceOrdinals(sql: string): string {
           "order",
           "limit",
           "offset",
+          "qualify",
           "union",
           "except",
           "intersect",
           "distribute",
+          "with",
         )
       ) {
         closeClause(scope, index);

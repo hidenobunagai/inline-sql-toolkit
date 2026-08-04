@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.38 - 2026-08-04
+
+- Fixes `FORMATTER_FAILED (not idempotent)` skips caused by sql-formatter
+  toggling between one-line and expanded layouts (e.g. `CASE` expressions
+  next to comments): formatting now converges to the stable layout instead of
+  rejecting the candidate.
+- Fixes `GROUP BY` ordinal replacement emitting invalid SQL when the select
+  column has a comment after its alias (e.g. `END AS label /* テキスト */`):
+  the alias is now detected, so `GROUP BY label` is used.
+- The debug output channel now logs the full line-by-line diff when
+  convergence fails, and the format summary includes the dialect and layout
+  settings.
+
 ## 0.3.37 - 2026-08-04
 
 - Adds an `Inline SQL Toolkit` output channel that logs why a candidate was

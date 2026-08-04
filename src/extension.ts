@@ -37,7 +37,8 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   const applicator = new DefaultEditApplicator({
     applyWorkspaceEdit: hooks.applyWorkspaceEdit,
   });
-  const controller = new DefaultFormatController({ applicator, hooks });
+  const debugChannel = own(vscode.window.createOutputChannel("Inline SQL Toolkit"));
+  const controller = new DefaultFormatController({ applicator, hooks, debugChannel });
   const cache = new LocateCache();
   const provider = new InlineSqlCodeActionProvider(
     {

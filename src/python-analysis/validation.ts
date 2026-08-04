@@ -37,13 +37,18 @@ export interface CandidateUnchanged {
 
 export type CandidateResult = CandidateEdit | CandidateUnchanged | CandidateSkip;
 
+/** Debug sink for skipped candidates; defaults to no-op. */
+export type DebugLogger = (message: string) => void;
+
 /** Internal source-free failure carrying the public skip reason. */
 class CandidateFailure extends Error {
   readonly reason: ReasonCode;
+  readonly detail: string | undefined;
 
-  constructor(reason: ReasonCode) {
-    super(reason);
+  constructor(reason: ReasonCode, detail?: string) {
+    super(detail === undefined ? reason : `${reason}: ${detail}`);
     this.reason = reason;
+    this.detail = detail;
   }
 }
 
@@ -211,9 +216,11 @@ function replacementLiteral(
   original: SupportedLiteral,
 ): SupportedLiteral {
   const matches = updated.supported.filter((item) => item.span.start === original.span.start);
-  if (matches.length !== 1) throw new CandidateFailure("FORMATTER_FAILED");
+  if (matches.length !== 1) {
+    throw new CandidateFailure("FORMATTER_FAILED", `reparse found ${matches.length} literals`);
+  }
   const result = matches[0];
-  if (result === undefined) throw new CandidateFailure("FORMATTER_FAILED");
+  if (result === undefined) throw new CandidateFailure("FORMATTER_FAILED", "reparse found none");
   if (
     result.prefix !== original.prefix ||
     result.delimiter !== original.delimiter ||
@@ -253,20 +260,27 @@ function validateReplacementAndIdempotency(
   let updatedAnalysis: DocumentAnalysis;
   try {
     updatedAnalysis = analyzeDocument(updatedSource);
-  } catch {
-    throw new CandidateFailure("FORMATTER_FAILED");
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    throw new CandidateFailure("FORMATTER_FAILED", `reparse threw: ${message}`);
   }
 
   const updatedLiteral = replacementLiteral(updatedAnalysis, literal);
-  if (
-    fieldTexts(analysis, literal).join("\u0000") !==
-    fieldTexts(updatedAnalysis, updatedLiteral).join("\u0000")
-  ) {
-    throw new CandidateFailure("UNSAFE_FSTRING_RESTORE");
+  const before = fieldTexts(analysis, literal).join("\u0000");
+  const after = fieldTexts(updatedAnalysis, updatedLiteral).join("\u0000");
+  if (before !== after) {
+    throw new CandidateFailure(
+      "UNSAFE_FSTRING_RESTORE",
+      `field texts changed: before=[${before.split("\u0000").join(", ")}] after=[${after
+        .split("\u0000")
+        .join(", ")}]`,
+    );
   }
 
   const updatedDetection = detectSql(updatedLiteral, updatedAnalysis.sourceMap);
-  if (!updatedDetection.matched) throw new CandidateFailure("FORMATTER_FAILED");
+  if (!updatedDetection.matched) {
+    throw new CandidateFailure("FORMATTER_FAILED", "updated candidate no longer matches --sql");
+  }
   const second = formatOnce(
     updatedAnalysis,
     updatedLiteral,
@@ -275,7 +289,13 @@ function validateReplacementAndIdempotency(
     nonce,
     sqlFormatter,
   );
-  if (second !== first) throw new CandidateFailure("FORMATTER_FAILED");
+  if (second !== first) {
+    const clip = (text: string): string => (text.length > 160 ? `${text.slice(0, 160)}...` : text);
+    throw new CandidateFailure(
+      "FORMATTER_FAILED",
+      `not idempotent:\nfirst=${clip(first)}\nsecond=${clip(second)}`,
+    );
+  }
 }
 
 /** Return a changed, unchanged, or safely skipped candidate state. */
@@ -287,8 +307,11 @@ export function formatCandidate(
   options: FormatOptions,
   nonce: string,
   sqlFormatter: SqlFormatter,
+  logger?: DebugLogger,
 ): CandidateResult {
+  const preview = (text: string): string => (text.length > 200 ? `${text.slice(0, 200)}...` : text);
   if (analysis.sourceMap.text !== source) {
+    logger?.("candidate skipped (FORMATTER_FAILED): stale source snapshot");
     return { sourceSpan: literal.span, reason: "FORMATTER_FAILED" };
   }
   const expected = analysis.sourceMap.slice(literal.span);
@@ -309,11 +332,21 @@ export function formatCandidate(
     );
   } catch (error) {
     if (error instanceof CandidateFailure) {
+      logger?.(
+        `candidate skipped (${error.reason}): ${error.detail ?? "no detail"}\n` +
+          `  literal: ${preview(expected)}`,
+      );
       return { sourceSpan: literal.span, reason: error.reason };
     }
     if (error instanceof UnsafeRestore) {
+      logger?.(
+        `candidate skipped (UNSAFE_FSTRING_RESTORE): ${error.message}\n` +
+          `  literal: ${preview(expected)}`,
+      );
       return { sourceSpan: literal.span, reason: "UNSAFE_FSTRING_RESTORE" };
     }
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    logger?.(`candidate skipped (FORMATTER_FAILED): ${message}\n  literal: ${preview(expected)}`);
     return { sourceSpan: literal.span, reason: "FORMATTER_FAILED" };
   }
   if (first === expected) return { sourceSpan: literal.span };

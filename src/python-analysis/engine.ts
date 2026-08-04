@@ -4,6 +4,7 @@ import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { PositionMappingError, SourceMap, SourceSpan } from "./positions.js";
 import { allocateNonce } from "./protection.js";
 import type { SupportedLiteral, UnsupportedLiteral } from "./tokenizer.js";
+import type { DebugLogger } from "./validation.js";
 import {
   type CandidateEdit,
   formatCandidate,
@@ -103,6 +104,7 @@ export function formatDocument(
   target: FormatTarget,
   nonce: string,
   sqlFormatter: SqlFormatter,
+  logger?: DebugLogger,
 ): EngineResult {
   if (Buffer.byteLength(source, "utf8") > MAX_DOCUMENT_BYTES) {
     throw new PositionMappingError("document exceeds the size limit");
@@ -134,6 +136,7 @@ export function formatDocument(
       options,
       nonce,
       sqlFormatter,
+      logger,
     );
     if ("reason" in result) {
       skipReasons.push(result.reason);
@@ -146,18 +149,26 @@ export function formatDocument(
   }
   const combined = combinedSource(source, edits);
   analyzeDocument(combined);
+  const summary = {
+    discovered: units.length,
+    selected: selected.length,
+    changed,
+    unchanged,
+    skipped: skipReasons.length,
+  };
+  if (logger !== undefined) {
+    logger(
+      `format: discovered=${summary.discovered} selected=${summary.selected} ` +
+        `changed=${summary.changed} unchanged=${summary.unchanged} ` +
+        `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,
+    );
+  }
   return {
     sourceMap: analysis.sourceMap,
     edits,
     skipped: skipReasons.length,
     skipReasons,
-    summary: {
-      discovered: units.length,
-      selected: selected.length,
-      changed,
-      unchanged,
-      skipped: skipReasons.length,
-    },
+    summary,
   };
 }
 

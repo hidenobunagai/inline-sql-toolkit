@@ -249,4 +249,39 @@ GROUP BY
     );
     expect(result).toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
   });
+
+  it("logs skip details to the debug logger", () => {
+    const lines: string[] = [];
+    const logger = (message: string): void => {
+      lines.push(message);
+    };
+    const stale = analyzeOne('query = "select 1"');
+    formatCandidate(
+      'query = "changed"',
+      stale.analysis,
+      stale.literal,
+      stale.detection,
+      OPTIONS,
+      NONCE,
+      formatter,
+      logger,
+    );
+    expect(lines.some((line) => line.includes("FORMATTER_FAILED"))).toBe(true);
+    expect(lines.some((line) => line.includes("stale source snapshot"))).toBe(true);
+
+    const unparsable = analyzeOne('query = """--sql\nSELECT {col} FROM t\n"""');
+    formatCandidate(
+      'query = """--sql\nSELECT {col} FROM t\n"""',
+      unparsable.analysis,
+      unparsable.literal,
+      unparsable.detection,
+      OPTIONS,
+      NONCE,
+      formatter,
+      logger,
+    );
+    expect(
+      lines.some((line) => line.includes("FORMATTER_FAILED") && line.includes("literal:")),
+    ).toBe(true);
+  });
 });

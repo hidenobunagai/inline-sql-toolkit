@@ -45,6 +45,7 @@ export interface FormatControllerDependencies {
   readonly applicator?: EditApplicator;
   readonly hooks: IntegrationTestHooks;
   readonly notifications?: NotificationSink;
+  readonly debugChannel?: vscode.OutputChannel;
 }
 
 export type InvocationTargetResolution = TargetResolution;
@@ -148,6 +149,7 @@ function collapseReplacement(literalText: string, replacement: string): string {
 export class DefaultFormatController implements FormatController {
   private readonly applicator: EditApplicator;
   private readonly notifications: NotificationSink;
+  private readonly logger: ((message: string) => void) | undefined;
 
   constructor(private readonly dependencies: FormatControllerDependencies) {
     this.applicator =
@@ -156,6 +158,8 @@ export class DefaultFormatController implements FormatController {
         applyWorkspaceEdit: dependencies.hooks.applyWorkspaceEdit,
       });
     this.notifications = dependencies.notifications ?? createNotifications();
+    const channel = dependencies.debugChannel;
+    this.logger = channel === undefined ? undefined : (message) => { channel.appendLine(message); };
   }
 
   private complete(outcome: {
@@ -207,6 +211,7 @@ export class DefaultFormatController implements FormatController {
           { mode: "all" },
           nonce,
           (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
+          this.logger,
         );
         for (const edit of result.edits) {
           const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
@@ -305,6 +310,7 @@ export class DefaultFormatController implements FormatController {
         protocol,
         nonce,
         (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
+        this.logger,
       );
       skipReasons = result.skipReasons;
       formatted = {

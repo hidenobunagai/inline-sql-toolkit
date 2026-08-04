@@ -237,65 +237,65 @@ function fieldTexts(analysis: DocumentAnalysis, literal: SupportedLiteral): read
 }
 
 /** Parse, reconcile, and format the candidate again with identical inputs. */
-function validateReplacementAndIdempotency(
+/** Require each iteration to be a valid candidate, then re-format until stable. */
+function convergeToFixedPoint(
   source: string,
   analysis: DocumentAnalysis,
   literal: SupportedLiteral,
+  detection: SqlDetection,
   options: FormatOptions,
   nonce: string,
   sqlFormatter: SqlFormatter,
-  first: string,
-): void {
-  try {
-    const reparsed = analyzeDocument(first);
-    if (reparsed.supported.length !== 1 || reparsed.unsupported.length !== 0) {
+): string {
+  let current = formatOnce(analysis, literal, detection, options, nonce, sqlFormatter);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const reparsed = analyzeDocument(current);
+      if (reparsed.supported.length !== 1 || reparsed.unsupported.length !== 0) {
+        throw new CandidateFailure("UNSAFE_RAW_STRING");
+      }
+    } catch (error) {
+      if (error instanceof CandidateFailure) throw error;
       throw new CandidateFailure("UNSAFE_RAW_STRING");
     }
-  } catch (error) {
-    if (error instanceof CandidateFailure) throw error;
-    throw new CandidateFailure("UNSAFE_RAW_STRING");
-  }
-
-  const updatedSource = replaceSource(source, literal.span, first);
-  let updatedAnalysis: DocumentAnalysis;
-  try {
-    updatedAnalysis = analyzeDocument(updatedSource);
-  } catch (error) {
-    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
-    throw new CandidateFailure("FORMATTER_FAILED", `reparse threw: ${message}`);
-  }
-
-  const updatedLiteral = replacementLiteral(updatedAnalysis, literal);
-  const before = fieldTexts(analysis, literal).join("\u0000");
-  const after = fieldTexts(updatedAnalysis, updatedLiteral).join("\u0000");
-  if (before !== after) {
-    throw new CandidateFailure(
-      "UNSAFE_FSTRING_RESTORE",
-      `field texts changed: before=[${before.split("\u0000").join(", ")}] after=[${after
-        .split("\u0000")
-        .join(", ")}]`,
+    const updatedSource = replaceSource(source, literal.span, current);
+    let updatedAnalysis: DocumentAnalysis;
+    try {
+      updatedAnalysis = analyzeDocument(updatedSource);
+    } catch (error) {
+      const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+      throw new CandidateFailure("FORMATTER_FAILED", `reparse threw: ${message}`);
+    }
+    const updatedLiteral = replacementLiteral(updatedAnalysis, literal);
+    const before = fieldTexts(analysis, literal).join("\u0000");
+    const after = fieldTexts(updatedAnalysis, updatedLiteral).join("\u0000");
+    if (before !== after) {
+      throw new CandidateFailure(
+        "UNSAFE_FSTRING_RESTORE",
+        `field texts changed: before=[${before.split("\u0000").join(", ")}] after=[${after
+          .split("\u0000")
+          .join(", ")}]`,
+      );
+    }
+    const updatedDetection = detectSql(updatedLiteral, updatedAnalysis.sourceMap);
+    if (!updatedDetection.matched) {
+      throw new CandidateFailure("FORMATTER_FAILED", "updated candidate no longer matches --sql");
+    }
+    const next = formatOnce(
+      updatedAnalysis,
+      updatedLiteral,
+      updatedDetection,
+      options,
+      nonce,
+      sqlFormatter,
     );
+    if (next === current) return current;
+    current = next;
   }
-
-  const updatedDetection = detectSql(updatedLiteral, updatedAnalysis.sourceMap);
-  if (!updatedDetection.matched) {
-    throw new CandidateFailure("FORMATTER_FAILED", "updated candidate no longer matches --sql");
-  }
-  const second = formatOnce(
-    updatedAnalysis,
-    updatedLiteral,
-    updatedDetection,
-    options,
-    nonce,
-    sqlFormatter,
+  throw new CandidateFailure(
+    "FORMATTER_FAILED",
+    "formatting did not converge to a fixed point in 3 attempts",
   );
-  if (second !== first) {
-    const clip = (text: string): string => (text.length > 160 ? `${text.slice(0, 160)}...` : text);
-    throw new CandidateFailure(
-      "FORMATTER_FAILED",
-      `not idempotent:\nfirst=${clip(first)}\nsecond=${clip(second)}`,
-    );
-  }
 }
 
 /** Return a changed, unchanged, or safely skipped candidate state. */
@@ -320,15 +320,14 @@ export function formatCandidate(
   }
   let first: string;
   try {
-    first = formatOnce(analysis, literal, detection, options, nonce, sqlFormatter);
-    validateReplacementAndIdempotency(
+    first = convergeToFixedPoint(
       source,
       analysis,
       literal,
+      detection,
       options,
       nonce,
       sqlFormatter,
-      first,
     );
   } catch (error) {
     if (error instanceof CandidateFailure) {

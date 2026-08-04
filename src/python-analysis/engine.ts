@@ -158,8 +158,9 @@ export function formatDocument(
   };
   if (logger !== undefined) {
     logger(
-      `format: discovered=${summary.discovered} selected=${summary.selected} ` +
-        `changed=${summary.changed} unchanged=${summary.unchanged} ` +
+      `format: dialect=${options.dialect} expandSelectList=${options.expandSelectList} ` +
+        `wrapAfter=${options.wrapAfter} discovered=${summary.discovered} ` +
+        `selected=${summary.selected} changed=${summary.changed} unchanged=${summary.unchanged} ` +
         `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,
     );
   }

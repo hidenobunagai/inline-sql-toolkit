@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.36 - 2026-08-04
+
+- Fixes formatting being skipped entirely (`FORMATTER_FAILED` /
+  `UNSAFE_FSTRING_RESTORE`) when a `GROUP BY` ordinal referenced a select
+  column containing an f-string field (e.g. `ci.{parameter} /* テキスト */`):
+  the field is no longer copied into the clause, so it is not duplicated and
+  the f-string safety gate passes. The ordinal stays in place; columns
+  without fields (or with an alias) still resolve as before.
+
 ## 0.3.35 - 2026-08-04
 
 - Stops comments from leaking into `GROUP BY` / `ORDER BY` when ordinals are

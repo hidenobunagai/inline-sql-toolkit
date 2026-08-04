@@ -236,6 +236,20 @@ GROUP BY
     }
   });
 
+  it("converges CASE expressions to their stable layout", () => {
+    const source =
+      'query = """--sql\nSELECT chn /* テキスト */, nm /* テキスト */, CASE WHEN site = 1 THEN chn ELSE nm END AS label, amount FROM t GROUP BY 1, 2, 3, 4\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    label,\n    amount\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

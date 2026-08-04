@@ -158,4 +158,17 @@ describe("replaceOrdinals", () => {
       "SELECT ci.{parameter} AS p, amount FROM t GROUP BY p, amount",
     );
   });
+
+  it("detects aliases that trail a comment", () => {
+    expect(
+      replaceOrdinals(
+        "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t GROUP BY 1, 2",
+      ),
+    ).toBe(
+      "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t GROUP BY label, amount",
+    );
+    expect(replaceOrdinals("SELECT SUM(amount) AS total /* c */ FROM t GROUP BY 1")).toBe(
+      "SELECT SUM(amount) AS total /* c */ FROM t GROUP BY total",
+    );
+  });
 });

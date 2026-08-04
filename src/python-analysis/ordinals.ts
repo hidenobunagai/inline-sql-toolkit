@@ -153,16 +153,16 @@ function isCommentToken(token: SqlToken): boolean {
 
 /** Extract alias and aggregate flag from one select-list item. */
 function columnOf(tokens: readonly SqlToken[], start: number, end: number): SelectColumn {
-  const slice = tokens.slice(start, end);
-  const first = slice[0];
-  const last = slice[slice.length - 1];
+  const visible = tokens.slice(start, end).filter((token) => !isCommentToken(token));
+  const first = visible[0];
+  const last = visible[visible.length - 1];
   if (first === undefined || last === undefined) {
     return { expressionStart: 0, expressionEnd: 0, alias: undefined, aggregate: false };
   }
-  const secondLast = slice[slice.length - 2];
+  const secondLast = visible[visible.length - 2];
   const simpleColumn =
-    slice.length % 2 === 1 &&
-    slice.every((token, i) => (i % 2 === 0 ? isNameToken(token) : token.text === "."));
+    visible.length % 2 === 1 &&
+    visible.every((token, i) => (i % 2 === 0 ? isNameToken(token) : token.text === "."));
   let alias: string | undefined;
   let expressionEnd = last.end;
   if (
@@ -177,7 +177,7 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     isNameToken(last) &&
     !RESERVED.has(last.text.toLowerCase()) &&
     !simpleColumn &&
-    (!isOperator(secondLast) || isCommentToken(secondLast))
+    !isOperator(secondLast)
   ) {
     alias = last.text;
     expressionEnd = last.start;

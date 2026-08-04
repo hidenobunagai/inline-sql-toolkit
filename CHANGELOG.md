@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.34 - 2026-08-04
+
+- Resolves `GROUP BY` / `ORDER BY` ordinals in more real-world queries:
+  `QUALIFY` and `WITH ROLLUP` no longer swallow trailing ordinals, direction
+  suffixes (`DESC`, `ASC`, `NULLS LAST`) stay on the replaced column, each
+  `UNION ALL` branch resolves against its own select list, fully qualified
+  column names (`project.dataset.table.col`) keep their qualification, and
+  quoted aliases are copied verbatim.
+
 ## 0.3.33 - 2026-08-02
 
 - Treats `DISTRIBUTE` as a clause end so a trailing `GROUP BY` ordinal still

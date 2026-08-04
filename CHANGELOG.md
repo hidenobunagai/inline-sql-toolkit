@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.37 - 2026-08-04
+
+- Adds an `Inline SQL Toolkit` output channel that logs why a candidate was
+  skipped: the skip reason, the failing detail (parse error, field-text
+  mismatch, idempotency diff), and the literal content. Open it via
+  View -> Output after a format to diagnose `FORMATTER_FAILED` /
+  `UNSAFE_FSTRING_RESTORE` skips.
+
 ## 0.3.36 - 2026-08-04
 
 - Fixes formatting being skipped entirely (`FORMATTER_FAILED` /

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.35 - 2026-08-04
+
+- Stops comments from leaking into `GROUP BY` / `ORDER BY` when ordinals are
+  replaced: a trailing comment on a select expression (e.g. `userid /* テキスト */`)
+  is no longer copied into the clause, a comment between an expression and its
+  implicit alias no longer blocks alias detection, and an ordinal followed by a
+  comment (e.g. `GROUP BY 1 /* c */`) still resolves.
+
 ## 0.3.34 - 2026-08-04
 
 - Resolves `GROUP BY` / `ORDER BY` ordinals in more real-world queries:

@@ -45,7 +45,7 @@ describe("extension manifest", () => {
       name: "inline-sql-toolkit",
       displayName: "Inline SQL Toolkit",
       publisher: "hidenobunagai",
-      version: "0.3.34",
+      version: "0.3.35",
       engines: { vscode: "^1.95.0" },
       main: "./dist/extension.js",
     });

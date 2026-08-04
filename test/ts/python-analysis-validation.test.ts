@@ -222,6 +222,20 @@ GROUP BY
     }
   });
 
+  it("formats f-string fields next to comments without duplicating the field", () => {
+    const source =
+      'query = f"""--sql\nSELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, 2\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        'f"""--sql\n  SELECT\n    ci.{parameter} /* テキスト */,\n    amount\n  FROM\n    t\n  GROUP BY\n    1,\n    amount\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("rejects a stale source snapshot", () => {
     const { analysis, literal, detection } = analyzeOne('query = "select 1"');
     const result = formatCandidate(

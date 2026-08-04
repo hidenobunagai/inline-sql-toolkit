@@ -271,8 +271,15 @@ export function replaceOrdinals(sql: string): string {
         const ordinal = Number.parseInt(ordinalToken.text, 10);
         const column = scope.columns[ordinal - 1];
         if (column === undefined) continue;
-        const text =
-          column.alias ?? (column.aggregate ? undefined : expressionText(sql, tokens, column));
+        let text: string | undefined;
+        if (column.alias !== undefined) {
+          text = column.alias;
+        } else if (!column.aggregate) {
+          const expression = expressionText(sql, tokens, column);
+          // ponytail: copying an expression that contains an f-string field would
+          // duplicate the field and trip the f-string safety gate; keep the ordinal.
+          if (!expression.includes("{")) text = expression;
+        }
         if (text === undefined || text.length === 0) continue;
         replacements.push({ start: ordinalToken.start, end: ordinalToken.end, text });
       }

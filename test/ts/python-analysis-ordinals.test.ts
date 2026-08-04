@@ -149,4 +149,13 @@ describe("replaceOrdinals", () => {
       "SELECT a, b FROM t GROUP BY a /* c */, b",
     );
   });
+
+  it("keeps ordinals whose column expression contains an f-string field", () => {
+    expect(
+      replaceOrdinals("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, 2"),
+    ).toBe("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, amount");
+    expect(replaceOrdinals("SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, 2")).toBe(
+      "SELECT ci.{parameter} AS p, amount FROM t GROUP BY p, amount",
+    );
+  });
 });

@@ -159,7 +159,12 @@ export class DefaultFormatController implements FormatController {
       });
     this.notifications = dependencies.notifications ?? createNotifications();
     const channel = dependencies.debugChannel;
-    this.logger = channel === undefined ? undefined : (message) => { channel.appendLine(message); };
+    this.logger =
+      channel === undefined
+        ? undefined
+        : (message) => {
+            channel.appendLine(message);
+          };
   }
 
   private complete(outcome: {

@@ -9,7 +9,6 @@ export interface TestOperationOutcome {
 }
 
 export interface IntegrationTestHooks {
-  readonly processWillSpawn: (kind: "version" | "helper") => void;
   readonly afterHelperResponse: (cancelOperation: () => void) => Promise<void>;
   readonly isWorkspaceTrusted: (actualTrust: boolean) => boolean;
   readonly applyWorkspaceEdit: (edit: vscode.WorkspaceEdit) => Thenable<boolean>;
@@ -25,10 +24,6 @@ export interface TestHookConfiguration {
 
 export interface HookSnapshot {
   readonly barrierReached: boolean;
-  readonly spawnCounts: {
-    readonly version: number;
-    readonly helper: number;
-  };
   readonly lastOutcome: TestOperationOutcome | undefined;
 }
 
@@ -44,7 +39,6 @@ const TEST_COMMANDS = {
 
 function productionHooks(): IntegrationTestHooks {
   return Object.freeze({
-    processWillSpawn: () => {},
     afterHelperResponse: async () => {},
     isWorkspaceTrusted: (actualTrust: boolean) => actualTrust,
     applyWorkspaceEdit: (edit: vscode.WorkspaceEdit) => vscode.workspace.applyEdit(edit),
@@ -76,13 +70,9 @@ function createEnabledTestHooks(context: vscode.ExtensionContext): IntegrationTe
   let barrierReached = false;
   let releaseBarrier: (() => void) | undefined;
   const barrierWaiters = new Set<() => void>();
-  const spawnCounts = { version: 0, helper: 0 };
   let lastOutcome: TestOperationOutcome | undefined;
 
   const hooks: IntegrationTestHooks = {
-    processWillSpawn(kind) {
-      spawnCounts[kind] += 1;
-    },
     async afterHelperResponse(cancelOperation) {
       if (configuration.pauseBeforeApply !== true) return;
       barrierReached = true;
@@ -114,7 +104,6 @@ function createEnabledTestHooks(context: vscode.ExtensionContext): IntegrationTe
 
   const readSnapshot = (): HookSnapshot => ({
     barrierReached,
-    spawnCounts: { ...spawnCounts },
     lastOutcome,
   });
   const dispose = (): void => {

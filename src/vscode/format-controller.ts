@@ -3,9 +3,11 @@ import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 
 import type {
+  FormatEdit,
   FormatMode,
   FormatOptions,
   FormatSuccess,
+  FormatSummary,
   FormatTarget,
   Position,
   ReasonCode,
@@ -146,6 +148,36 @@ function collapseReplacement(literalText: string, replacement: string): string {
   return replacement.replace(/\s*\n\s*/g, " ").trim();
 }
 
+/** Format one source text behind the shared safety checks. */
+function formatText(
+  text: string,
+  options: FormatOptions,
+  target: FormatTarget,
+  logger: ((message: string) => void) | undefined,
+): { readonly edits: readonly FormatEdit[]; readonly summary: FormatSummary; readonly skipReasons: readonly ReasonCode[] } {
+  const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
+  const result = formatDocument(
+    text,
+    options,
+    target,
+    nonce,
+    (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
+    logger,
+  );
+  return {
+    edits: result.edits.map((edit) => {
+      const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
+      return {
+        range: result.sourceMap.vscodeRange(edit.sourceSpan),
+        expectedText: literalText,
+        newText: collapseReplacement(literalText, edit.replacementText),
+      };
+    }),
+    summary: result.summary,
+    skipReasons: [...result.skipReasons],
+  };
+}
+
 export class DefaultFormatController implements FormatController {
   private readonly applicator: EditApplicator;
   private readonly notifications: NotificationSink;
@@ -209,26 +241,13 @@ export class DefaultFormatController implements FormatController {
         continue;
       }
       try {
-        const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
-        const result = formatDocument(
-          text,
-          options,
-          { mode: "all" },
-          nonce,
-          (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
-          this.logger,
-        );
-        for (const edit of result.edits) {
-          const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
-          edits.replace(
-            cell.document.uri,
-            toVscodeRange(result.sourceMap.vscodeRange(edit.sourceSpan)),
-            collapseReplacement(literalText, edit.replacementText),
-          );
+        const formatted = formatText(text, options, { mode: "all" }, this.logger);
+        for (const edit of formatted.edits) {
+          edits.replace(cell.document.uri, toVscodeRange(edit.range), edit.newText);
         }
-        changed += result.summary.changed;
-        skipped += result.summary.skipped;
-        skipReasons.push(...result.skipReasons);
+        changed += formatted.summary.changed;
+        skipped += formatted.summary.skipped;
+        skipReasons.push(...formatted.skipReasons);
       } catch (error) {
         if (error instanceof PositionMappingError) {
           this.notifyReason("PROTOCOL_ERROR");
@@ -308,31 +327,9 @@ export class DefaultFormatController implements FormatController {
     // eslint-disable-next-line no-useless-assignment
     let skipReasons: readonly ReasonCode[] = [];
     try {
-      const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
-      const result = formatDocument(
-        text,
-        options.options,
-        protocol,
-        nonce,
-        (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
-        this.logger,
-      );
+      const result = formatText(text, options.options, protocol, this.logger);
       skipReasons = result.skipReasons;
-      formatted = {
-        protocolVersion: 1,
-        operation: "format",
-        ok: true,
-        edits: result.edits.map((edit) => {
-          const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
-          return {
-            range: result.sourceMap.vscodeRange(edit.sourceSpan),
-            expectedText: edit.expectedText,
-            newText: collapseReplacement(literalText, edit.replacementText),
-          };
-        }),
-        skips: [],
-        summary: result.summary,
-      };
+      formatted = { edits: result.edits, summary: result.summary };
     } catch (error) {
       if (error instanceof PositionMappingError) {
         this.notifyReason("PROTOCOL_ERROR");

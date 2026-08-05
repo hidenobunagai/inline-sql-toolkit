@@ -26,7 +26,6 @@ function hooks(): IntegrationTestHooks & { readonly outcomes: TestOperationOutco
   const outcomes: TestOperationOutcome[] = [];
   return {
     outcomes,
-    processWillSpawn: () => {},
     afterHelperResponse: async () => {},
     isWorkspaceTrusted: (value) => value,
     applyWorkspaceEdit: () => Promise.resolve(true),

@@ -10,8 +10,6 @@
   "configuration.format.indentWidth.description": "SQL のインデントに使用する空白の数を指定します。",
   "configuration.format.wrapAfter.description": "三重引用符内の SQL を折り返す目安の行長を指定します。",
   "configuration.format.useSpaceAroundOperators.description": "SQL 演算子の前後に空白を挿入するかどうかを指定します。",
-  "configuration.format.expandSelectList.description": "三重引用符の SQL で、SELECT の各列を 1 行ずつインデントして改行します。",
-  "configuration.format.trimBlankBoundaries.description": "三重引用符の SQL の先頭・末尾にある余分な空行を、1 つの改行にまとめます。",
   "configuration.format.dialect.description": "フォーマッタが使用する SQL 方言。",
   "semanticTokenTypes.inlineSqlKeyword.description": "インライン SQL リテラル内の SQL キーワード。",
   "semanticTokenTypes.inlineSqlString.description": "インライン SQL リテラル内の SQL 文字列リテラル。",

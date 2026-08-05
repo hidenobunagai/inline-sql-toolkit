@@ -25,8 +25,6 @@ const DEFAULTS: FormatOptions = {
   indentWidth: 2,
   wrapAfter: 88,
   useSpaceAroundOperators: true,
-  expandSelectList: true,
-  trimBlankBoundaries: true,
   replaceOrdinals: true,
   dialect: "postgresql",
 };

@@ -18,17 +18,12 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const indentWidthValue = configuration.get<unknown>("format.indentWidth");
   const wrapAfterValue = configuration.get<unknown>("format.wrapAfter");
   const operatorSpacingValue = configuration.get<unknown>("format.useSpaceAroundOperators");
-  const expandSelectListValue = configuration.get<unknown>("format.expandSelectList");
-  const trimBlankBoundariesValue = configuration.get<unknown>("format.trimBlankBoundaries");
   const replaceOrdinalsValue = configuration.get<unknown>("format.replaceOrdinals");
   const dialectValue = configuration.get<unknown>("format.dialect");
   const keywordCase = keywordCaseValue === undefined ? "upper" : keywordCaseValue;
   const indentWidth = indentWidthValue === undefined ? 2 : indentWidthValue;
   const wrapAfter = wrapAfterValue === undefined ? 88 : wrapAfterValue;
   const useSpaceAroundOperators = operatorSpacingValue === undefined ? true : operatorSpacingValue;
-  const expandSelectList = expandSelectListValue === undefined ? true : expandSelectListValue;
-  const trimBlankBoundaries =
-    trimBlankBoundariesValue === undefined ? true : trimBlankBoundariesValue;
   const replaceOrdinals = replaceOrdinalsValue === undefined ? true : replaceOrdinalsValue;
   const dialect = dialectValue === undefined ? "postgresql" : dialectValue;
   if (
@@ -36,8 +31,6 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
     !integerBetween(indentWidth, 1, 8) ||
     !integerBetween(wrapAfter, 20, 500) ||
     typeof useSpaceAroundOperators !== "boolean" ||
-    typeof expandSelectList !== "boolean" ||
-    typeof trimBlankBoundaries !== "boolean" ||
     typeof replaceOrdinals !== "boolean" ||
     (dialect !== "sql" && dialect !== "mysql" && dialect !== "postgresql" && dialect !== "sqlite")
   )
@@ -49,8 +42,6 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
       indentWidth,
       wrapAfter,
       useSpaceAroundOperators,
-      expandSelectList,
-      trimBlankBoundaries,
       replaceOrdinals,
       dialect,
     },

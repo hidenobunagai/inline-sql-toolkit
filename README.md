@@ -98,10 +98,6 @@ later atomic precondition.
   88).
 - `inlineSql.format.useSpaceAroundOperators`: add spaces around operators
   (default `true`).
-- `inlineSql.format.expandSelectList`: place every SELECT column on its own
-  indented line in triple-quoted SQL (default `true`).
-- `inlineSql.format.trimBlankBoundaries`: collapse extra blank lines at the
-  start and end of triple-quoted SQL to a single line ending (default `true`).
 - `inlineSql.format.replaceOrdinals`: replace `GROUP BY` / `ORDER BY` ordinal
   numbers (`1`, `2`, ...) with the referenced column names, preferring
   aliases (default `true`).

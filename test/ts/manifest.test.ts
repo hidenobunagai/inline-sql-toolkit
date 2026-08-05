@@ -155,8 +155,6 @@ describe("extension manifest", () => {
       "inlineSql.format.indentWidth",
       "inlineSql.format.wrapAfter",
       "inlineSql.format.useSpaceAroundOperators",
-      "inlineSql.format.expandSelectList",
-      "inlineSql.format.trimBlankBoundaries",
       "inlineSql.format.dialect",
     ]) {
       expect(readme).toContain(setting);

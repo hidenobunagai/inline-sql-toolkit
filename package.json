@@ -87,18 +87,6 @@
           "scope": "resource",
           "description": "%configuration.format.useSpaceAroundOperators.description%"
         },
-        "inlineSql.format.expandSelectList": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "description": "%configuration.format.expandSelectList.description%"
-        },
-        "inlineSql.format.trimBlankBoundaries": {
-          "type": "boolean",
-          "default": true,
-          "scope": "resource",
-          "description": "%configuration.format.trimBlankBoundaries.description%"
-        },
         "inlineSql.format.replaceOrdinals": {
           "type": "boolean",
           "default": true,

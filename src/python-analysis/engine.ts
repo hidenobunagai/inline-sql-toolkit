@@ -158,7 +158,7 @@ export function formatDocument(
   };
   if (logger !== undefined) {
     logger(
-      `format: dialect=${options.dialect} expandSelectList=${options.expandSelectList} ` +
+      `format: dialect=${options.dialect} wrapAfter=${options.wrapAfter} ` +
         `wrapAfter=${options.wrapAfter} discovered=${summary.discovered} ` +
         `selected=${summary.selected} changed=${summary.changed} unchanged=${summary.unchanged} ` +
         `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,

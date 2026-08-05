@@ -18,8 +18,6 @@ export interface FormatOptions {
   readonly indentWidth: number;
   readonly wrapAfter: number;
   readonly useSpaceAroundOperators: boolean;
-  readonly expandSelectList: boolean;
-  readonly trimBlankBoundaries: boolean;
   readonly replaceOrdinals: boolean;
   readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
 }
@@ -45,15 +43,6 @@ export interface FormatSummary {
 }
 
 export interface FormatSuccess {
-  readonly protocolVersion: 1;
-  readonly operation: "format" | "finalize";
-  readonly ok: true;
   readonly edits: readonly FormatEdit[];
-  readonly skips: readonly CandidateSkipPayload[];
   readonly summary: FormatSummary;
-}
-
-export interface CandidateSkipPayload {
-  readonly range: TextRange;
-  readonly reason: ReasonCode;
 }

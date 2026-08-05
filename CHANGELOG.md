@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.1 - 2026-08-05
+
+- Fixes SQL corruption when a query contains a Python `%`-style
+  placeholder: `%s`, `%(name)s`, `%04d`, and `%%` were reformatted as
+  `% s` etc. and broke the query. Placeholders are now kept intact
+  exactly as written. The modulo operator (`a % 2`) still formats
+  normally.
+- Fixes `GROUP BY`/`ORDER BY` ordinal replacement duplicating a
+  `%`-placeholder when the referenced column expression contained one;
+  the ordinal now stays in place.
+
 ## 0.4.0 - 2026-08-05
 
 - Removes the no-op `inlineSql.format.expandSelectList` and

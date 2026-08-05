@@ -5,7 +5,6 @@ import { activate, deactivate } from "../../src/extension.js";
 import {
   type CodeActionDependencies,
   InlineSqlCodeActionProvider,
-  LocateCache,
 } from "../../src/vscode/code-actions.js";
 import { COMMANDS, registerCommandsAndGetDisposables } from "../../src/vscode/commands.js";
 import type { FormatController } from "../../src/vscode/format-controller.js";
@@ -14,10 +13,6 @@ import { __mock } from "../support/vscode-mock.js";
 beforeEach(() => {
   __mock.reset();
 });
-
-function context(): vscode.ExtensionContext {
-  return { subscriptions: [] } as unknown as vscode.ExtensionContext;
-}
 
 function document(text = "query = 'SELECT 1'"): vscode.TextDocument {
   return __mock.document({
@@ -38,8 +33,7 @@ describe("public command registration", () => {
   it("registers exactly the three commands and delegates their modes", async () => {
     const execute = vi.fn<FormatController["execute"]>(() => Promise.resolve());
     const controller = { execute } as unknown as FormatController;
-    const extensionContext = context();
-    registerCommandsAndGetDisposables(extensionContext, controller);
+    registerCommandsAndGetDisposables(controller);
 
     expect(__mock.commandRegistrations().map(({ command }) => command)).toEqual([
       COMMANDS.cursor,
@@ -55,8 +49,7 @@ describe("public command registration", () => {
 
   it("routes a Code Action invocation through the same command table", async () => {
     const execute = vi.fn<FormatController["execute"]>(() => Promise.resolve());
-    const extensionContext = context();
-    registerCommandsAndGetDisposables(extensionContext, { execute });
+    registerCommandsAndGetDisposables({ execute });
     const value = document();
     const range = new vscode.Range(0, 10, 0, 16);
     await vscode.commands.executeCommand(COMMANDS.selection, {
@@ -107,21 +100,6 @@ describe("InlineSqlCodeActionProvider", () => {
       command: COMMANDS.selection,
       arguments: [{ documentUri: value.uri, range }],
     });
-  });
-
-  it("caches located candidates per URI and version", () => {
-    const cache = new LocateCache();
-    const uri = vscode.Uri.file("/workspace/query.py");
-    const first = [{ start: { line: 0, character: 8 }, end: { line: 0, character: 18 } }];
-    cache.set(uri, 1, first);
-    expect(cache.get(uri, 1)).toEqual(first);
-    expect(cache.get(uri, 2)).toBeUndefined();
-    cache.set(uri, 2, [{ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } }]);
-    expect(cache.get(uri, 1)).toEqual(first);
-    expect(cache.get(uri, 2)).toHaveLength(1);
-    cache.deleteUri(uri);
-    expect(cache.get(uri, 1)).toBeUndefined();
-    expect(cache.get(uri, 2)).toBeUndefined();
   });
 
   it.each([

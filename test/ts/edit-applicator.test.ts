@@ -12,11 +12,7 @@ beforeEach(() => {
 
 function response(edits: FormatSuccess["edits"]): FormatSuccess {
   return {
-    protocolVersion: 1,
-    operation: "format",
-    ok: true,
     edits,
-    skips: [],
     summary: {
       discovered: edits.length,
       selected: edits.length,

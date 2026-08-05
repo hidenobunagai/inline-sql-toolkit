@@ -12,34 +12,6 @@ export interface CodeActionDependencies {
   readonly isWorkspaceTrusted: () => boolean;
 }
 
-/** A bounded cache of completed locate results, keyed by URI and document version. */
-export class LocateCache {
-  private readonly values = new Map<string, readonly TextRange[]>();
-
-  get(uri: vscode.Uri, version: number): readonly TextRange[] | undefined {
-    return this.values.get(`${uri.toString()}\0${version}`);
-  }
-
-  set(uri: vscode.Uri, version: number, ranges: readonly TextRange[]): void {
-    this.values.set(`${uri.toString()}\0${version}`, ranges);
-    if (this.values.size > 32) {
-      const oldest = this.values.keys().next().value;
-      if (oldest !== undefined) this.values.delete(oldest);
-    }
-  }
-
-  deleteUri(uri: vscode.Uri): void {
-    const prefix = `${uri.toString()}\0`;
-    for (const key of this.values.keys()) {
-      if (key.startsWith(prefix)) this.values.delete(key);
-    }
-  }
-
-  clear(): void {
-    this.values.clear();
-  }
-}
-
 /**
  * Provides a lightweight refactor action. The action carries only a document
  * URI and requested range; formatting always obtains a fresh snapshot through
@@ -48,19 +20,7 @@ export class LocateCache {
 export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
   static readonly providedCodeActionKinds = [vscode.CodeActionKind.RefactorRewrite];
 
-  private readonly cache: LocateCache;
-
-  constructor(
-    private readonly dependencies: CodeActionDependencies,
-    cache = new LocateCache(),
-  ) {
-    this.cache = cache;
-  }
-
-  clearCache(uri?: vscode.Uri): void {
-    if (uri === undefined) this.cache.clear();
-    else this.cache.deleteUri(uri);
-  }
+  constructor(private readonly dependencies: CodeActionDependencies) {}
 
   private locateCandidates(
     document: vscode.TextDocument,
@@ -81,15 +41,8 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
     const text = document.getText();
     if (Buffer.byteLength(text, "utf8") > MAX_DOCUMENT_BYTES) return undefined;
 
-    const cached = this.cache.get(document.uri, document.version);
-    if (cached !== undefined) return cached;
-
     const analysis = analyzeDocument(text);
-    const candidates = discover(analysis).map((unit) =>
-      analysis.sourceMap.vscodeRange(unit.literal.span),
-    );
-    this.cache.set(document.uri, document.version, candidates);
-    return this.cache.get(document.uri, document.version);
+    return discover(analysis).map((unit) => analysis.sourceMap.vscodeRange(unit.literal.span));
   }
 
   provideCodeActions(
@@ -117,13 +70,7 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
       if (hit) intersects = true;
     }
 
-    if (malformed) this.cache.deleteUri(document.uri);
-    if (
-      malformed ||
-      !intersects ||
-      token.isCancellationRequested ||
-      !this.dependencies.isWorkspaceTrusted()
-    ) {
+    if (malformed || !intersects || token.isCancellationRequested) {
       return [];
     }
 

@@ -8,9 +8,10 @@ export const COMMANDS = {
   all: "inlineSql.formatAll",
 } as const;
 
-type CommandDisposable = vscode.Disposable;
-
-function createCommandDisposables(controller: FormatController): readonly CommandDisposable[] {
+/** Register only the three public commands contributed by the extension. */
+export function registerCommandsAndGetDisposables(
+  controller: FormatController,
+): readonly vscode.Disposable[] {
   return [
     vscode.commands.registerCommand(COMMANDS.cursor, (invocation?: FormatInvocation) =>
       controller.execute("cursor", invocation),
@@ -22,14 +23,4 @@ function createCommandDisposables(controller: FormatController): readonly Comman
       controller.execute("all", invocation),
     ),
   ];
-}
-
-/** Register only the three public commands contributed by the extension. */
-export function registerCommandsAndGetDisposables(
-  context: vscode.ExtensionContext,
-  controller: FormatController,
-): readonly CommandDisposable[] {
-  const registrations = createCommandDisposables(controller);
-  context.subscriptions.push(...registrations);
-  return registrations;
 }

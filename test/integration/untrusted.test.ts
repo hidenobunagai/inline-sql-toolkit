@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 
 import * as vscode from "vscode";
 
-import { type HookSnapshot, TEST_HOOK_COMMANDS } from "../../src/vscode/test-hooks.js";
+import { TEST_HOOK_COMMANDS } from "../../src/vscode/test-hooks.js";
 import { openStandaloneFixture, selectNeedle } from "../support/vscode-harness.js";
 
 export async function testUntrustedHighlightOnly(): Promise<void> {

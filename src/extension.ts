@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { InlineSqlCodeActionProvider, LocateCache } from "./vscode/code-actions.js";
+import { InlineSqlCodeActionProvider } from "./vscode/code-actions.js";
 import { registerCommandsAndGetDisposables } from "./vscode/commands.js";
 import { INLINE_SQL_SELECTOR } from "./vscode/document-target.js";
 import { DefaultEditApplicator } from "./vscode/edit-applicator.js";
@@ -39,15 +39,11 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   });
   const debugChannel = own(vscode.window.createOutputChannel("Inline SQL Toolkit"));
   const controller = new DefaultFormatController({ applicator, hooks, debugChannel });
-  const cache = new LocateCache();
-  const provider = new InlineSqlCodeActionProvider(
-    {
-      isWorkspaceTrusted: () => hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
-    },
-    cache,
-  );
+  const provider = new InlineSqlCodeActionProvider({
+    isWorkspaceTrusted: () => hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
+  });
 
-  for (const disposable of registerCommandsAndGetDisposables(context, controller)) own(disposable);
+  for (const disposable of registerCommandsAndGetDisposables(controller)) own(disposable);
 
   const registrationState: { provider: vscode.Disposable | undefined } = {
     provider: undefined,
@@ -62,7 +58,6 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
       },
     );
     registrationState.provider = own(registration);
-    context.subscriptions.push(registration);
   };
 
   let trustGrant: vscode.Disposable | undefined;
@@ -71,26 +66,12 @@ function createState(context: vscode.ExtensionContext): ActiveExtensionState {
   } else {
     trustGrant = own(
       vscode.workspace.onDidGrantWorkspaceTrust(() => {
-        cache.clear();
         registerCodeActionsOnce();
         trustGrant?.dispose();
         trustGrant = undefined;
       }),
     );
-    context.subscriptions.push(trustGrant);
   }
-
-  const changeSubscription = own(
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      cache.deleteUri(event.document.uri);
-    }),
-  );
-  const closeSubscription = own(
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      cache.deleteUri(document.uri);
-    }),
-  );
-  context.subscriptions.push(changeSubscription, closeSubscription);
 
   return {
     disposables: owned,

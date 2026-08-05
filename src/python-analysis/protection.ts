@@ -1,6 +1,6 @@
 import type { SqlDetection } from "./detection.js";
 import { SourceMap, SourceSpan } from "./positions.js";
-import type { LiteralKind, SupportedLiteral } from "./tokenizer.js";
+import type { SupportedLiteral } from "./tokenizer.js";
 
 /** Kind of source text replaced by an opaque formatter marker. */
 export type ProtectedKind = "field" | "escaped_brace" | "python_escape" | "sql_marker";
@@ -332,5 +332,3 @@ export function restoreProtected(formatted: string, plan: ProtectionPlan): strin
   }
   return restored;
 }
-
-export type { LiteralKind };

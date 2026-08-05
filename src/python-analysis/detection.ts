@@ -35,16 +35,10 @@ function continuesIdentifier(character: string): boolean {
 /** Split text into lines, keeping terminators, like Python splitlines(True). */
 function splitLinesKeepends(text: string): readonly string[] {
   const lines: string[] = [];
-  let start = 0;
-  for (let index = 0; index < text.length; index++) {
-    const char = text[index];
-    if (char !== "\n" && char !== "\r") continue;
-    const end = char === "\r" && text[index + 1] === "\n" ? index + 2 : index + 1;
-    lines.push(text.slice(start, end));
-    start = end;
-    index = end - 1;
+  const parts = text.split(/(\r\n|\r|\n)/);
+  for (let index = 0; index < parts.length; index += 2) {
+    lines.push(`${parts[index] ?? ""}${parts[index + 1] ?? ""}`);
   }
-  if (start < text.length) lines.push(text.slice(start));
   return lines;
 }
 

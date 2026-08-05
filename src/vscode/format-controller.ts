@@ -154,7 +154,11 @@ function formatText(
   options: FormatOptions,
   target: FormatTarget,
   logger: ((message: string) => void) | undefined,
-): { readonly edits: readonly FormatEdit[]; readonly summary: FormatSummary; readonly skipReasons: readonly ReasonCode[] } {
+): {
+  readonly edits: readonly FormatEdit[];
+  readonly summary: FormatSummary;
+  readonly skipReasons: readonly ReasonCode[];
+} {
   const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
   const result = formatDocument(
     text,

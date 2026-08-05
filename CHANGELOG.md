@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-08-05
+
+- Removes the no-op `inlineSql.format.expandSelectList` and
+  `inlineSql.format.trimBlankBoundaries` settings: they were read and
+  validated but never applied by the formatter. Existing user
+  configurations for these settings are ignored without error.
+- Internal cleanup with no formatting behavior changes: drops the
+  code-action locate cache, unused `SourceMap` AST/token offset
+  conversions, the dead helper-process fixture loader and protocol
+  fields, and the never-fired process-spawn test hooks.
+
 ## 0.3.38 - 2026-08-04
 
 - Fixes `FORMATTER_FAILED (not idempotent)` skips caused by sql-formatter

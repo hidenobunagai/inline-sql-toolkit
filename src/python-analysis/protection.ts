@@ -3,7 +3,7 @@ import { SourceMap, SourceSpan } from "./positions.js";
 import type { SupportedLiteral } from "./tokenizer.js";
 
 /** Kind of source text replaced by an opaque formatter marker. */
-export type ProtectedKind = "field" | "escaped_brace" | "python_escape" | "sql_marker";
+export type ProtectedKind = "field" | "escaped_brace" | "python_escape" | "percent" | "sql_marker";
 
 /** A source-free failure to restore protected Python text. */
 export class UnsafeRestore extends Error {}
@@ -184,6 +184,27 @@ function discoverSourceSpecs(
       continue;
     }
     cursor += 1;
+  }
+
+  // Python %-formatting placeholders: %s, %(name)s, %%, %04d, %-5.2f, ...
+  // The formatter would otherwise space out the `%` operator into `% s`,
+  // silently breaking the query.
+  const percentPattern = /%(?:\([^)]+\))?[#0\- +]*(?:\d+)?(?:\.\d+)?[hlL]?[diouxXeEfFgGcrsa%]/g;
+  percentPattern.lastIndex = content.start;
+  let percentMatch: RegExpExecArray | null;
+  while ((percentMatch = percentPattern.exec(sourceMap.text)) !== null) {
+    if (percentMatch.index >= content.end) break;
+    const end = percentMatch.index + percentMatch[0].length;
+    if (end > content.end) break;
+    const span = new SourceSpan(percentMatch.index, end);
+    if (
+      !intersectsAny(
+        span,
+        specs.map((item) => item.sourceSpan),
+      )
+    ) {
+      specs.push(spec("percent", span));
+    }
   }
   return [...specs].sort((left, right) => left.sourceSpan.start - right.sourceSpan.start);
 }

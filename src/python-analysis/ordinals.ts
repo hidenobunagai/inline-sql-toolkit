@@ -276,9 +276,9 @@ export function replaceOrdinals(sql: string): string {
           text = column.alias;
         } else if (!column.aggregate) {
           const expression = expressionText(sql, tokens, column);
-          // ponytail: copying an expression that contains an f-string field would
-          // duplicate the field and trip the f-string safety gate; keep the ordinal.
-          if (!expression.includes("{")) text = expression;
+          // ponytail: copying an expression that contains an f-string field or
+          // a %-placeholder would duplicate it; keep the ordinal.
+          if (!expression.includes("{") && !expression.includes("%")) text = expression;
         }
         if (text === undefined || text.length === 0) continue;
         replacements.push({ start: ordinalToken.start, end: ordinalToken.end, text });

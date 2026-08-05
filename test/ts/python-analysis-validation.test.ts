@@ -60,6 +60,29 @@ describe("formatCandidate", () => {
     expect(result).not.toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
   });
 
+  it("keeps Python %-placeholders intact", () => {
+    const source = 'query = "select id from t where x = %s and y = %(name)s and z = %04d"';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toContain("%s");
+      expect(result.replacementText).toContain("%(name)s");
+      expect(result.replacementText).toContain("%04d");
+      expect(result.replacementText).not.toContain("% s");
+    }
+    expect(result).not.toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
+  });
+
+  it("still formats the modulo operator with spaces", () => {
+    const source = 'query = "select a % 2 from t"';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toContain("a % 2");
+    }
+    expect(result).not.toEqual({ sourceSpan: literal.span, reason: "FORMATTER_FAILED" });
+  });
+
   it("skips non-SQL candidates", () => {
     const source = 'query = "not sql"';
     const { analysis, literal, detection } = analyzeOne(source);

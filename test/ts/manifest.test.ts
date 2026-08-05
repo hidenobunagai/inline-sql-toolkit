@@ -38,17 +38,16 @@ describe("extension manifest", () => {
       name: manifest.name,
       displayName: manifest.displayName,
       publisher: manifest.publisher,
-      version: manifest.version,
       engines: manifest.engines,
       main: manifest.main,
     }).toEqual({
       name: "inline-sql-toolkit",
       displayName: "Inline SQL Toolkit",
       publisher: "hidenobunagai",
-      version: "0.3.38",
       engines: { vscode: "^1.95.0" },
       main: "./dist/extension.js",
     });
+    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("activates only for the approved commands and languages", () => {

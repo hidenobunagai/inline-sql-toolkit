@@ -22,18 +22,6 @@ describe("SourceMap position conversion", () => {
 });
 
 describe("SourceMap offset conversion", () => {
-  it("converts one-based AST positions with UTF-8 columns", () => {
-    const sourceMap = SourceMap.fromText("query = '日本x'");
-    expect(sourceMap.offsetFromAst(1, 8)).toBe(8);
-    expect(sourceMap.offsetFromAst(1, 12)).toBe(10);
-  });
-
-  it("converts one-based tokenizer rows and code-point columns", () => {
-    const sourceMap = SourceMap.fromText("a\nquery = 'x'");
-    expect(sourceMap.offsetFromToken(2, 0)).toBe(2);
-    expect(sourceMap.offsetFromToken(2, 5)).toBe(7);
-  });
-
   it("rejects columns that are not code-point boundaries", () => {
     const sourceMap = SourceMap.fromText("😀x");
     expect(() => sourceMap.offsetFromVscode(0, 1)).toThrow(PositionMappingError);

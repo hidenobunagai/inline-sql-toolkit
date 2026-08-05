@@ -19,31 +19,19 @@ export class SourceSpan {
 interface LineMap {
   readonly start: number;
   readonly contentEnd: number;
-  readonly nextStart: number;
-  readonly utf8AtCodepoint: readonly number[];
   readonly utf16AtCodepoint: readonly number[];
 }
 
-function utf8ByteLength(codePoint: number): number {
-  if (codePoint < 0x80) return 1;
-  if (codePoint < 0x800) return 2;
-  if (codePoint < 0x10000) return 3;
-  return 4;
-}
-
-function lineMap(text: string, start: number, contentEnd: number, nextStart: number): LineMap {
-  const utf8 = [0];
+function lineMap(text: string, start: number, contentEnd: number): LineMap {
   const utf16 = [0];
   for (let offset = start; offset < contentEnd;) {
     const codePoint = text.codePointAt(offset) ?? 0;
     const characterLength = codePoint > 0xffff ? 2 : 1;
-    const previousUtf8 = utf8[utf8.length - 1] ?? 0;
     const previousUtf16 = utf16[utf16.length - 1] ?? 0;
-    utf8.push(previousUtf8 + utf8ByteLength(codePoint));
     utf16.push(previousUtf16 + characterLength);
     offset += characterLength;
   }
-  return { start, contentEnd, nextStart, utf8AtCodepoint: utf8, utf16AtCodepoint: utf16 };
+  return { start, contentEnd, utf16AtCodepoint: utf16 };
 }
 
 function lowerBound(values: readonly number[], value: number): number {
@@ -95,10 +83,10 @@ export class SourceMap {
     const lineEnd = /\r\n|\r|\n/g;
     let match: RegExpExecArray | null;
     while ((match = lineEnd.exec(text)) !== null) {
-      lines.push(lineMap(text, start, match.index, match.index + match[0].length));
+      lines.push(lineMap(text, start, match.index));
       start = match.index + match[0].length;
     }
-    lines.push(lineMap(text, start, text.length, text.length));
+    lines.push(lineMap(text, start, text.length));
     return new SourceMap(
       text,
       lines,
@@ -123,22 +111,6 @@ export class SourceMap {
       throw new PositionMappingError("span is outside the document");
     }
     return this.text.slice(span.start, span.end);
-  }
-
-  /** Convert a one-based AST line and UTF-8 byte column to an offset. */
-  offsetFromAst(lineno: number, utf8Col: number): number {
-    const record = this.line(lineno - 1);
-    return record.start + exactIndex(record.utf8AtCodepoint, utf8Col);
-  }
-
-  /** Convert a one-based tokenizer row and physical code-point column. */
-  offsetFromToken(row: number, codepointCol: number): number {
-    const record = this.line(row - 1);
-    const maximum = record.nextStart - record.start;
-    if (codepointCol < 0 || codepointCol > maximum) {
-      throw new PositionMappingError("token column is outside the physical line");
-    }
-    return record.start + codepointCol;
   }
 
   /** Convert a zero-based VS Code line and UTF-16 column to an offset. */

@@ -158,8 +158,10 @@ export function formatDocument(
   };
   if (logger !== undefined) {
     logger(
-      `format: dialect=${options.dialect} wrapAfter=${options.wrapAfter} ` +
-        `wrapAfter=${options.wrapAfter} discovered=${summary.discovered} ` +
+      `format: dialect=${options.dialect} keywordCase=${options.keywordCase} ` +
+        `indentWidth=${options.indentWidth} wrapAfter=${options.wrapAfter} ` +
+        `useSpaceAroundOperators=${options.useSpaceAroundOperators} ` +
+        `replaceOrdinals=${options.replaceOrdinals} discovered=${summary.discovered} ` +
         `selected=${summary.selected} changed=${summary.changed} unchanged=${summary.unchanged} ` +
         `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,
     );

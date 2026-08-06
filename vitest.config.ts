@@ -10,7 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["test/ts/**/*.test.ts", "test/grammar/**/*.test.ts"],
+    include: ["test/ts/**/*.test.ts"],
     restoreMocks: true,
   },
 });

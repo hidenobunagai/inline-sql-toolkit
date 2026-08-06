@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.2 - 2026-08-06
+
+- Updates the error messages shown when formatting fails or produces an
+  invalid response: they no longer reference the removed helper process
+  and describe the failure directly.
+- The `Inline SQL Toolkit` output channel's format summary now lists the
+  dialect and every layout setting (keyword case, indent width, wrap
+  width, operator spacing, ordinal replacement) exactly once.
+- Internal cleanup with no formatting behavior changes: drops the dead
+  grammar test glob, renames the Python project metadata to match the
+  extension, and excludes local agent tool configuration from formatting
+  checks.
+
 ## 0.4.1 - 2026-08-05
 
 - Fixes SQL corruption when a query contains a Python `%`-style

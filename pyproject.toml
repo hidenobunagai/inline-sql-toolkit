@@ -1,9 +1,9 @@
 [project]
-name = "inline-sql-toolkit-helper"
-version = "0.2.5"
+name = "inline-sql-toolkit"
+version = "0.4.1"
 requires-python = ">=3.12"
 dependencies = []
 
 [tool.uv]
 package = false
-native-tls = true
+system-certs = true

@@ -50,13 +50,13 @@ export function reasonMessage(code: ReasonCode): string {
     case "PROCESS_CANCELLED":
       return translate("Inline SQL formatting was cancelled.");
     case "PROCESS_FAILED":
-      return translate("The Inline SQL helper failed.");
+      return translate("Inline SQL formatting failed.");
     case "DOCUMENT_CHANGED":
       return translate("The document changed before formatting could be applied.");
     case "APPLY_EDIT_FAILED":
       return translate("VS Code could not apply the Inline SQL edit.");
     case "PROTOCOL_ERROR":
-      return translate("The Inline SQL helper returned an invalid response.");
+      return translate("Inline SQL formatting produced an invalid response.");
     default:
       return assertNever(code);
   }

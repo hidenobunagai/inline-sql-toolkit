@@ -5,6 +5,5 @@
   "publisher": "inline-sql-tests",
   "engines": { "vscode": "^1.95.0" },
   "main": "./extension.js",
-  "activationEvents": ["*"],
   "extensionKind": ["workspace"]
 }

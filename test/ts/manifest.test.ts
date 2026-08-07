@@ -50,16 +50,12 @@ describe("extension manifest", () => {
     expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  it("activates only for the approved commands and languages", () => {
+  it("activates only for the approved languages", () => {
     const manifest = loadPackageJson();
 
-    expect(manifest.activationEvents).toEqual([
-      "onCommand:inlineSql.formatAtCursor",
-      "onCommand:inlineSql.formatSelection",
-      "onCommand:inlineSql.formatAll",
-      "onLanguage:python",
-      "onLanguage:mo-python",
-    ]);
+    // Command activation events are synthesized by VS Code from
+    // contributes.commands, so only language events belong here.
+    expect(manifest.activationEvents).toEqual(["onLanguage:python", "onLanguage:mo-python"]);
   });
 
   it("contributes only the approved public surface", () => {

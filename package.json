@@ -20,9 +20,6 @@
   },
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onCommand:inlineSql.formatAtCursor",
-    "onCommand:inlineSql.formatSelection",
-    "onCommand:inlineSql.formatAll",
     "onLanguage:python",
     "onLanguage:mo-python"
   ],

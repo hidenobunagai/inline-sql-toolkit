@@ -220,5 +220,13 @@
     "vscode-oniguruma": "2.0.1",
     "vscode-textmate": "9.3.2",
     "yaml": "2.9.0"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9",
+    "fast-uri": "3.1.5",
+    "js-yaml": "4.3.1",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23",
+    "undici": "7.29.0"
   }
 }

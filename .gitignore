@@ -16,5 +16,3 @@ __pycache__/
 test/.grammar-cache/
 .headroom/
 AGENTS.md
-# Added by code-review-graph
-.code-review-graph/

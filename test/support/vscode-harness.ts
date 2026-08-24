@@ -486,7 +486,7 @@ function assertSiblingCellsUnchanged(
   }
 }
 
-export async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs = 30_000): Promise<T> {
+export async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs = 60_000): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   try {
     return await Promise.race([

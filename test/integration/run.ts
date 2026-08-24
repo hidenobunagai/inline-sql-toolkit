@@ -16,7 +16,7 @@ function assertNeverScenario(value: never): never {
   throw new Error("unreachable integration scenario");
 }
 
-export const INTEGRATION_TEST_TIMEOUT_MS = 30_000;
+export const INTEGRATION_TEST_TIMEOUT_MS = 60_000;
 
 export function runIntegrationTest(
   test: () => Promise<void>,

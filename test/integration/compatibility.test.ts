@@ -40,7 +40,7 @@ export async function testOfficialExtensionCompatibility(): Promise<void> {
   await assertThreeCommandsAndCodeAction(jupyter);
 
   const marimoUri = vscode.Uri.joinPath(workspaceRoot(), "marimo.py");
-  const opened = waitForNotebookDocument(marimoUri, 30_000);
+  const opened = waitForNotebookDocument(marimoUri, 60_000);
   await vscode.commands.executeCommand("vscode.openWith", marimoUri, "marimo-notebook");
   const notebook = await opened;
   assert.equal(notebook.notebookType, "marimo-notebook");

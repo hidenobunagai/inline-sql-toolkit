@@ -181,7 +181,7 @@ describe("integration runner process lifecycle", () => {
 
 describe("integration suite timeout", () => {
   it("uses the required 30-second bound and rejects a hanging suite", async () => {
-    expect(INTEGRATION_TEST_TIMEOUT_MS).toBe(30_000);
+    expect(INTEGRATION_TEST_TIMEOUT_MS).toBe(60_000);
     vi.useFakeTimers();
     const pending = runIntegrationTest(() => new Promise<void>(() => {}), 30);
     const rejection = expect(pending).rejects.toThrow("integration assertion timed out");

@@ -133,7 +133,7 @@ describe("GitHub workflow contracts", () => {
         expect(step.with?.["bun-version"]).toBe("1.3.8");
       }
       if (step.uses?.startsWith("astral-sh/setup-uv@")) {
-        expect(step.with?.version).toBe("0.9.28");
+        expect(step.with?.version).toBe("0.12.1");
       }
     }
     expect(jobs["integration"]?.strategy?.matrix).toMatchObject({

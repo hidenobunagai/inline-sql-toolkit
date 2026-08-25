@@ -18,6 +18,8 @@ other safe candidates may still be edited.
 In short, SQL is never executed by this extension. SQL is never validated by
 this extension.
 
+![What the extension does: highlight and format SQL embedded in Python strings](what_it_does.png)
+
 ## Quick start
 
 Open a supported Python document or notebook cell, place the cursor in one of
@@ -82,6 +84,8 @@ The command IDs are shown for keybindings and automation integrations:
 - **Inline SQL: Format All** (`inlineSql.formatAll`) formats every detected
   candidate in the current document or notebook cell.
 
+![Formatting pipeline: command, trust gate, analysis, safety checks, one undo step](formatting_pipeline.png)
+
 Each invocation checks the document version and the expected source text before
 creating one `WorkspaceEdit`, so the operation is one undo step. VS Code does
 not provide an atomic, versioned precondition for an edit that happens after
@@ -119,6 +123,8 @@ Formatter detection is source-level: it examines Python tokens and the literal
 characters in the source, rather than evaluating the string value. A candidate
 is found when either condition holds:
 
+![How SQL is detected: source-level marker or keyword match](how_sql_is_detected.png)
+
 1. The first logical, non-blank line starts with `-- sql` or `--sql` after
    horizontal whitespace. Matching is case-insensitive and the marker text is
    preserved. On format, a marker on its own line moves to sit directly after
@@ -140,6 +146,8 @@ or non-literal SQL, and SQL-language cells. A candidate that cannot be restored
 without changing Python source is reported as unsafe and is not edited.
 
 ## Trust, privacy, and offline behavior
+
+![Safety and trust: what the extension never does, and what it always does](safety_trust.png)
 
 In an untrusted workspace the extension provides highlighting only. The three
 formatting commands remain visible, but formatting is disabled: no analysis

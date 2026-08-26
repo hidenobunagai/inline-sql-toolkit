@@ -21,6 +21,8 @@ QODER.md
 .cursorrules
 .windsurfrules
 opencode.jsonc
+*.png
+!icon.png
 src/**
 test/**
 tools/**

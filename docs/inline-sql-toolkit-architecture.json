@@ -45,7 +45,12 @@
       "label": "Python source",
       "sublabel": "Notebooks",
       "sources": [
-        { "path": "src/vscode/document-target.ts", "line": 18, "end_line": 33, "label": "supported targets" },
+        {
+          "path": "src/vscode/document-target.ts",
+          "line": 18,
+          "end_line": 33,
+          "label": "supported targets"
+        },
         { "path": "README.md", "line": 3, "end_line": 9, "label": "document support" }
       ],
       "pos": [175, 145],
@@ -69,7 +74,12 @@
       "sublabel": "Target, trust, cancellation",
       "tag": "orchestrates",
       "sources": [
-        { "path": "src/vscode/format-controller.ts", "line": 288, "end_line": 365, "label": "format execution" }
+        {
+          "path": "src/vscode/format-controller.ts",
+          "line": 288,
+          "end_line": 365,
+          "label": "format execution"
+        }
       ],
       "pos": [570, 135],
       "size": [170, 96]
@@ -80,7 +90,12 @@
       "label": "Python analysis engine",
       "sublabel": "Literal scan",
       "sources": [
-        { "path": "src/python-analysis/engine.ts", "line": 100, "end_line": 175, "label": "document formatting" }
+        {
+          "path": "src/python-analysis/engine.ts",
+          "line": 100,
+          "end_line": 175,
+          "label": "document formatting"
+        }
       ],
       "pos": [785, 135],
       "size": [155, 96]
@@ -91,7 +106,12 @@
       "label": "Protected SQL formatter",
       "sublabel": "Bundled sql-formatter",
       "sources": [
-        { "path": "src/vscode/sql-formatter.ts", "line": 5, "end_line": 14, "label": "offline formatter" }
+        {
+          "path": "src/vscode/sql-formatter.ts",
+          "line": 5,
+          "end_line": 14,
+          "label": "offline formatter"
+        }
       ],
       "pos": [970, 135],
       "size": [155, 96]
@@ -102,7 +122,12 @@
       "label": "WorkspaceEdit applicator",
       "sublabel": "Version + text checks",
       "sources": [
-        { "path": "src/vscode/edit-applicator.ts", "line": 167, "end_line": 210, "label": "guarded apply" }
+        {
+          "path": "src/vscode/edit-applicator.ts",
+          "line": 167,
+          "end_line": 210,
+          "label": "guarded apply"
+        }
       ],
       "pos": [970, 315],
       "size": [165, 96]
@@ -114,8 +139,18 @@
       "sublabel": "Trusted workspace required",
       "tag": "fail closed",
       "sources": [
-        { "path": "src/vscode/format-controller.ts", "line": 294, "end_line": 297, "label": "trust check" },
-        { "path": "src/vscode/edit-applicator.ts", "line": 195, "end_line": 202, "label": "last-moment guard" }
+        {
+          "path": "src/vscode/format-controller.ts",
+          "line": 294,
+          "end_line": 297,
+          "label": "trust check"
+        },
+        {
+          "path": "src/vscode/edit-applicator.ts",
+          "line": 195,
+          "end_line": 202,
+          "label": "last-moment guard"
+        }
       ],
       "pos": [560, 25],
       "size": [190, 76]

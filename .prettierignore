@@ -26,3 +26,6 @@ QODER.md
 .windsurfrules
 opencode.jsonc
 .github/code-review-graph.instruction.md
+docs/inline-sql-toolkit-architecture.html
+docs/inline-sql-toolkit-architecture.visual-check.html
+inline-sql-toolkit-architecture.html

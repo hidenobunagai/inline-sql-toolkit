@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Inline SQL Toolkit — Safe Formatting Pipeline",
+    "output": "docs/inline-sql-toolkit-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1200, 480],
+    "repository": {
+      "url": "https://github.com/hidenobunagai/inline-sql-toolkit.git",
+      "revision": "1a864d7dd7e4b853d383a049e99bdf6dedf790ee"
+    },
+    "views": [
+      {
+        "id": "format-path",
+        "label": "Formatting path",
+        "focus": ["source", "commands", "controller", "analyzer", "formatter", "applicator"],
+        "note": "Follow a manual formatting command from Python source to a guarded WorkspaceEdit."
+      },
+      {
+        "id": "trust-and-safety",
+        "label": "Trust and safety",
+        "focus": ["trust", "controller", "analyzer", "applicator"],
+        "note": "See where workspace trust, source-level analysis, and stale-edit checks protect the document."
+      },
+      {
+        "id": "highlighting",
+        "label": "SQL highlighting",
+        "focus": ["source", "grammar"],
+        "note": "Isolate the injected TextMate grammar used for inline SQL highlighting."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "developer",
+      "type": "external",
+      "label": "Developer",
+      "pos": [30, 145],
+      "size": [120, 70]
+    },
+    {
+      "id": "source",
+      "type": "external",
+      "label": "Python source",
+      "sublabel": "Notebooks",
+      "sources": [
+        { "path": "src/vscode/document-target.ts", "line": 18, "end_line": 33, "label": "supported targets" },
+        { "path": "README.md", "line": 3, "end_line": 9, "label": "document support" }
+      ],
+      "pos": [175, 145],
+      "size": [165, 76]
+    },
+    {
+      "id": "commands",
+      "type": "backend",
+      "label": "Command surface",
+      "sublabel": "Cursor • selection • all",
+      "sources": [
+        { "path": "src/vscode/commands.ts", "line": 5, "end_line": 24, "label": "public commands" }
+      ],
+      "pos": [370, 145],
+      "size": [150, 76]
+    },
+    {
+      "id": "controller",
+      "type": "backend",
+      "label": "Format controller",
+      "sublabel": "Target, trust, cancellation",
+      "tag": "orchestrates",
+      "sources": [
+        { "path": "src/vscode/format-controller.ts", "line": 288, "end_line": 365, "label": "format execution" }
+      ],
+      "pos": [570, 135],
+      "size": [170, 96]
+    },
+    {
+      "id": "analyzer",
+      "type": "backend",
+      "label": "Python analysis engine",
+      "sublabel": "Literal scan",
+      "sources": [
+        { "path": "src/python-analysis/engine.ts", "line": 100, "end_line": 175, "label": "document formatting" }
+      ],
+      "pos": [785, 135],
+      "size": [155, 96]
+    },
+    {
+      "id": "formatter",
+      "type": "backend",
+      "label": "Protected SQL formatter",
+      "sublabel": "Bundled sql-formatter",
+      "sources": [
+        { "path": "src/vscode/sql-formatter.ts", "line": 5, "end_line": 14, "label": "offline formatter" }
+      ],
+      "pos": [970, 135],
+      "size": [155, 96]
+    },
+    {
+      "id": "applicator",
+      "type": "backend",
+      "label": "WorkspaceEdit applicator",
+      "sublabel": "Version + text checks",
+      "sources": [
+        { "path": "src/vscode/edit-applicator.ts", "line": 167, "end_line": 210, "label": "guarded apply" }
+      ],
+      "pos": [970, 315],
+      "size": [165, 96]
+    },
+    {
+      "id": "trust",
+      "type": "security",
+      "label": "Workspace trust gate",
+      "sublabel": "Trusted workspace required",
+      "tag": "fail closed",
+      "sources": [
+        { "path": "src/vscode/format-controller.ts", "line": 294, "end_line": 297, "label": "trust check" },
+        { "path": "src/vscode/edit-applicator.ts", "line": 195, "end_line": 202, "label": "last-moment guard" }
+      ],
+      "pos": [560, 25],
+      "size": [190, 76]
+    },
+    {
+      "id": "grammar",
+      "type": "frontend",
+      "label": "Injected SQL grammar",
+      "sublabel": "TextMate highlighting",
+      "sources": [
+        { "path": "package.json", "line": 107, "end_line": 118, "label": "grammar contribution" },
+        { "path": "syntaxes/inline-sql.tmLanguage.json", "label": "syntax definition" }
+      ],
+      "pos": [175, 315],
+      "size": [210, 76]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "VS Code extension host • offline",
+      "wraps": ["commands", "controller", "analyzer", "formatter", "applicator"],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "developer-source",
+      "from": "developer",
+      "to": "source",
+      "label": "edit / open",
+      "variant": "emphasis",
+      "labelDy": 68
+    },
+    {
+      "id": "source-commands",
+      "from": "source",
+      "to": "commands",
+      "label": "invoke format command",
+      "labelDy": 68
+    },
+    {
+      "id": "commands-controller",
+      "from": "commands",
+      "to": "controller",
+      "label": "cursor / selection / all",
+      "labelDy": 80
+    },
+    {
+      "id": "trust-controller",
+      "from": "trust",
+      "to": "controller",
+      "label": "trusted workspace only",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "controller-analyzer",
+      "from": "controller",
+      "to": "analyzer",
+      "label": "resolve target + settings",
+      "labelDy": 80
+    },
+    {
+      "id": "analyzer-formatter",
+      "from": "analyzer",
+      "to": "formatter",
+      "label": "protected SQL candidate",
+      "variant": "emphasis",
+      "labelDy": 80
+    },
+    {
+      "id": "formatter-applicator",
+      "from": "formatter",
+      "to": "applicator",
+      "label": "guarded replacement",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "source-grammar",
+      "from": "source",
+      "to": "grammar",
+      "label": "SQL highlighting",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Detection",
+      "items": [
+        "Source-level Python literal analysis finds marker or leading-keyword candidates",
+        "Jupyter and marimo Python cells use the same document-target resolution"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Safety",
+      "items": [
+        "Untrusted workspaces receive highlighting only; formatting stops before analysis",
+        "F-string fields and escapes stay protected while SQL layout changes"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Offline edits",
+      "items": [
+        "Bundled sql-formatter performs layout only; SQL is never executed or validated",
+        "Document version and expected text checks guard the final one-step edit"
+      ]
+    }
+  ]
+}

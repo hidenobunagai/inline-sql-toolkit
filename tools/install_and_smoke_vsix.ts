@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { downloadAndUnzipVSCode } from "@vscode/test-electron";
+import { downloadVSCodeRobustly } from "./run_vscode_tests.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -159,7 +159,7 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
       'query = "select id, name from users"\n',
       "utf8",
     );
-    const executable = await downloadAndUnzipVSCode({ version: "stable", extractSync: true });
+    const executable = await downloadVSCodeRobustly("stable");
     const driver = path.join(ROOT, "test", "fixtures", "extensions", "vsix-driver");
     const input = { executable, vsix, driver, workspace, userData, extensions };
     const install = await buildInstallInvocation(input);

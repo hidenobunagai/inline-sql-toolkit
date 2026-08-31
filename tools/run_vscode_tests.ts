@@ -11,6 +11,15 @@ import { type IntegrationScenario, parseScenario } from "../test/support/integra
 import { buildExtension } from "./build.js";
 
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
+const VSCODE_DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
+const VSCODE_DOWNLOAD_RETRIES = 3;
+const VSCODE_STABLE_RELEASES_API =
+  "https://update.code.visualstudio.com/api/releases/stable?released=true";
+// The @vscode/test-electron downloader streams through the deprecated
+// `request` module and truncates mid-transfer on CI runners (gzip: stdin:
+// unexpected end of file). Download with curl instead: it resumes partial
+// transfers (`-C -`) and retries every failure, and the cached extract is
+// reused across runs via the same `is-complete` marker the library checks.
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export type GrammarVersion = "1.95.0" | "stable";
@@ -51,6 +60,149 @@ export function parseGrammarVersion(value: string | undefined): GrammarVersion {
   if (value === undefined) return "1.95.0";
   if (value === "1.95.0" || value === "stable") return value;
   throw new Error("invalid VSCODE_TEST_VERSION");
+}
+
+/** Maps the host to the same platform id @vscode/test-electron uses for archives. */
+export function vscodeTestPlatform(
+  platform: NodeJS.Platform = process.platform,
+  arch: string = process.arch,
+): string {
+  switch (platform) {
+    case "darwin":
+      return arch === "arm64" ? "darwin-arm64" : "darwin";
+    case "win32":
+      return arch === "arm64" ? "win32-arm64-archive" : "win32-x64-archive";
+    default:
+      return arch === "arm64" ? "linux-arm64" : arch === "arm" ? "linux-armhf" : "linux-x64";
+  }
+}
+
+/** Resolves the executable the same way @vscode/test-electron does for a cache entry. */
+export async function vscodeExecutablePath(downloadDir: string, platform: string): Promise<string> {
+  if (platform === "darwin" || platform === "darwin-arm64") {
+    return resolveDarwinAppExecutable(path.join(downloadDir, "Visual Studio Code.app"));
+  }
+  if (platform === "win32-x64-archive" || platform === "win32-arm64-archive") {
+    return path.join(downloadDir, "Code.exe");
+  }
+  return path.join(downloadDir, "code");
+}
+
+async function resolveDarwinAppExecutable(appPath: string): Promise<string> {
+  const macosDir = path.resolve(appPath, "Contents", "MacOS");
+  const infoPlistPath = path.resolve(appPath, "Contents", "Info.plist");
+  try {
+    const plist = await fs.readFile(infoPlistPath, "utf8");
+    const match = plist.match(/<key>CFBundleExecutable<\/key>\s*<string>([^<]+)<\/string>/);
+    if (match !== null) {
+      const candidate = path.resolve(macosDir, match[1] ?? "Electron");
+      if (candidate.startsWith(`${macosDir}${path.sep}`) && (await fileExists(candidate))) {
+        return candidate;
+      }
+    }
+  } catch {
+    // Fall through to the legacy Electron name.
+  }
+  return path.resolve(macosDir, "Electron");
+}
+
+async function fileExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchLatestStableVersion(): Promise<string> {
+  const response = await fetch(VSCODE_STABLE_RELEASES_API, { signal: AbortSignal.timeout(20_000) });
+  if (!response.ok) throw new Error(`VS Code stable release API returned HTTP ${response.status}`);
+  const releases = (await response.json()) as readonly unknown[];
+  const latest = releases[0];
+  if (typeof latest !== "string" || latest.length === 0) {
+    throw new Error("VS Code stable release API returned no versions");
+  }
+  return latest;
+}
+
+/**
+ * Downloads and unzips VS Code into the shared `.vscode-test` cache with the
+ * resume-capable curl instead of the library's flaky streaming downloader.
+ * Windows keeps the library downloader (zip format, unaffected in CI).
+ */
+export async function downloadVSCodeRobustly(version: GrammarVersion): Promise<string> {
+  const platform = vscodeTestPlatform();
+  if (platform === "win32-x64-archive" || platform === "win32-arm64-archive") {
+    return downloadAndUnzipVSCode({ version, extractSync: true });
+  }
+  const resolvedVersion = version === "stable" ? await fetchLatestStableVersion() : version;
+  const downloadDir = path.join(
+    process.cwd(),
+    ".vscode-test",
+    `vscode-${platform}-${resolvedVersion}`,
+  );
+  const marker = path.join(downloadDir, "is-complete");
+  if (await fileExists(marker)) return vscodeExecutablePath(downloadDir, platform);
+  const archiveUrl = `https://update.code.visualstudio.com/${resolvedVersion}/${platform}/stable?released=true`;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= VSCODE_DOWNLOAD_RETRIES; attempt += 1) {
+    try {
+      await fs.rm(downloadDir, { recursive: true, force: true });
+      await fs.mkdir(downloadDir, { recursive: true });
+      const archiveParent = await fs.mkdtemp(path.join(os.tmpdir(), "vscode-archive-"));
+      const archivePath = path.join(archiveParent, `vscode-${platform}-${resolvedVersion}.archive`);
+      try {
+        await spawnAndRequireZero(
+          "curl",
+          [
+            "-fsSL",
+            "--retry",
+            "10",
+            "--retry-all-errors",
+            "--retry-delay",
+            "2",
+            "-C",
+            "-",
+            "--output",
+            archivePath,
+            archiveUrl,
+          ],
+          {
+            shell: false,
+            stdio: "inherit",
+            timeoutMs: VSCODE_DOWNLOAD_TIMEOUT_MS,
+          },
+        );
+        // macOS archives are zips (VSCode.app at the root, no strip); Linux
+        // archives are tar.gz with a single top-level directory to strip.
+        const isDarwin = platform.startsWith("darwin");
+        await spawnAndRequireZero(
+          isDarwin ? "unzip" : "tar",
+          isDarwin
+            ? ["-q", archivePath, "-d", downloadDir]
+            : ["-xzf", archivePath, "--strip-components=1", "-C", downloadDir],
+          {
+            shell: false,
+            stdio: "inherit",
+            timeoutMs: VSCODE_DOWNLOAD_TIMEOUT_MS,
+          },
+        );
+      } finally {
+        await fs.rm(archiveParent, { recursive: true, force: true });
+      }
+      await fs.writeFile(marker, "", { encoding: "utf8" });
+      return await vscodeExecutablePath(downloadDir, platform);
+    } catch (error) {
+      lastError = error;
+      if (attempt < VSCODE_DOWNLOAD_RETRIES) {
+        process.stderr.write(
+          `VS Code ${resolvedVersion} download failed (attempt ${attempt} of ${VSCODE_DOWNLOAD_RETRIES}), retrying\n`,
+        );
+      }
+    }
+  }
+  throw new Error(`Failed to download and unzip VS Code ${resolvedVersion}`, { cause: lastError });
 }
 
 function isWindowsAbsolute(value: string): boolean {
@@ -519,11 +671,14 @@ export async function main(
   const root = repositoryRoot;
   await (dependencies.buildExtension ?? (() => withWorkingDirectory(root, buildExtension)))();
   await (dependencies.buildIntegrationRunner ?? buildIntegrationRunner)(root);
-  await (dependencies.launchScenario ?? launchScenario)({
-    scenario,
-    vscodeVersion,
-    repositoryRoot: root,
-  });
+  if (dependencies.launchScenario !== undefined) {
+    await dependencies.launchScenario({ scenario, vscodeVersion, repositoryRoot: root });
+  } else {
+    await launchScenario(
+      { scenario, vscodeVersion, repositoryRoot: root },
+      { download: downloadVSCodeRobustly },
+    );
+  }
 }
 
 if (

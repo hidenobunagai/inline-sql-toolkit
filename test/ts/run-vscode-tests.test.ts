@@ -10,6 +10,7 @@ import {
   main,
   parseGrammarVersion,
   spawnAndRequireZero,
+  vscodeTestPlatform,
 } from "../../tools/run_vscode_tests.js";
 import { INTEGRATION_TEST_TIMEOUT_MS, runIntegrationTest } from "../integration/run.js";
 
@@ -46,6 +47,18 @@ describe("integration runner argument policy", () => {
     await expect(
       installFixtureExtensions("compatibility", "/tmp/extensions", "/tmp/code", "/repo", "1.95.0"),
     ).rejects.toThrow("stable only");
+  });
+});
+
+describe("robust VS Code downloader platform mapping", () => {
+  it("resolves the archive platform id used by @vscode/test-electron", () => {
+    expect(vscodeTestPlatform("linux", "x64")).toBe("linux-x64");
+    expect(vscodeTestPlatform("linux", "arm64")).toBe("linux-arm64");
+    expect(vscodeTestPlatform("linux", "arm")).toBe("linux-armhf");
+    expect(vscodeTestPlatform("darwin", "arm64")).toBe("darwin-arm64");
+    expect(vscodeTestPlatform("darwin", "x64")).toBe("darwin");
+    expect(vscodeTestPlatform("win32", "x64")).toBe("win32-x64-archive");
+    expect(vscodeTestPlatform("win32", "arm64")).toBe("win32-arm64-archive");
   });
 });
 

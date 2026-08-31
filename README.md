@@ -20,9 +20,9 @@ this extension.
 
 ## Architecture
 
-[![Inline SQL Toolkit architecture](inline-sql-toolkit-architecture.png)](inline-sql-toolkit-architecture.html)
+[![Inline SQL Toolkit architecture](inline-sql-toolkit-architecture.png)](https://hidenobunagai.github.io/inline-sql-toolkit/)
 
-[Open the interactive architecture diagram (HTML)](inline-sql-toolkit-architecture.html)
+[Open the interactive architecture diagram (HTML)](https://hidenobunagai.github.io/inline-sql-toolkit/)
 
 ## Quick start
 

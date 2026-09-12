@@ -16,3 +16,8 @@ __pycache__/
 test/.grammar-cache/
 .headroom/
 AGENTS.md
+
+# env files: real values are never committed (dotenvx-encrypted files are added explicitly)
+.env
+.env.*
+!.env.example

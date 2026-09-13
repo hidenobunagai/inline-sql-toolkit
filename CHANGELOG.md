@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.3 - 2026-09-13
+
+- Removes the redundant `onCommand:` activation events from the extension
+  manifest: VS Code synthesizes them from `contributes.commands`, so the three
+  format commands keep working and the extension still activates only for
+  Python and marimo Python documents.
+- Pins patched versions of OSV-flagged transitive dependencies
+  (`brace-expansion`, `fast-uri`, `js-yaml`, `nanoid`, `postcss`, `undici`)
+  through `overrides`; the shipped runtime dependency is unchanged.
+- Packaging: agent tool configuration (`.claude/`, `.cursor/`, `.mcp.json`,
+  `opencode.jsonc`, and related files) and the root documentation diagram PNGs
+  are excluded from the VSIX, keeping the verified file inventory exact.
+- Documentation: adds overview diagrams and an architecture diagram to the
+  README, and publishes the architecture diagram to GitHub Pages.
+- Internal/CI with no formatting behavior changes: adds the automated Publish
+  workflow (VS Code Marketplace and Open VSX on tag), downloads the integration
+  test VS Code build with a resume-capable curl instead of the flaky streaming
+  downloader, pins uv 0.12.1, raises the integration test timeout to 60s, and
+  removes the legacy Cursor/Kiro/Qoder/CodeBuddy/Gemini/Serena artifacts.
+
+This is the first tagged release since v0.4.1: the 0.4.2 fixes documented below
+were published to the marketplaces without a tag and are contained in this
+release as well.
+
 ## 0.4.2 - 2026-08-06
 
 - Updates the error messages shown when formatting fails or produces an

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -70,6 +70,19 @@ describe("offline VSIX install smoke command", () => {
     expect(args).not.toContain(
       "--extensionDevelopmentPath=/Users/hidenobunagai/Projects/inline-sql-toolkit",
     );
+  });
+
+  it("activates the fixture driver on startup so the smoke can run", async () => {
+    const manifest = JSON.parse(
+      await readFile(
+        path.resolve(process.cwd(), "test/fixtures/extensions/vsix-driver/package.json"),
+        "utf8",
+      ),
+    ) as { readonly activationEvents?: readonly string[] };
+    // VS Code never activates a development extension that declares neither
+    // contributions nor activation events, which left the smoke hanging until
+    // its timeout.
+    expect(manifest.activationEvents).toContain("onStartupFinished");
   });
 
   it("resolves the VS Code CLI without using a shell", async () => {

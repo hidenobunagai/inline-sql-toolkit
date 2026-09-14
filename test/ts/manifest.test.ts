@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -210,6 +210,20 @@ describe("extension manifest", () => {
     }
   });
 
+  it("keeps the third-party notices aligned with the packaged notice tree", () => {
+    const notices = readProjectDocument("THIRD_PARTY_NOTICES.md");
+    const referenced = new Set(
+      Array.from(notices.matchAll(/\(third_party\/([a-z0-9-]+)\//g), ({ 1: name }) => name),
+    );
+    const present = readdirSync(resolve(process.cwd(), "third_party"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+
+    // A notice for a component that is no longer bundled is as wrong as a
+    // bundled component without a notice.
+    expect([...referenced].sort()).toEqual([...present].sort());
+  });
+
   it("keeps manifest links on files retained in the VSIX", () => {
     const manifest = loadPackageJson();
     const contributes = (manifest.contributes ?? {}) as {
@@ -245,6 +259,22 @@ describe("extension manifest", () => {
     const vscodeignore = readProjectDocument(".vscodeignore");
     expect(vscodeignore).toContain("!dist/extension.js");
     expect(vscodeignore).toContain("!syntaxes/**");
+
+    // Every negated allowlist entry must name a path this repository has, so a
+    // removed runtime root cannot linger in the packaging rules.
+    const allowlisted = vscodeignore
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("!"));
+    expect(allowlisted.length).toBeGreaterThan(0);
+    for (const entry of allowlisted) {
+      const target = entry.slice(1);
+      // dist/ is a build output; a fresh checkout has no dist/extension.js yet.
+      if (target.startsWith("dist/")) continue;
+      const literalRoot = target.split("*")[0]?.replace(/\/$/, "") ?? "";
+      expect(literalRoot).not.toBe("");
+      expect(existsSync(resolve(process.cwd(), literalRoot))).toBe(true);
+    }
 
     expect(manifest.repository).toEqual({
       type: "git",

@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Security fixes are assessed against the current `0.1.x` release line. Use the
-latest `0.1.x` release before reporting a vulnerability; older versions may no
-longer receive fixes. The current release is `0.1.0`.
+Security fixes are assessed against the latest published release. Use the
+newest version before reporting a vulnerability; older versions may no longer
+receive fixes. The current version is listed in the changelog.
 
 ## Private reporting
 
@@ -24,6 +24,6 @@ issue, redact it and describe only the smallest safe shape.
 Inline SQL Toolkit is designed to work offline. It does not execute SQL,
 connect to a database, make network requests, run a shell command, collect
 telemetry, or format automatically. In an untrusted workspace it provides
-highlighting only. In a trusted workspace the extension sends a bounded,
-versioned request to its local one-shot Python helper; document text is not
-written to disk or emitted in logs.
+highlighting only. In a trusted workspace the extension formats the detected
+SQL in-process with the bundled `sql-formatter` layout engine; document text is
+not written to disk or emitted in logs.

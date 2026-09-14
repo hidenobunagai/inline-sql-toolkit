@@ -41,7 +41,6 @@ dist-vsix/**
 *.mjs
 tsconfig.json
 *.code-workspace
-python/**/__pycache__/**
 **/*.pyc
 **/*.ts
 **/*.map
@@ -55,10 +54,6 @@ uv.lock
 
 # Keep the packaged runtime roots explicitly (vsce uses negated patterns).
 !dist/extension.js
-!python/bootstrap.py
-!python/inline_sql_helper/*.py
-!python/vendor/sqlparse/**/*.py
-!python/vendor/sqlparse/**/py.typed
 !syntaxes/**
 !third_party/**
 !README.md

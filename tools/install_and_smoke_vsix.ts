@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { testInstalledVsixSmoke } from "../test/integration/vsix-smoke.test.js";
 import { downloadVSCodeRobustly } from "./run_vscode_tests.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -179,8 +180,7 @@ export async function runInstallSmoke(vsixArgument: string): Promise<void> {
       },
       120_000,
     );
-    const outcome = JSON.parse(await fs.readFile(result, "utf8")) as { ok?: unknown };
-    if (outcome.ok !== true) throw new Error("VSIX smoke did not pass");
+    await testInstalledVsixSmoke(result);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

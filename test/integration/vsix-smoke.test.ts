@@ -6,5 +6,5 @@ export async function testInstalledVsixSmoke(
 ): Promise<void> {
   if (typeof resultPath !== "string") throw new Error("missing VSIX smoke result");
   const value = JSON.parse(await fs.readFile(resultPath, "utf8")) as { ok?: unknown };
-  assert.equal(value.ok, true);
+  assert.equal(value.ok, true, "VSIX smoke did not pass");
 }

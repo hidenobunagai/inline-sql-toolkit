@@ -174,6 +174,11 @@ describe("GitHub workflow contracts", () => {
     }
   });
 
+  it("scans the source lockfiles on every push to the default branch", async () => {
+    const workflow = await loadWorkflow("osv-scanner-scheduled.yml");
+    expect(workflow.on).toMatchObject({ push: { branches: ["main"] } });
+  });
+
   it("declares compatibility as a stable-only scheduled/manual workflow", async () => {
     const workflow = await loadWorkflow("compatibility.yml");
     expect(workflow.on).toBeDefined();

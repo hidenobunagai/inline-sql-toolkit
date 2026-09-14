@@ -19,7 +19,7 @@ release.
 
 ## 2. Clean, frozen verification
 
-Use the pinned tools (Bun **1.3.8**, uv **0.9.28**) and install only frozen
+Use the pinned tools (Bun **1.3.8**, uv **0.12.1**) and install only frozen
 lockfile contents:
 
 ```bash
@@ -29,13 +29,16 @@ bun run format:check
 bun run lint
 bun run typecheck
 bun run test:coverage
-VSCODE_TEST_VERSION=1.95.0 bun run test:grammar
-VSCODE_TEST_VERSION=stable bun run test:grammar
-uv run ruff check .
-uv run ruff format --check .
-uv run ty check
-uv run pytest --cov
 ```
+
+There is no separate Python gate to run. `pyproject.toml` declares no
+dependencies and the Python helper, its vendored `sqlparse` tree, and the
+`test/python` suite were removed with the formatter migration (see
+`docs/formatter-migration.md`), so `ruff`, `ty`, and `pytest` are not
+installed. The uv environment exists to run `tools/verify_vsix.py` in
+section 4. The grammar has no dedicated suite either: the manifest test
+asserts the injected grammar contribution and file, and the detection fixtures
+record the grammar expectation; both run inside `bun run test:coverage`.
 
 Run the complete Extension Host matrix (trusted and untrusted) at both the
 minimum and stable VS Code versions:
@@ -48,7 +51,7 @@ VSCODE_TEST_VERSION=stable bun run test:integration:untrusted
 ```
 
 The cross-platform CI matrix remains authoritative for Ubuntu, macOS, and
-Windows with Python 3.12, 3.13, and 3.14. A local release must not be called
+Windows at VS Code 1.95.0 and stable. A local release must not be called
 compatible when a required matrix job is unavailable or failed.
 
 ## 3. Security and dependency gates
@@ -75,47 +78,43 @@ dependency: `sql-formatter` is the extension's only runtime dependency.
 ## 4. Build, inspect, and smoke-test the VSIX
 
 Build the artifact without dependency traversal, then verify its exact
-inventory, provenance, licenses, and component report:
+inventory, provenance, licenses, and component report. The VSIX filename is
+derived from the `package.json` version, as it is in CI:
 
 ```bash
 bun run package:vsix
-uv run python tools/verify_vsix.py \
-  dist-vsix/inline-sql-toolkit-0.1.0.vsix \
+vsix="dist-vsix/inline-sql-toolkit-$(node -p "require('./package.json').version").vsix"
+uv run python tools/verify_vsix.py "$vsix" \
   --report reports/vsix-components.osv.json
-bun run test:vsix-install -- \
-  dist-vsix/inline-sql-toolkit-0.1.0.vsix
+bun run test:vsix-install -- "$vsix"
 ```
 
 Generate a reproducible inventory and SHA-256 artifact record:
 
 ```bash
-unzip -Z1 dist-vsix/inline-sql-toolkit-0.1.0.vsix \
-  > reports/vsix-inventory.txt
-shasum -a 256 dist-vsix/inline-sql-toolkit-0.1.0.vsix \
-  > reports/inline-sql-toolkit.vsix.sha256
+unzip -Z1 "$vsix" > reports/vsix-inventory.txt
+shasum -a 256 "$vsix" > reports/inline-sql-toolkit.vsix.sha256
 ```
 
-Inspect the real archive, not only the source tree. It must include the
-allowlisted helper `.py` files, grammars, `sqlparse` BSD-3-Clause records, the
-Microsoft Python Extension API facade MIT record, and user-facing license,
-README, changelog, security, support, and notice files. It must exclude
-TypeScript/development source, absolute build paths, fixture secrets, caches,
-bytecode, tests, plans/specs, lockfiles, `node_modules`, and unapproved runtime
-dependencies.
+Inspect the real archive, not only the source tree. `tools/verify_vsix.py`
+accepts only the exact inventory it knows: the manifest and localized
+manifests, the user-facing license, README, changelog, security, support, and
+notice files, the generated `dist/extension.js` bundle, `dist/package.json`,
+the icons, the injected TextMate grammar, and the `inline-sql-syntax`
+third-party license and grammar. It must exclude TypeScript/development source,
+absolute build paths, fixture secrets, caches, bytecode, tests, plans/specs,
+lockfiles, `node_modules`, and unapproved runtime dependencies.
 
-Run the offline smoke against the pinned image. The image digest is part of the
-acceptance evidence; do not replace it with a mutable tag:
+There is no container-based offline smoke to run: its driver
+`tools/offline_vsix_smoke.py`, its `test/fixtures/helper/offline-request.json`
+request, and the Python helper tree it exercised were removed with the
+formatter migration (see `docs/formatter-migration.md`). The installed-VSIX
+smoke above is the artifact-level check; the bundle inlines `sql-formatter`,
+the extension's only runtime dependency, so the installed extension needs no
+network access.
 
-```bash
-uv run python tools/offline_vsix_smoke.py \
-  --vsix dist-vsix/inline-sql-toolkit-0.1.0.vsix \
-  --request test/fixtures/helper/offline-request.json \
-  --image python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
-```
-
-The smoke must run with no network and a read-only container, and must leave no
-source-bearing temporary tree behind. Record the verifier output, component
-report, inventory, SHA-256, and offline result together with the release review.
+Record the verifier output, component report, inventory, and SHA-256 together
+with the release review.
 
 ## 5. Publisher identity and approval boundary
 

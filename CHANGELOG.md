@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.4 - 2026-09-14
+
+- Security/CI: the OSV lockfile scan now also runs on every push to `main`
+  instead of waiting for a pull request or the weekly scheduled run, so an
+  advisory in `bun.lock` / `uv.lock` is reported on the commit that lands it.
+- Pins patched versions of OSV-flagged dev dependencies (`vitest` and
+  `@vitest/coverage-v8` 4.1.11, `fast-uri` 3.1.6, `js-yaml` 4.3.2, and a new
+  `qs` 6.16.0 override). The shipped runtime dependency (`sql-formatter`) is
+  unchanged.
+- CI: the installed-VSIX smoke now actually runs and its result is asserted
+  through the shared `testInstalledVsixSmoke` helper (which gained pass/fail
+  coverage): the fixture driver declares `onStartupFinished` so VS Code
+  activates it, and the job no longer ignores failures, so a broken packaged
+  extension fails the build instead of leaving CI green.
+- Documentation: `docs/releasing.md` and `docs/development.md` now describe the
+  current toolchain and gates instead of the removed Python helper, vendored
+  `sqlparse` tree, vendor verifier, and container-based offline smoke;
+  `SECURITY.md` and `THIRD_PARTY_NOTICES.md` no longer claim the removed
+  `sqlparse` and `@vscode/python-extension` components, and `.vscodeignore`
+  drops its stale `python/` allowlist rules. The manifest tests guard the
+  notices against `third_party/` and every allowlist entry against the
+  repository.
+- No formatting behavior changes: this release is CI, dependency, test, and
+  documentation maintenance only.
+
 ## 0.4.3 - 2026-09-13
 
 - Removes the redundant `onCommand:` activation events from the extension

@@ -53,17 +53,24 @@ compatible when a required matrix job is unavailable or failed.
 
 ## 3. Security and dependency gates
 
-Run the vendor verifier and OSV scan inputs before accepting an artifact:
+There is no vendor verifier to run. The formatter engine is the pinned
+`sql-formatter` npm dependency, and the Python helper and vendored `sqlparse`
+tree were removed with the formatter migration (see
+`docs/formatter-migration.md`). Dependency scanning happens in CI over three
+inputs:
 
-```bash
-uv run python tools/verify_vendor.py
-uv run python tools/verify_vendor.py --lock-projection-only
-```
+- `bun.lock` and `uv.lock`: scanned by the OSV scanner for every pull request
+  and every push to `main`, with a weekly scheduled run as a backstop.
+- `reports/vsix-components.osv.json`: the component report written in the
+  `package` job by
+  `uv run python tools/verify_vsix.py <vsix> --report reports/vsix-components.osv.json`
+  and scanned from the uploaded artifact by the `osv-packaged-components` job,
+  which is the gate for a component that appears only inside the packaged VSIX.
 
-The CI OSV jobs scan `bun.lock`, `uv.lock`, and
-`tools/sqlparse-vendor.requirements.txt`. Resolve every finding or document a
-reviewed exception before proceeding. Do not substitute an unpinned runtime
-dependency for the vendored sqlparse tree.
+Confirm those jobs are green on the `main` commit being released and that code
+scanning has no open alert for them. Resolve every finding or document a
+reviewed exception before proceeding. Do not add an unvetted runtime
+dependency: `sql-formatter` is the extension's only runtime dependency.
 
 ## 4. Build, inspect, and smoke-test the VSIX
 

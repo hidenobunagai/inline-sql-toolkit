@@ -257,18 +257,40 @@ describe("extension manifest", () => {
     const metafile = await buildExtension();
     const bundle = metafile.outputs["dist/extension.js"];
     expect(bundle).toBeDefined();
-    const inlined = new Set(
-      Object.keys(bundle?.inputs ?? {}).flatMap((input) => {
-        const name = /node_modules\/((?:@[^/]+\/)?[^/]+)\//u.exec(input)?.[1];
-        return name === undefined ? [] : [name];
-      }),
-    );
+    const inlined = new Map<string, string>();
+    for (const input of Object.keys(bundle?.inputs ?? {})) {
+      const name = /node_modules\/((?:@[^/]+\/)?[^/]+)\//u.exec(input)?.[1];
+      if (name === undefined || inlined.has(name)) continue;
+      const version = (
+        JSON.parse(readProjectDocument(`node_modules/${name}/package.json`)) as {
+          readonly version?: unknown;
+        }
+      ).version;
+      expect(typeof version).toBe("string");
+      if (typeof version !== "string") continue;
+      inlined.set(name, version);
+    }
     expect(inlined.size).toBeGreaterThan(0);
 
     const notices = readProjectDocument("THIRD_PARTY_NOTICES.md");
-    for (const name of inlined) {
+    for (const name of inlined.keys()) {
       expect(existsSync(resolve(process.cwd(), "third_party", name))).toBe(true);
       expect(notices).toContain(`(third_party/${name}/)`);
+    }
+
+    // tools/verify_vsix.py builds the osv-packaged-components input from those
+    // same notice headings, so a notice that names another version than the
+    // one esbuild inlined would make the advisory scan cover the wrong code.
+    const declared = new Map<string, string>();
+    for (const match of notices.matchAll(/^## `([^`]+)` npm package \(v(\d+\.\d+\.\d+)\)$/gm)) {
+      const [, name, version] = match;
+      if (name !== undefined && version !== undefined) {
+        declared.set(name, version);
+      }
+    }
+    expect([...declared.keys()].sort()).toEqual([...inlined.keys()].sort());
+    for (const [name, version] of inlined) {
+      expect(declared.get(name)).toBe(version);
     }
   });
 

@@ -57,6 +57,7 @@ class ValidatedVsix:
     archive_bytes: bytes
     members: tuple[str, ...]
     expanded_bytes: int
+    packages: tuple[tuple[str, str], ...]
 
 
 def safe_member_name(info: zipfile.ZipInfo) -> str:
@@ -108,6 +109,38 @@ def read_bounded_member(archive: zipfile.ZipFile, name: str) -> bytes:
 def posix_ancestors(member: str) -> tuple[str, ...]:
     parts = PurePosixPath(member).parts
     return tuple("/".join(parts[:index]) + "/" for index in range(1, len(parts)))
+
+
+_NOTICE_HEADING = re.compile(
+    r"^## `(?P<name>[^`\n]+)`(?P<detail>[^\n]*)$", re.MULTILINE
+)
+_NOTICE_NPM = re.compile(r"^ npm package \(v(?P<version>\d+\.\d+\.\d+)\)$")
+
+
+def parse_packaged_notices(
+    notices: str,
+) -> tuple[tuple[str, ...], tuple[tuple[str, str], ...]]:
+    """Return the components the packaged notices name, and their npm versions.
+
+    `THIRD_PARTY_NOTICES.md` travels inside the VSIX next to the bundle, so it
+    is the one third-party declaration that cannot drift from the archive.
+    """
+    names: list[str] = []
+    packages: list[tuple[str, str]] = []
+    for heading in _NOTICE_HEADING.finditer(notices):
+        name = heading["name"]
+        detail = heading["detail"]
+        if name in names:
+            raise VsixError("duplicate third-party notice")
+        names.append(name)
+        npm = _NOTICE_NPM.fullmatch(detail)
+        if npm is not None:
+            packages.append((name, npm["version"]))
+        elif detail.startswith(" npm package"):
+            raise VsixError("unreadable third-party notice")
+    if not names or not packages:
+        raise VsixError("missing third-party notice")
+    return tuple(names), tuple(sorted(packages))
 
 
 def validate_packaged_manifest(manifest: object) -> None:
@@ -219,10 +252,25 @@ def _validate_archive_bytes(archive_bytes: bytes) -> ValidatedVsix:
             raise VsixError("invalid extension manifest") from exc
 
         scan_for_forbidden_runtime_content(archive, file_names)
+
+        vendored = {
+            PurePosixPath(name).parts[2]
+            for name in file_names
+            if PurePosixPath(name).parts[:2] == ("extension", "third_party")
+        }
+        try:
+            notices = read_bounded_member(archive, "extension/THIRD_PARTY_NOTICES.md")
+            noticed, packages = parse_packaged_notices(notices.decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            raise VsixError("invalid third-party notices") from exc
+        if vendored != set(noticed):
+            raise VsixError("third-party notice mismatch")
+
         return ValidatedVsix(
             archive_bytes=archive_bytes,
             members=tuple(sorted(file_names)),
             expanded_bytes=expanded_bytes,
+            packages=packages,
         )
 
 
@@ -234,27 +282,16 @@ def component_report(validated: ValidatedVsix) -> dict[str, object]:
     """Report the npm packages esbuild inlines into the extension bundle.
 
     A dependency scanner cannot see inside `dist/extension.js`, so the inlined
-    set has to be declared here: `sql-formatter` and the `nearley` parser it
-    imports. Keep it aligned with `THIRD_PARTY_NOTICES.md` and `third_party/`.
+    set is read back from the notices packaged with the bundle. A package that
+    enters or leaves the bundle without a matching notice fails validation
+    instead of leaving this report silently stale.
     """
     return {
         "results": [
             {
                 "packages": [
-                    {
-                        "package": {
-                            "name": "nearley",
-                            "version": "2.20.1",
-                            "ecosystem": "npm",
-                        }
-                    },
-                    {
-                        "package": {
-                            "name": "sql-formatter",
-                            "version": "15.8.2",
-                            "ecosystem": "npm",
-                        }
-                    },
+                    {"package": {"name": name, "version": version, "ecosystem": "npm"}}
+                    for name, version in validated.packages
                 ]
             }
         ]

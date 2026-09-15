@@ -217,8 +217,6 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",
     "vitest": "4.1.11",
-    "vscode-oniguruma": "2.0.1",
-    "vscode-textmate": "9.3.2",
     "yaml": "2.9.0"
   },
   "overrides": {

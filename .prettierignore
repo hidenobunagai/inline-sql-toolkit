@@ -8,7 +8,6 @@ reports/
 .headroom/
 AGENTS.md
 docs/superpowers/
-python/vendor/
 test/fixtures/
 .claude/
 .codebuddy/

@@ -16,7 +16,6 @@ export default tseslint.config(
       ".venv/**",
       ".vscode-test/**",
       "node_modules/**",
-      "python/vendor/**",
       "reports/**",
       "test/fixtures/**",
     ],

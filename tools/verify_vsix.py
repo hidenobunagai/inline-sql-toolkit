@@ -35,6 +35,8 @@ REQUIRED_PACKAGE_MEMBERS = frozenset(
         "extension/icon.png",
         "extension/third_party/inline-sql-syntax/LICENSE",
         "extension/third_party/inline-sql-syntax/highlight-sql-string.json",
+        "extension/third_party/nearley/LICENSE.txt",
+        "extension/third_party/sql-formatter/LICENSE",
     }
 )
 
@@ -229,17 +231,30 @@ def validate_vsix(path: Path) -> ValidatedVsix:
 
 
 def component_report(validated: ValidatedVsix) -> dict[str, object]:
+    """Report the npm packages esbuild inlines into the extension bundle.
+
+    A dependency scanner cannot see inside `dist/extension.js`, so the inlined
+    set has to be declared here: `sql-formatter` and the `nearley` parser it
+    imports. Keep it aligned with `THIRD_PARTY_NOTICES.md` and `third_party/`.
+    """
     return {
         "results": [
             {
                 "packages": [
                     {
                         "package": {
+                            "name": "nearley",
+                            "version": "2.20.1",
+                            "ecosystem": "npm",
+                        }
+                    },
+                    {
+                        "package": {
                             "name": "sql-formatter",
                             "version": "15.8.2",
                             "ecosystem": "npm",
                         }
-                    }
+                    },
                 ]
             }
         ]

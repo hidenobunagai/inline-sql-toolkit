@@ -19,6 +19,35 @@ The complete MIT license and the upstream grammar file are in
 [`third_party/inline-sql-syntax/`](third_party/inline-sql-syntax/) and are
 copied into the packaged VSIX.
 
+## `sql-formatter` npm package (v15.8.2)
+
+The formatter engine is the `sql-formatter` package (MIT license). esbuild
+inlines it into `dist/extension.js`, so no `node_modules` tree is packaged and
+the license text has to travel with the bundle. Exact provenance:
+
+- Package: <https://www.npmjs.com/package/sql-formatter/v/15.8.2>
+- Source repository: <https://github.com/sql-formatter-org/sql-formatter>
+- License: MIT, Copyright (c) 2016-2020 ZeroTurnaround LLC, Copyright (c)
+  2020-2021 George Leslie-Waksman and other contributors, Copyright (c)
+  2021-Present inferrinizzard and other contributors
+
+The complete MIT license is in
+[`third_party/sql-formatter/`](third_party/sql-formatter/) and is copied into
+the packaged VSIX.
+
+## `nearley` npm package (v2.20.1)
+
+`sql-formatter` builds its SQL parser on the `nearley` package (MIT license).
+esbuild inlines `nearley` into `dist/extension.js` as well. Exact provenance:
+
+- Package: <https://www.npmjs.com/package/nearley/v/2.20.1>
+- Source repository: <https://github.com/hardmath123/nearley>
+- License: MIT, Copyright (c) 2014, 2015, 2016, 2017, 2018, 2019 Kartik
+  Chandra, Tim Radvan
+
+The complete MIT license is in [`third_party/nearley/`](third_party/nearley/)
+and is copied into the packaged VSIX.
+
 ## Project license
 
 The Inline SQL Toolkit source and original documentation are provided under the

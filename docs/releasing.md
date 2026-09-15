@@ -100,8 +100,9 @@ Inspect the real archive, not only the source tree. `tools/verify_vsix.py`
 accepts only the exact inventory it knows: the manifest and localized
 manifests, the user-facing license, README, changelog, security, support, and
 notice files, the generated `dist/extension.js` bundle, `dist/package.json`,
-the icons, the injected TextMate grammar, and the `inline-sql-syntax`
-third-party license and grammar. It must exclude TypeScript/development source,
+the icons, the injected TextMate grammar, and the third-party license and
+grammar files under `third_party/` (`inline-sql-syntax`, `sql-formatter`,
+`nearley`). It must exclude TypeScript/development source,
 absolute build paths, fixture secrets, caches, bytecode, tests, plans/specs,
 lockfiles, `node_modules`, and unapproved runtime dependencies.
 

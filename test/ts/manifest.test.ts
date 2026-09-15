@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { REASON_CODES } from "../../src/constants.js";
+import { buildExtension } from "../../tools/build.js";
 
 interface PackageManifest {
   readonly name?: unknown;
@@ -247,6 +248,28 @@ describe("extension manifest", () => {
     // A notice for a component that is no longer bundled is as wrong as a
     // bundled component without a notice.
     expect([...referenced].sort()).toEqual([...present].sort());
+  });
+
+  it("notices every npm package the bundle inlines", async () => {
+    // The esbuild metafile is the only place that knows which node_modules
+    // code ends up inside dist/extension.js, so the guard builds the real
+    // bundle instead of trusting a hand-kept list.
+    const metafile = await buildExtension();
+    const bundle = metafile.outputs["dist/extension.js"];
+    expect(bundle).toBeDefined();
+    const inlined = new Set(
+      Object.keys(bundle?.inputs ?? {}).flatMap((input) => {
+        const name = /node_modules\/((?:@[^/]+\/)?[^/]+)\//u.exec(input)?.[1];
+        return name === undefined ? [] : [name];
+      }),
+    );
+    expect(inlined.size).toBeGreaterThan(0);
+
+    const notices = readProjectDocument("THIRD_PARTY_NOTICES.md");
+    for (const name of inlined) {
+      expect(existsSync(resolve(process.cwd(), "third_party", name))).toBe(true);
+      expect(notices).toContain(`(third_party/${name}/)`);
+    }
   });
 
   it("keeps manifest links on files retained in the VSIX", () => {

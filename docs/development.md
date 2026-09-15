@@ -55,9 +55,9 @@ There is no vendor refresh to run. `sqlparse`, the Python helper,
 `tools/vendor_sqlparse.py`, `tools/sqlparse-vendor.lock`,
 `tools/verify_vendor.py`, and the `third_party/sqlparse/` tree were removed with
 the formatter migration (see `docs/formatter-migration.md`). `third_party/` now
-holds only the `inline-sql-syntax` grammar license and grammar file, and the
-extension's single runtime dependency is the pinned `sql-formatter` npm package,
-which esbuild inlines into `dist/extension.js` from `bun.lock`.
+holds only notice material: the `inline-sql-syntax` grammar license and grammar
+file plus the MIT licenses of `sql-formatter` and its `nearley` parser, the two
+packages esbuild inlines into `dist/extension.js` from `bun.lock`.
 
 Packaging integrity is a `tools/verify_vsix.py` concern, not a vendoring one: it
 validates the exact archive inventory and rejects forbidden content before a
@@ -107,12 +107,13 @@ The inventory is an exact allowlist, not a pattern. The archive must contain onl
 the packaged manifest and its localized manifests, `readme.md`, `changelog.md`,
 `LICENSE.txt`, `SECURITY.md`, `SUPPORT.md`, `THIRD_PARTY_NOTICES.md`, `icon.png`,
 `icon.svg`, the injected TextMate grammar, `dist/extension.js`,
-`dist/package.json`, and the `inline-sql-syntax` third-party license and grammar.
-It must not contain TypeScript/development source, source maps, lockfiles,
+`dist/package.json`, and the third-party license and grammar files under
+`third_party/` (`inline-sql-syntax`, `sql-formatter`, `nearley`). It must not
+contain TypeScript/development source, source maps, lockfiles,
 caches, tests, plans, absolute build paths, fixture secrets, bytecode,
 `node_modules`, or an unapproved runtime dependency. No Python helper or vendored
 tree is packaged: the analyzer is the generated CommonJS bundle with
-`sql-formatter` inlined.
+`sql-formatter` and `nearley` inlined.
 
 ## Privacy rules
 

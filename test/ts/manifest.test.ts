@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { REASON_CODES } from "../../src/constants.js";
+
 interface PackageManifest {
   readonly name?: unknown;
   readonly displayName?: unknown;
@@ -207,6 +209,29 @@ describe("extension manifest", () => {
       "troubleshoot",
     ]) {
       expect(readme.toLowerCase()).toContain(assertion.toLowerCase());
+    }
+  });
+
+  it("keeps the packaged diagnostic reason codes aligned with REASON_CODES", () => {
+    const support = readProjectDocument("SUPPORT.md");
+    const documented = Array.from(
+      support.matchAll(/^\|\s*`([A-Z][A-Z0-9_]*)`/gm),
+      (match) => match[1],
+    ).filter((code): code is string => code !== undefined);
+    // A code the implementation cannot emit is as wrong as an emitted code the
+    // packaged reference omits.
+    expect([...documented].sort()).toEqual([...REASON_CODES].sort());
+
+    // Troubleshooting is the only README surface that names reason codes.
+    const readme = readProjectDocument("README.md");
+    const troubleshooting = readme.slice(readme.indexOf("## Troubleshooting"));
+    const mentioned = Array.from(
+      troubleshooting.matchAll(/`([A-Z][A-Z0-9_]{3,})`/g),
+      (match) => match[1],
+    ).filter((code): code is string => code !== undefined);
+    expect(mentioned.length).toBeGreaterThan(0);
+    for (const code of mentioned) {
+      expect(REASON_CODES).toContain(code);
     }
   });
 

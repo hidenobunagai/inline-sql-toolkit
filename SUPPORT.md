@@ -21,25 +21,21 @@ Include these diagnostic details when available:
 
 ## Diagnostic reason codes
 
-| Code                         | Meaning                                                 |
-| ---------------------------- | ------------------------------------------------------- |
-| `PYTHON_NOT_FOUND`           | No permitted Python interpreter was found.              |
-| `PYTHON_VERSION_UNSUPPORTED` | The interpreter is older than Python 3.12.              |
-| `WORKSPACE_UNTRUSTED`        | Formatting is disabled until trust is granted.          |
-| `INVALID_CONFIGURATION`      | A setting or interpreter path is invalid.               |
-| `DOCUMENT_PARSE_FAILED`      | The Python source could not be parsed safely.           |
-| `NO_SQL_CANDIDATE`           | No supported source-level SQL candidate was found.      |
-| `UNSUPPORTED_LITERAL`        | The literal shape is outside the supported scope.       |
-| `UNSAFE_FSTRING_RESTORE`     | An f-string could not be restored byte-for-byte safely. |
-| `UNSAFE_RAW_STRING`          | A raw-string edit could not preserve its source safely. |
-| `FORMATTER_FAILED`           | The bundled formatter could not produce a safe result.  |
-| `RESOURCE_LIMIT_EXCEEDED`    | A document, candidate, or request exceeded a guard.     |
-| `PROCESS_TIMEOUT`            | The local helper exceeded its hard timeout.             |
-| `PROCESS_CANCELLED`          | The formatting request was cancelled.                   |
-| `PROCESS_FAILED`             | The local helper process failed.                        |
-| `DOCUMENT_CHANGED`           | The document changed before the guarded edit.           |
-| `APPLY_EDIT_FAILED`          | VS Code rejected the guarded workspace edit.            |
-| `PROTOCOL_ERROR`             | The helper response failed protocol validation.         |
+| Code                      | Meaning                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `WORKSPACE_UNTRUSTED`     | Formatting is disabled until trust is granted.          |
+| `INVALID_CONFIGURATION`   | An `inlineSql.format.*` setting has an invalid value.   |
+| `NO_SQL_CANDIDATE`        | No supported source-level SQL candidate was found.      |
+| `UNSUPPORTED_LITERAL`     | The literal shape is outside the supported scope.       |
+| `UNSAFE_FSTRING_RESTORE`  | An f-string could not be restored byte-for-byte safely. |
+| `UNSAFE_RAW_STRING`       | A raw-string edit could not preserve its source safely. |
+| `FORMATTER_FAILED`        | The bundled formatter could not produce a safe result.  |
+| `RESOURCE_LIMIT_EXCEEDED` | A document, candidate, or request exceeded a guard.     |
+| `PROCESS_CANCELLED`       | The formatting request was cancelled.                   |
+| `PROCESS_FAILED`          | Formatting failed unexpectedly.                         |
+| `DOCUMENT_CHANGED`        | The document changed before the guarded edit.           |
+| `APPLY_EDIT_FAILED`       | VS Code rejected the guarded workspace edit.            |
+| `PROTOCOL_ERROR`          | The result failed an internal consistency check.        |
 
 Inline SQL Toolkit does not provide database connectivity, SQL validation,
 network services, or telemetry. A support report should therefore focus on the

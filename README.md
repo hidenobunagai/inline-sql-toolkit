@@ -164,7 +164,7 @@ over the network, passed to a shell/database, or executed. The bundled
   expressions are skipped when their source spans cannot be restored exactly.
 - **Formatting is unavailable:** use a trusted workspace and check the
   diagnostic reason shown by the extension (`WORKSPACE_UNTRUSTED`,
-  `INVALID_CONFIGURATION`, `PROCESS_TIMEOUT`, or `PROCESS_FAILED`).
+  `INVALID_CONFIGURATION`, or `PROCESS_FAILED`).
 - **SQL looks different than expected:** formatting does not validate SQL or
   infer a dialect. Adjust the settings above and review the source-level
   candidate before applying the one-step edit.

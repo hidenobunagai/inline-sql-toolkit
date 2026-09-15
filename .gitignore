@@ -13,7 +13,6 @@ reports/
 .hypothesis/
 __pycache__/
 *.py[cod]
-test/.grammar-cache/
 .headroom/
 AGENTS.md
 

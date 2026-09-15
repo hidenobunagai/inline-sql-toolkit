@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.4.5 - 2026-09-15
+
+- Licensing: the packaged VSIX now ships the MIT license text of every npm
+  package esbuild inlines into `dist/extension.js` — `sql-formatter` 15.8.2 and
+  the `nearley` 2.20.1 parser it imports — instead of describing the injected
+  grammar as the only packaged component. The bundle sets
+  `legalComments: "none"`, so the notices are stripped from the code and have to
+  travel in `third_party/` and `THIRD_PARTY_NOTICES.md`.
+- Security/CI: the `osv-packaged-components` report is now derived from the
+  `THIRD_PARTY_NOTICES.md` inside the verified VSIX and cross-checked against
+  the packaged `third_party/` tree, replacing the hardcoded package list. A
+  dependency entering or leaving the bundle can no longer leave the scanner
+  input silently stale, and an unreadable or missing notice fails verification
+  instead of reporting nothing.
+- Support documentation: the `SUPPORT.md` diagnostic reference lists exactly the
+  13 reason codes the extension can emit (`REASON_CODES` in `src/constants.ts`),
+  replacing the four helper-era codes (`PYTHON_NOT_FOUND`,
+  `PYTHON_VERSION_UNSUPPORTED`, `DOCUMENT_PARSE_FAILED`, `PROCESS_TIMEOUT`) and
+  the removed-helper wording; the README troubleshooting bullet no longer names
+  `PROCESS_TIMEOUT`.
+- Maintenance: drops the unused `vscode-textmate` and `vscode-oniguruma`
+  devDependencies, the stale `ruff` hooks from `.pre-commit-config.yaml` (the uv
+  environment has held no Python dependencies since the formatter migration, so
+  every `pre-commit run` failed), and the ignore entries for the removed
+  `python/vendor` and `test/.grammar-cache` paths.
+- Manifest tests guard both classes of drift: the documented reason codes must
+  match `REASON_CODES`, and every `node_modules/` input of the esbuild metafile
+  must have a `third_party/` directory linked from the packaged notices, with
+  the declared version matching the package actually inlined.
+- No formatting behavior changes: this release is license/notice compliance,
+  component-report integrity, documentation alignment, and stale-configuration
+  cleanup only.
+
 ## 0.4.4 - 2026-09-14
 
 - Security/CI: the OSV lockfile scan now also runs on every push to `main`

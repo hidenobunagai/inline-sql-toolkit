@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.6 - 2026-09-16
+
+- Support documentation: the `SUPPORT.md` diagnostic checklist no longer asks
+  for a Python version. The extension never runs a Python interpreter — the
+  analyzer is TypeScript and the formatter is the bundled `sql-formatter` — so
+  the request was a leftover from the removed helper era; the literal shape that
+  actually matters is still requested in the paragraph above the list, and the
+  packaged reason-code table is unchanged.
+- Maintenance: drops the dead `.pytest_cache/`, `.ruff_cache/`, and
+  `.hypothesis/` entries from `.gitignore`, since pytest, ruff, and hypothesis
+  left with the Python test suite and no longer have anything to ignore. The
+  lines could only go once the stale cache directories were removed from the
+  working copy, because prettier reads `.gitignore` as an ignore path and was
+  kept off them by those entries. `__pycache__/` and `*.py[cod]` stay, because
+  `uv run python tools/verify_vsix.py` still writes them.
+- No formatting behavior changes and no code changes: this release is
+  documentation and repository-configuration hygiene only.
+
 ## 0.4.5 - 2026-09-15
 
 - Licensing: the packaged VSIX now ships the MIT license text of every npm

@@ -9,8 +9,8 @@ settings instead of pasting a query.
 
 Include these diagnostic details when available:
 
-- Inline SQL Toolkit version (for example, `0.1.0`), VS Code version, operating
-  system, and Python version.
+- Inline SQL Toolkit version (for example, `0.1.0`), VS Code version, and
+  operating system.
 - Whether the workspace is trusted, and whether the target is a `.py`, Jupyter
   Python cell, or marimo `python`/`mo-python` cell.
 - The command (`inlineSql.formatAtCursor`, `inlineSql.formatSelection`, or

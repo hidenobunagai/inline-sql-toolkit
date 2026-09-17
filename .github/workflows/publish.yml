@@ -29,7 +29,20 @@ jobs:
       - name: Publish to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx --yes ovsx publish dist-vsix/*.vsix -p "$OVSX_PAT" --skip-duplicate
+        # Open VSX answers 503 intermittently (three times on 2026-09-17 across two
+        # repositories) and can even fail the request after accepting the upload.
+        # --skip-duplicate makes the retry harmless in that case: an
+        # already-published version reports success.
+        run: |
+          for attempt in 1 2 3 4; do
+            if npx --yes ovsx publish dist-vsix/*.vsix -p "$OVSX_PAT" --skip-duplicate; then
+              exit 0
+            fi
+            echo "::warning::ovsx publish attempt $attempt failed; retrying in 30s"
+            sleep 30
+          done
+          echo "::error::ovsx publish failed after 4 attempts"
+          exit 1
 
   npm:
     runs-on: ubuntu-latest

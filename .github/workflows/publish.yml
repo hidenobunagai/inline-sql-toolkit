@@ -74,6 +74,19 @@ jobs:
           npm pack --dry-run 2>&1 | tee /tmp/npm-pack.txt
           grep -q "dist/cli.js" /tmp/npm-pack.txt
           grep -q "dist/package.json" /tmp/npm-pack.txt
+      # Idempotent on purpose: re-running the workflow (for example to retry the
+      # marketplaces after an Open VSX 503) must not fail just because npm already
+      # has this version.
+      - name: Check whether this version is already on npm
+        id: npm-version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "inline-sql-toolkit@${VERSION}" version >/dev/null 2>&1; then
+            echo "published=true" >>"$GITHUB_OUTPUT"
+            echo "inline-sql-toolkit@${VERSION} is already published"
+          else
+            echo "published=false" >>"$GITHUB_OUTPUT"
+          fi
       # Bootstrap path. npm cannot be given a trusted publisher before the package
       # exists, so the first release has to authenticate with a granular access
       # token that has bypass 2FA enabled. Set the NPM_TOKEN secret for that one
@@ -81,10 +94,10 @@ jobs:
       # Publisher → this workflow file) and delete the secret: this step is then
       # skipped and the OIDC step below takes over, with provenance attached.
       - name: Publish to npm (bootstrap token)
-        if: env.NPM_TOKEN != ''
+        if: env.NPM_TOKEN != '' && steps.npm-version.outputs.published == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
       - name: Publish to npm (trusted publishing)
-        if: env.NPM_TOKEN == ''
+        if: env.NPM_TOKEN == '' && steps.npm-version.outputs.published == 'false'
         run: npm publish --access public

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- CLI: added the `inline-sql-toolkit` command-line executable bundled at `dist/cli.js`, enabling offline Python inline SQL formatting directly from the shell or CI workflows without adding new dependencies.
+- CLI: supports `-w`/`--write` in-place formatting, `--check` validation mode, stdin/stdout streaming, and hierarchical `.inline-sql.json` configuration resolution.
+- Packaging: prepared npm package distribution for the CLI with `.npmignore` scoping the tarball to `dist/cli.js` and documentation, and added an npm publish workflow job (trusted publishing / OIDC, with a token path for the one-time bootstrap).
+
+### Changed
+
+- Architecture: extracted pure shared modules (`src/format-options.ts`, `src/replacement.ts`, `src/sql-formatter.ts`) so both the VS Code extension and the CLI share identical configuration validation, single-line literal collapsing, and formatting logic.
+- Manifest: updated `package.json` engines to `{ "vscode": "^1.95.0", "node": ">=20" }`, registered the CLI bin entry, and un-privatized the package for npm publishing while keeping `.vscodeignore` excluding the CLI from the VSIX.
+
 ## 0.4.6 - 2026-09-16
 
 - Support documentation: the `SUPPORT.md` diagnostic checklist no longer asks

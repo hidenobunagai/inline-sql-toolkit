@@ -31,6 +31,33 @@ export async function buildExtension(): Promise<Metafile> {
   return result.metafile;
 }
 
+export async function buildCli(): Promise<Metafile> {
+  await mkdir("dist", { recursive: true });
+  await writeFile("dist/package.json", JSON.stringify({ type: "commonjs" }), {
+    encoding: "utf8",
+  });
+  const result = await build({
+    entryPoints: ["src/cli.ts"],
+    outfile: "dist/cli.js",
+    bundle: true,
+    platform: "node",
+    format: "cjs",
+    target: "node20",
+    sourcemap: false,
+    legalComments: "none",
+    metafile: true,
+    packages: "bundle",
+    banner: {
+      js: "#!/usr/bin/env node",
+    },
+  });
+  if (result.metafile === undefined) {
+    throw new Error("esbuild did not return a metafile");
+  }
+  return result.metafile;
+}
+
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   await buildExtension();
+  await buildCli();
 }

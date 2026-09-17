@@ -128,3 +128,46 @@ the VSIX, or create Marketplace credentials as part of this checklist. Obtain a
 new, explicit approval naming the exact version and artifact SHA-256 first;
 only then may an authorized maintainer perform publication and record the
 result.
+
+## 6. npm publication (trusted publishing / OIDC)
+
+In addition to the VS Code extension VSIX, the CLI executable is published to npm
+as `inline-sql-toolkit`.
+
+Publishing uses npm Trusted Publishing via GitHub Actions OIDC
+(`permissions: { contents: read, id-token: write }`), avoiding long-lived npm
+tokens.
+
+- **Initial bootstrap**: A trusted publisher can only be registered on a package
+  that already exists, so the very first release cannot use OIDC. For that one
+  release:
+  1. Create a **granular access token** on npm with `All packages` +
+     `Read and write (publish and stage)`, **Bypass two-factor authentication
+     enabled**, and a short expiry (7 days is enough).
+  2. Store it as the `NPM_TOKEN` repository secret; the workflow then runs the
+     `Publish to npm (bootstrap token)` step instead of the OIDC step.
+  3. After the release, open
+     `https://www.npmjs.com/package/inline-sql-toolkit/access` → **Trusted
+     Publisher** → GitHub Actions, and register organization/user
+     `hidenobunagai`, repository `inline-sql-toolkit`, workflow filename
+     `publish.yml` (filename only, exact, case-sensitive).
+  4. Delete the `NPM_TOKEN` secret and revoke the token. From then on the OIDC
+     step publishes with no stored credential, and provenance is attached
+     automatically.
+     Note that a passkey-only npm account cannot satisfy 2FA from the CLI, so a
+     bypass-2FA token is the only way to bootstrap; npm is retiring that capability
+     for direct publishing, which is exactly why the steady state is OIDC.
+- **Verifying OIDC without a new version**: dispatch the `Publish` workflow on
+  `main`. `npm error You cannot publish over the previously published versions:
+X.Y.Z.` proves the OIDC exchange and the publish permission both work —
+  `Unable to authenticate` means the workflow filename or repository in the
+  trusted publisher configuration does not match.
+- **Workflow separation**: The `npm` job in `.github/workflows/publish.yml` is
+  isolated from the VSIX publication job so that either registry can be retried
+  independently without touching the other.
+- **Tarball verification**: Test the packaging contents locally before release:
+  ```bash
+  npm pack --dry-run
+  ```
+  Confirm that `dist/cli.js` is present and that `dist/extension.js`,
+  `dist/package.json`, source code, and tests are excluded.

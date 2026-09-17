@@ -25,8 +25,49 @@ jobs:
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish --packagePath dist-vsix/*.vsix -p "$VSCE_PAT"
+        run: npx --yes @vscode/vsce publish --packagePath dist-vsix/*.vsix -p "$VSCE_PAT" --skip-duplicate
       - name: Publish to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: npx --yes ovsx publish dist-vsix/*.vsix -p "$OVSX_PAT"
+        run: npx --yes ovsx publish dist-vsix/*.vsix -p "$OVSX_PAT" --skip-duplicate
+
+  npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.8
+
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: bun run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@latest
+      - name: Verify the npm tarball ships the CLI
+        run: |
+          npm pack --dry-run 2>&1 | tee /tmp/npm-pack.txt
+          grep -q "dist/cli.js" /tmp/npm-pack.txt
+      # Bootstrap path. npm cannot be given a trusted publisher before the package
+      # exists, so the first release has to authenticate with a granular access
+      # token that has bypass 2FA enabled. Set the NPM_TOKEN secret for that one
+      # release, then register the trusted publisher (package settings → Trusted
+      # Publisher → this workflow file) and delete the secret: this step is then
+      # skipped and the OIDC step below takes over, with provenance attached.
+      - name: Publish to npm (bootstrap token)
+        if: env.NPM_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+      - name: Publish to npm (trusted publishing)
+        if: env.NPM_TOKEN == ''
+        run: npm publish --access public

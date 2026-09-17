@@ -10,10 +10,11 @@ supported.
 
 Requirements are VS Code 1.95 or newer. Formatting is
 manual-only: this extension does not register a formatter provider, format on
-save, format on type, or format ranges automatically. It never executes SQL,
-validates SQL, infers a SQL dialect, connects to a database, or sends source to
-the network. The formatter is best-effort; an unsafe candidate is skipped while
-other safe candidates may still be edited.
+save, format on type, or format ranges automatically. The accompanying CLI is
+likewise an explicit invocation, not an automated background formatter. It never
+executes SQL, validates SQL, infers a SQL dialect, connects to a database, or
+sends source to the network. The formatter is best-effort; an unsafe candidate is
+skipped while other safe candidates may still be edited.
 
 In short, SQL is never executed by this extension. SQL is never validated by
 this extension.
@@ -118,6 +119,55 @@ plain files and notebook cells alike. Because the highlighting is grammar-based,
 a language server's semantic tokens can override it; if SQL highlighting
 disappears, disable semantic highlighting for the language server
 (`editor.semanticHighlighting.enabled: false`) or for the server itself.
+
+## Command line (CLI)
+
+The `inline-sql-toolkit` command-line tool formats Python files or standard input using the exact same formatting engine and safety checks as the VS Code extension's **Format All** command. Unsafe candidates (such as invalid Python syntax, unsupported literals, or unparseable f-strings) are skipped rather than producing corrupt output.
+
+Run directly via `npx` or install with `bun add -d inline-sql-toolkit` (or `npm install -D inline-sql-toolkit`):
+
+```bash
+npx inline-sql-toolkit [options] [files...]
+```
+
+When run without file arguments, the CLI reads Python source from standard input and prints the formatted result to standard output. Notebook files (`.ipynb`) are not supported by the CLI; use the VS Code extension for Jupyter and marimo notebook cell formatting. The CLI supports standard Python source files (`.py`, `.mo.py`) and stdin.
+
+### CLI Options
+
+| Option                        | Description                                                       | Default                    |
+| ----------------------------- | ----------------------------------------------------------------- | -------------------------- |
+| `-w, --write`                 | Rewrite files in place (no write if unchanged)                    | off                        |
+| `--check`                     | Exit with code 1 if any file would change                         | off                        |
+| `--dialect <name>`            | SQL dialect: `sql`, `mysql`, `postgresql`, or `sqlite`            | `postgresql`               |
+| `--keyword-case <case>`       | Case for SQL keywords: `upper`, `lower`, or `preserve`            | `upper`                    |
+| `--indent-width <1-8>`        | SQL indentation width in spaces                                   | `2`                        |
+| `--wrap-after <20-500>`       | Preferred expression line width                                   | `88`                       |
+| `--no-space-around-operators` | Keep dense operators                                              | spaced                     |
+| `--no-ordinals`               | Do not replace `GROUP BY` / `ORDER BY` ordinals with column names | replace                    |
+| `-c, --config <file>`         | Configuration JSON file                                           | Nearest `.inline-sql.json` |
+| `-h, --help`                  | Show usage help                                                   |                            |
+| `--version`                   | Show version number                                               |                            |
+
+Exit codes: `0` on success, `1` when `--check` finds unformatted files, and `2` on usage, configuration, I/O, or formatting errors.
+
+### Configuration file (`.inline-sql.json`)
+
+The CLI automatically searches for a `.inline-sql.json` file in the current working directory and its parent directories. The configuration structure matches VS Code settings:
+
+```json
+{
+  "format": {
+    "keywordCase": "upper",
+    "indentWidth": 2,
+    "wrapAfter": 88,
+    "useSpaceAroundOperators": true,
+    "replaceOrdinals": true,
+    "dialect": "postgresql"
+  }
+}
+```
+
+Precedence order is **CLI flags > configuration file > default values**.
 
 ## Detection and supported syntax
 

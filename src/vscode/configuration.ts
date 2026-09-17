@@ -1,49 +1,23 @@
 import * as vscode from "vscode";
 
-import type { FormatOptions } from "../protocol.js";
+import { type FormatOptionsResult, resolveFormatOptions } from "../format-options.js";
 
-export type FormatOptionsResult =
-  | { readonly ok: true; readonly options: FormatOptions }
-  | { readonly ok: false; readonly reason: "INVALID_CONFIGURATION" };
-
-function integerBetween(value: unknown, minimum: number, maximum: number): value is number {
-  return (
-    typeof value === "number" && Number.isInteger(value) && value >= minimum && value <= maximum
-  );
-}
+export type { FormatOptionsResult };
 
 export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult {
   const configuration = vscode.workspace.getConfiguration("inlineSql", resourceUri);
-  const keywordCaseValue = configuration.get<unknown>("format.keywordCase");
-  const indentWidthValue = configuration.get<unknown>("format.indentWidth");
-  const wrapAfterValue = configuration.get<unknown>("format.wrapAfter");
-  const operatorSpacingValue = configuration.get<unknown>("format.useSpaceAroundOperators");
-  const replaceOrdinalsValue = configuration.get<unknown>("format.replaceOrdinals");
-  const dialectValue = configuration.get<unknown>("format.dialect");
-  const keywordCase = keywordCaseValue === undefined ? "upper" : keywordCaseValue;
-  const indentWidth = indentWidthValue === undefined ? 2 : indentWidthValue;
-  const wrapAfter = wrapAfterValue === undefined ? 88 : wrapAfterValue;
-  const useSpaceAroundOperators = operatorSpacingValue === undefined ? true : operatorSpacingValue;
-  const replaceOrdinals = replaceOrdinalsValue === undefined ? true : replaceOrdinalsValue;
-  const dialect = dialectValue === undefined ? "postgresql" : dialectValue;
-  if (
-    (keywordCase !== "upper" && keywordCase !== "lower" && keywordCase !== "preserve") ||
-    !integerBetween(indentWidth, 1, 8) ||
-    !integerBetween(wrapAfter, 20, 500) ||
-    typeof useSpaceAroundOperators !== "boolean" ||
-    typeof replaceOrdinals !== "boolean" ||
-    (dialect !== "sql" && dialect !== "mysql" && dialect !== "postgresql" && dialect !== "sqlite")
-  )
-    return { ok: false, reason: "INVALID_CONFIGURATION" };
-  return {
-    ok: true,
-    options: {
-      keywordCase,
-      indentWidth,
-      wrapAfter,
-      useSpaceAroundOperators,
-      replaceOrdinals,
-      dialect,
-    },
-  };
+  const keywordCase = configuration.get<unknown>("format.keywordCase");
+  const indentWidth = configuration.get<unknown>("format.indentWidth");
+  const wrapAfter = configuration.get<unknown>("format.wrapAfter");
+  const useSpaceAroundOperators = configuration.get<unknown>("format.useSpaceAroundOperators");
+  const replaceOrdinals = configuration.get<unknown>("format.replaceOrdinals");
+  const dialect = configuration.get<unknown>("format.dialect");
+  return resolveFormatOptions({
+    keywordCase,
+    indentWidth,
+    wrapAfter,
+    useSpaceAroundOperators,
+    replaceOrdinals,
+    dialect,
+  });
 }

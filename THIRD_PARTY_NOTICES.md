@@ -22,8 +22,8 @@ copied into the packaged VSIX.
 ## `sql-formatter` npm package (v15.8.2)
 
 The formatter engine is the `sql-formatter` package (MIT license). esbuild
-inlines it into `dist/extension.js`, so no `node_modules` tree is packaged and
-the license text has to travel with the bundle. Exact provenance:
+inlines it into `dist/extension.js` and `dist/cli.js`, so no `node_modules` tree
+is packaged and the license text has to travel with the bundle. Exact provenance:
 
 - Package: <https://www.npmjs.com/package/sql-formatter/v/15.8.2>
 - Source repository: <https://github.com/sql-formatter-org/sql-formatter>
@@ -38,7 +38,8 @@ the packaged VSIX.
 ## `nearley` npm package (v2.20.1)
 
 `sql-formatter` builds its SQL parser on the `nearley` package (MIT license).
-esbuild inlines `nearley` into `dist/extension.js` as well. Exact provenance:
+esbuild inlines `nearley` into `dist/extension.js` and `dist/cli.js` as well.
+Exact provenance:
 
 - Package: <https://www.npmjs.com/package/nearley/v/2.20.1>
 - Source repository: <https://github.com/hardmath123/nearley>

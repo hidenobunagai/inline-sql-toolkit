@@ -11,7 +11,7 @@ import {
 import { analyzeDocument } from "../../src/python-analysis/literals.js";
 import { PositionMappingError, SourceMap } from "../../src/python-analysis/positions.js";
 import type { SqlFormatter } from "../../src/python-analysis/validation.js";
-import { formatProtectedSql } from "../../src/vscode/sql-formatter.js";
+import { formatProtectedSql } from "../../src/sql-formatter.js";
 
 const NONCE = "abcdef0123456789abcdef0123456789";
 const OPTIONS: FormatOptions = {

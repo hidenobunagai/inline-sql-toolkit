@@ -15,6 +15,8 @@ import type {
 } from "../protocol.js";
 import { allocateNonce, formatDocument, MAX_DOCUMENT_BYTES } from "../python-analysis/engine.js";
 import { PositionMappingError } from "../python-analysis/positions.js";
+import { collapseReplacement } from "../replacement.js";
+import { formatProtectedSql } from "../sql-formatter.js";
 import { readFormatOptions } from "./configuration.js";
 import {
   resolveActiveEditorTarget,
@@ -31,7 +33,6 @@ import {
   type NotificationSink,
   type TargetReasonCode,
 } from "./notifications.js";
-import { formatProtectedSql } from "./sql-formatter.js";
 import type { IntegrationTestHooks } from "./test-hooks.js";
 
 export interface FormatInvocation {
@@ -140,12 +141,6 @@ function toVscodeRange(range: TextRange): vscode.Range {
     new vscode.Position(range.start.line, range.start.character),
     new vscode.Position(range.end.line, range.end.character),
   );
-}
-
-/** Collapse single-line literal output so Python syntax stays intact. */
-function collapseReplacement(literalText: string, replacement: string): string {
-  if (literalText.includes("\n")) return replacement;
-  return replacement.replace(/\s*\n\s*/g, " ").trim();
 }
 
 /** Format one source text behind the shared safety checks. */

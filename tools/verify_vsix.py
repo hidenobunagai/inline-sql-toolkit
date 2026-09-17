@@ -156,7 +156,10 @@ def validate_packaged_manifest(manifest: object) -> None:
     if manifest.get("main") != "./dist/extension.js":
         raise VsixError("invalid extension manifest")
     engines = manifest.get("engines")
-    if not isinstance(engines, dict) or engines != {"vscode": "^1.95.0"}:
+    if not isinstance(engines, dict) or engines != {
+        "vscode": "^1.95.0",
+        "node": ">=20",
+    }:
         raise VsixError("invalid extension manifest")
     if "node_modules" in manifest:
         raise VsixError("unexpected dependency tree")

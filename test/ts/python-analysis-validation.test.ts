@@ -5,7 +5,7 @@ import { detectSql, type SqlDetection } from "../../src/python-analysis/detectio
 import { analyzeDocument, type DocumentAnalysis } from "../../src/python-analysis/literals.js";
 import type { SupportedLiteral } from "../../src/python-analysis/tokenizer.js";
 import { formatCandidate, type SqlFormatter } from "../../src/python-analysis/validation.js";
-import { formatProtectedSql } from "../../src/vscode/sql-formatter.js";
+import { formatProtectedSql } from "../../src/sql-formatter.js";
 
 const NONCE = "abcdef0123456789abcdef0123456789";
 const OPTIONS: FormatOptions = {

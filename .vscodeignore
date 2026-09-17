@@ -37,6 +37,8 @@ node_modules/**
 reports/**
 dist-test/**
 dist-vsix/**
+dist/cli.js
+.npmignore
 *.toml
 *.mjs
 tsconfig.json

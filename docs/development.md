@@ -73,6 +73,13 @@ bun run test:unit
 bun run test:coverage
 ```
 
+The overall quality gate combines formatting checks, linting, typechecking, and
+coverage in one pass:
+
+```bash
+bun run ci:quality
+```
+
 There are no Python gates to run. `pyproject.toml` declares no dependencies and
 the Python helper, its vendored `sqlparse` tree, and the `test/python` suite with
 its Hypothesis property tests were removed with the formatter migration, so
@@ -88,6 +95,28 @@ VSCODE_TEST_VERSION=1.95.0 bun run test:integration:trusted
 VSCODE_TEST_VERSION=1.95.0 bun run test:integration:untrusted
 VSCODE_TEST_VERSION=stable bun run test:integration:trusted
 VSCODE_TEST_VERSION=stable bun run test:integration:untrusted
+```
+
+## CLI build and manual execution
+
+The build script `tools/build.ts` produces two distinct artifacts under `dist/`:
+
+- `dist/extension.js`: The CommonJS bundle loaded by VS Code Extension Host.
+- `dist/cli.js`: The standalone CLI bundle with a `#!/usr/bin/env node` shebang.
+
+Compile both artifacts with:
+
+```bash
+bun run build
+```
+
+Verify that the CLI bundle starts with the shebang and execute it locally:
+
+```bash
+head -1 dist/cli.js
+node dist/cli.js --help
+node dist/cli.js --version
+echo 'query = "select id from users"' | node dist/cli.js
 ```
 
 ## Package inspection

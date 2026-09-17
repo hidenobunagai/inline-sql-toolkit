@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { REASON_CODES } from "../../src/constants.js";
-import { buildExtension } from "../../tools/build.js";
+import { buildCli, buildExtension } from "../../tools/build.js";
 
 interface PackageManifest {
   readonly name?: unknown;
@@ -47,7 +47,7 @@ describe("extension manifest", () => {
       name: "inline-sql-toolkit",
       displayName: "Inline SQL Toolkit",
       publisher: "hidenobunagai",
-      engines: { vscode: "^1.95.0" },
+      engines: { vscode: "^1.95.0", node: ">=20" },
       main: "./dist/extension.js",
     });
     expect(manifest.version).toMatch(/^\d+\.\d+\.\d+$/);
@@ -252,23 +252,31 @@ describe("extension manifest", () => {
 
   it("notices every npm package the bundle inlines", async () => {
     // The esbuild metafile is the only place that knows which node_modules
-    // code ends up inside dist/extension.js, so the guard builds the real
-    // bundle instead of trusting a hand-kept list.
-    const metafile = await buildExtension();
-    const bundle = metafile.outputs["dist/extension.js"];
-    expect(bundle).toBeDefined();
+    // code ends up inside dist/extension.js and dist/cli.js, so the guard
+    // builds the real bundles instead of trusting a hand-kept list.
+    const extensionMetafile = await buildExtension();
+    const cliMetafile = await buildCli();
+    const bundles = [
+      extensionMetafile.outputs["dist/extension.js"],
+      cliMetafile.outputs["dist/cli.js"],
+    ];
+    for (const bundle of bundles) {
+      expect(bundle).toBeDefined();
+    }
     const inlined = new Map<string, string>();
-    for (const input of Object.keys(bundle?.inputs ?? {})) {
-      const name = /node_modules\/((?:@[^/]+\/)?[^/]+)\//u.exec(input)?.[1];
-      if (name === undefined || inlined.has(name)) continue;
-      const version = (
-        JSON.parse(readProjectDocument(`node_modules/${name}/package.json`)) as {
-          readonly version?: unknown;
-        }
-      ).version;
-      expect(typeof version).toBe("string");
-      if (typeof version !== "string") continue;
-      inlined.set(name, version);
+    for (const bundle of bundles) {
+      for (const input of Object.keys(bundle?.inputs ?? {})) {
+        const name = /node_modules\/((?:@[^/]+\/)?[^/]+)\//u.exec(input)?.[1];
+        if (name === undefined || inlined.has(name)) continue;
+        const version = (
+          JSON.parse(readProjectDocument(`node_modules/${name}/package.json`)) as {
+            readonly version?: unknown;
+          }
+        ).version;
+        expect(typeof version).toBe("string");
+        if (typeof version !== "string") continue;
+        inlined.set(name, version);
+      }
     }
     expect(inlined.size).toBeGreaterThan(0);
 

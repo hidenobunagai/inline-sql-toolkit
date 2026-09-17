@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import type { FormatOptions } from "../../src/protocol.js";
-import { formatProtectedSql } from "../../src/vscode/sql-formatter.js";
+import { formatProtectedSql } from "../../src/sql-formatter.js";
 
 const fixturePath = resolve(
   dirname(fileURLToPath(import.meta.url)),

@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -234,5 +236,47 @@ describe("CLI inline-sql-toolkit", () => {
     expect(res.stderr).toContain("inline-sql-toolkit:");
     // file1 must not have been modified
     expect(readFileSync(file1, "utf8")).toBe(original1);
+  });
+
+  it("runs from the packed npm tarball", () => {
+    // The published artifact is the tarball, not the working tree. 0.4.7 shipped
+    // without dist/package.json (excluded by .npmignore), so Node loaded the CJS
+    // bundle as ESM ("module is not defined in ES module scope") and the CLI died
+    // on start — invisible to every test that ran `node dist/cli.js` locally,
+    // because the working tree has dist/package.json. Only packing and running
+    // the extracted tree catches it.
+    const packDir = mkdtempSync(join(tmpdir(), "inline-sql-toolkit-pack-"));
+    try {
+      const packed = spawnSync("npm", ["pack", "--pack-destination", packDir], {
+        cwd: resolve(__dirname, "../.."),
+        encoding: "utf8",
+      });
+      expect(packed.status).toBe(0);
+      const tarball = readdirSync(packDir).find((name) => name.endsWith(".tgz"));
+      expect(tarball).toBeDefined();
+      if (tarball === undefined) return;
+
+      const extractDir = join(packDir, "extract");
+      mkdirSync(extractDir);
+      const untar = spawnSync("tar", ["xzf", join(packDir, tarball), "-C", extractDir], {
+        encoding: "utf8",
+      });
+      expect(untar.status).toBe(0);
+
+      const packageRoot = join(extractDir, "package");
+      const cliEntry = join(packageRoot, "dist", "cli.js");
+      expect(existsSync(cliEntry)).toBe(true);
+      // dist/package.json marks dist/ as CommonJS; without it the CLI cannot load.
+      expect(existsSync(join(packageRoot, "dist", "package.json"))).toBe(true);
+
+      const version = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")) as {
+        version: string;
+      };
+      const run = spawnSync(process.execPath, [cliEntry, "--version"], { encoding: "utf8" });
+      expect(run.status).toBe(0);
+      expect(run.stdout.trim()).toBe(version.version);
+    } finally {
+      rmSync(packDir, { recursive: true, force: true });
+    }
   });
 });

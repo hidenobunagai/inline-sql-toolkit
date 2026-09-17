@@ -1,4 +1,4 @@
-# Exclude everything except dist/cli.js and distribution documents
+# Exclude everything except dist/cli.js, dist/package.json, and distribution documents
 src/**
 test/**
 tools/**
@@ -7,7 +7,9 @@ reports/**
 syntaxes/**
 third_party/**
 dist/extension.js
-dist/package.json
+# dist/package.json MUST ship: it marks dist/ as CommonJS. The root package.json
+# says "type": "module", so without this file Node treats dist/cli.js as ESM and
+# the published CLI dies with "module is not defined in ES module scope".
 dist-test/**
 dist-vsix/**
 coverage/**

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.8 - 2026-09-17
+
+### Fixed
+
+- **The published CLI could not start.** 0.4.7 shipped without `dist/package.json`, which marks `dist/` as CommonJS while the root manifest says `"type": "module"`, so Node loaded the CJS bundle as ESM and every invocation died with `module is not defined in ES module scope`. `.npmignore` no longer excludes that file, the publish workflow now fails unless the tarball contains both `dist/cli.js` and `dist/package.json`, and `test/ts/cli.test.ts` packs the tarball, extracts it, and runs the CLI from the extracted tree — the only layer where this class of packaging bug is visible.
+
 ## 0.4.7 - 2026-09-17
 
 ### Added

@@ -138,30 +138,31 @@ Publishing uses npm Trusted Publishing via GitHub Actions OIDC
 (`permissions: { contents: read, id-token: write }`), avoiding long-lived npm
 tokens.
 
-- **Initial bootstrap**: A trusted publisher can only be registered on a package
-  that already exists, so the very first release cannot use OIDC. For that one
-  release:
-  1. Create a **granular access token** on npm with `All packages` +
-     `Read and write (publish and stage)`, **Bypass two-factor authentication
-     enabled**, and a short expiry (7 days is enough).
-  2. Store it as the `NPM_TOKEN` repository secret; the workflow then runs the
-     `Publish to npm (bootstrap token)` step instead of the OIDC step.
-  3. After the release, open
+- **Initial bootstrap** (already done for 0.4.7; needed again only for a brand-new
+  package name): a trusted publisher can only be registered on a package that
+  already exists, so the very first release cannot use OIDC. Create a **granular
+  access token** on npm with `All packages` + `Read and write (publish and
+stage)`, **Bypass two-factor authentication** enabled, and a short expiry (7
+  days is enough), then publish that one version from a checkout:
+  1. Put the token in `.npmrc` (`//registry.npmjs.org/:_authToken=<token>`) or
+     export it as `NODE_AUTH_TOKEN`.
+  2. `bun install --frozen-lockfile --ignore-scripts && bun run build`
+  3. `npm publish --access public`
+  4. Register the trusted publisher at
      `https://www.npmjs.com/package/inline-sql-toolkit/access` → **Trusted
-     Publisher** → GitHub Actions, and register organization/user
-     `hidenobunagai`, repository `inline-sql-toolkit`, workflow filename
-     `publish.yml` (filename only, exact, case-sensitive).
-  4. Delete the `NPM_TOKEN` secret and revoke the token. From then on the OIDC
-     step publishes with no stored credential, and provenance is attached
-     automatically.
-     Note that a passkey-only npm account cannot satisfy 2FA from the CLI, so a
-     bypass-2FA token is the only way to bootstrap; npm is retiring that capability
-     for direct publishing, which is exactly why the steady state is OIDC.
-- **Verifying OIDC without a new version**: dispatch the `Publish` workflow on
-  `main`. `npm error You cannot publish over the previously published versions:
-X.Y.Z.` proves the OIDC exchange and the publish permission both work —
-  `Unable to authenticate` means the workflow filename or repository in the
-  trusted publisher configuration does not match.
+     Publisher** → GitHub Actions: organization/user `hidenobunagai`, repository
+     `inline-sql-toolkit`, workflow filename `publish.yml` (filename only, exact,
+     case-sensitive).
+  5. Revoke the token and remove it from `.npmrc`.
+     The workflow deliberately has **no token path**: a stray `NPM_TOKEN` secret must
+     not be able to silently take over the npm job. A passkey-only npm account cannot
+     satisfy 2FA from the CLI (there is no TOTP to pass to `--otp`), which is exactly
+     why the bootstrap token is the only way in and why the steady state is OIDC.
+- **First real OIDC release**: the workflow skips publishing when the version is
+  already on npm, so dispatching it cannot exercise OIDC — the first release after
+  the bootstrap is the first real test. If it fails with
+  `Unable to authenticate`, the repository or workflow filename registered as the
+  trusted publisher does not match this repository (`publish.yml`, case-sensitive).
 - **Workflow separation**: The `npm` job in `.github/workflows/publish.yml` is
   isolated from the VSIX publication job so that either registry can be retried
   independently without touching the other.
@@ -169,5 +170,7 @@ X.Y.Z.` proves the OIDC exchange and the publish permission both work —
   ```bash
   npm pack --dry-run
   ```
-  Confirm that `dist/cli.js` is present and that `dist/extension.js`,
-  `dist/package.json`, source code, and tests are excluded.
+  Confirm that **`dist/cli.js` and `dist/package.json` are both present** — the
+  latter marks `dist/` as CommonJS, and 0.4.7 shipped without it, so the published
+  CLI died with `module is not defined in ES module scope` — and that
+  `dist/extension.js`, source code, and tests are excluded.

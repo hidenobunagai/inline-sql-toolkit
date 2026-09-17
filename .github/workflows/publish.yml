@@ -46,11 +46,15 @@ jobs:
 
   npm:
     runs-on: ubuntu-latest
+    # Trusted publishing (OIDC) only — no NPM_TOKEN secret, nothing to rotate or
+    # expire, and provenance attestations are attached automatically. An
+    # accidental token secret must not be able to take over this job, so there is
+    # deliberately no token path here; the one-time bootstrap for a brand-new
+    # package (npm cannot be given a trusted publisher before the package exists)
+    # is documented in docs/releasing.md.
     permissions:
       contents: read
       id-token: write
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -87,17 +91,9 @@ jobs:
           else
             echo "published=false" >>"$GITHUB_OUTPUT"
           fi
-      # Bootstrap path. npm cannot be given a trusted publisher before the package
-      # exists, so the first release has to authenticate with a granular access
-      # token that has bypass 2FA enabled. Set the NPM_TOKEN secret for that one
-      # release, then register the trusted publisher (package settings → Trusted
-      # Publisher → this workflow file) and delete the secret: this step is then
-      # skipped and the OIDC step below takes over, with provenance attached.
-      - name: Publish to npm (bootstrap token)
-        if: env.NPM_TOKEN != '' && steps.npm-version.outputs.published == 'false'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+      # No NODE_AUTH_TOKEN: npm exchanges the GitHub OIDC token for a short-lived
+      # publish credential when a trusted publisher matches this workflow, and adds
+      # provenance attestations automatically.
       - name: Publish to npm (trusted publishing)
-        if: env.NPM_TOKEN == '' && steps.npm-version.outputs.published == 'false'
+        if: steps.npm-version.outputs.published == 'false'
         run: npm publish --access public

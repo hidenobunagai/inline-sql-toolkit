@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.9 - 2026-09-18
+
+- CI: the Open VSX publish step now retries up to four times with a 30-second
+  pause between attempts instead of failing the release on the first response.
+  Open VSX answers 503 intermittently and can even fail the request after
+  accepting the upload; `--skip-duplicate` makes a retry harmless in that case,
+  because an already-published version reports success.
+- CI: the npm publish job is now idempotent. Re-running the workflow to retry
+  the marketplaces (for example after an Open VSX 503) no longer turns the npm
+  job red: it asks the registry whether the version is already published and
+  skips both publish steps when it is, so the retry cannot fail with "cannot
+  publish over the previously published versions".
+- No formatting behavior changes and no code changes: this release is publish
+  workflow robustness only.
+
 ## 0.4.8 - 2026-09-17
 
 ### Fixed

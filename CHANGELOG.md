@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.10 - 2026-09-19
+
+- CI: the npm publish job is now OIDC-only. The dormant `NPM_TOKEN` path that was
+  kept for the one-time 0.4.7 bootstrap is gone, so a stray token secret can no
+  longer silently take precedence over trusted publishing — one did, and it would
+  have expired a week later. npm exchanges the GitHub OIDC token for a
+  short-lived publish credential and attaches provenance attestations, matching
+  the setup already used by `sql-template-formatter`.
+- Documentation: `docs/releasing.md` now records the bootstrap as a one-time
+  local publish that is needed only for a brand-new package name: install with
+  `bun install --frozen-lockfile --ignore-scripts`, build with `bun run build`,
+  then `npm publish`. It also states that dispatching the workflow can no longer
+  verify OIDC, because the publish is skipped when the version is already on npm:
+  the next release is the first real test of the credential exchange.
+- Documentation: the tarball check now requires `dist/cli.js` and
+  `dist/package.json` together: the latter marks `dist/` as CommonJS, and 0.4.7
+  shipped without it, so the published CLI died with the error
+  `module is not defined in ES module scope`.
+- No formatting behavior changes and no code changes: this release is publish
+  workflow and release-documentation only.
+
 ## 0.4.9 - 2026-09-18
 
 - CI: the Open VSX publish step now retries up to four times with a 30-second

@@ -12,6 +12,7 @@ export interface RawFormatOptions {
   readonly replaceOrdinals?: unknown;
   readonly dialect?: unknown;
   readonly commaPosition?: unknown;
+  readonly keepFunctionsInline?: unknown;
 }
 
 function integerBetween(value: unknown, minimum: number, maximum: number): value is number {
@@ -29,6 +30,8 @@ export function resolveFormatOptions(raw: RawFormatOptions): FormatOptionsResult
   const replaceOrdinals = raw.replaceOrdinals === undefined ? true : raw.replaceOrdinals;
   const dialect = raw.dialect === undefined ? "postgresql" : raw.dialect;
   const commaPosition = raw.commaPosition === undefined ? "after" : raw.commaPosition;
+  const keepFunctionsInline =
+    raw.keepFunctionsInline === undefined ? false : raw.keepFunctionsInline;
 
   if (
     (keywordCase !== "upper" && keywordCase !== "lower" && keywordCase !== "preserve") ||
@@ -40,7 +43,8 @@ export function resolveFormatOptions(raw: RawFormatOptions): FormatOptionsResult
       dialect !== "mysql" &&
       dialect !== "postgresql" &&
       dialect !== "sqlite") ||
-    (commaPosition !== "after" && commaPosition !== "before")
+    (commaPosition !== "after" && commaPosition !== "before") ||
+    typeof keepFunctionsInline !== "boolean"
   ) {
     return { ok: false, reason: "INVALID_CONFIGURATION" };
   }
@@ -55,6 +59,7 @@ export function resolveFormatOptions(raw: RawFormatOptions): FormatOptionsResult
       replaceOrdinals,
       dialect,
       commaPosition,
+      keepFunctionsInline,
     },
   };
 }

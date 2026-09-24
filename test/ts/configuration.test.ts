@@ -22,6 +22,7 @@ describe("readFormatOptions", () => {
           replaceOrdinals: true,
           dialect: "postgresql",
           commaPosition: "after",
+          keepFunctionsInline: false,
         },
       },
     );
@@ -53,6 +54,11 @@ describe("readFormatOptions", () => {
       "format.commaPosition",
       "before",
     );
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.keepFunctionsInline",
+      true,
+    );
     expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual(
       {
         ok: true,
@@ -64,6 +70,7 @@ describe("readFormatOptions", () => {
           replaceOrdinals: true,
           dialect: "postgresql",
           commaPosition: "before",
+          keepFunctionsInline: true,
         },
       },
     );
@@ -86,6 +93,9 @@ describe("readFormatOptions", () => {
     ["format.commaPosition", "middle"],
     ["format.commaPosition", 1],
     ["format.commaPosition", null],
+    ["format.keepFunctionsInline", "true"],
+    ["format.keepFunctionsInline", 1],
+    ["format.keepFunctionsInline", null],
   ])("rejects invalid %s=%j without defaulting", (key, value) => {
     const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
     __mock.setConfiguration(uri, key, value);

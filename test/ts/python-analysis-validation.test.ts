@@ -16,6 +16,7 @@ const OPTIONS: FormatOptions = {
   replaceOrdinals: true,
   dialect: "postgresql",
   commaPosition: "after",
+  keepFunctionsInline: false,
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);
 
@@ -308,6 +309,51 @@ GROUP BY
       expect(result.replacementText).toBe(
         '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    label,\n    amount\n"""',
       );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("is idempotent when keepFunctionsInline", () => {
+    const cfg = { ...OPTIONS, keepFunctionsInline: true };
+    const source = 'query = """--sql\nSELECT COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n FROM t\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const first = formatCandidate(source, analysis, literal, detection, cfg, NONCE, formatter);
+    if (!("replacementText" in first)) throw new Error("expected a changed candidate");
+    const second = analyzeOne(first.replacementText);
+    const result = formatCandidate(
+      first.replacementText,
+      second.analysis,
+      second.literal,
+      second.detection,
+      cfg,
+      NONCE,
+      formatter,
+    );
+    expect(result).toEqual({ sourceSpan: second.literal.span });
+  });
+
+  it("keeps a CASE inside a function on one line when keepFunctionsInline", () => {
+    const source = 'query = """--sql\nSELECT COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n FROM t\n"""';
+    const options = { ...OPTIONS, keepFunctionsInline: true };
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n\n  FROM\n    t\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("keeps breaking function arguments by default", () => {
+    const source = 'query = """--sql\nSELECT COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n FROM t\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toContain("COUNT(\n");
+      expect(result.replacementText).not.toContain("COUNT(CASE WHEN a THEN 1 ELSE 0 END)");
     } else {
       throw new Error("expected a changed candidate");
     }

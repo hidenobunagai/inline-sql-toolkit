@@ -209,6 +209,126 @@ function moveCommasToLineStarts(text: string): string {
   return lines.join("\n");
 }
 
+const DOLLAR_QUOTE = /\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$/y;
+
+/**
+ * Re-join the line breaks sql-formatter inserts inside `word(...)` groups so
+ * `SUM(...)`, `COUNT(CASE … END)`, and friends stay on one line
+ * (`keepFunctionsInline: true`). Only newlines in code state are removed: a
+ * newline inside a string, a dollar quote, a block comment, or the line
+ * comment it terminates is copied verbatim, so literal content and comment
+ * bodies are never rewritten. ponytail: any `word (` opener counts as a
+ * function — `IN (…)` groups collapse too, and there is no keyword blacklist.
+ */
+function rejoinFunctionCalls(text: string): string {
+  const stack: boolean[] = []; // per open paren: true when a word(...) call owns it
+  let out = "";
+  let i = 0;
+  const at = (index: number): string => text.charAt(index); // "" past the end, never undefined
+
+  const isCallOpener = (): boolean => {
+    const match = /[A-Za-z_][A-Za-z0-9_]*\s*$/.exec(out);
+    if (match === null) return false;
+    const before = out.slice(0, match.index);
+    return before === "" || !/[A-Za-z0-9_]$/.test(before);
+  };
+
+  while (i < text.length) {
+    const ch = at(i);
+    if (ch === "'" || ch === '"' || ch === "`") {
+      const quote = ch;
+      out += ch;
+      i += 1;
+      while (i < text.length) {
+        if (at(i) === quote && at(i + 1) === quote) {
+          out += at(i) + at(i + 1);
+          i += 2;
+          continue;
+        }
+        out += at(i);
+        i += 1;
+        if (at(i - 1) === quote) break;
+        if (at(i - 1) === "\\" && quote !== "`" && i < text.length) {
+          out += at(i);
+          i += 1;
+        }
+      }
+      continue;
+    }
+    if (ch === "$") {
+      DOLLAR_QUOTE.lastIndex = i;
+      const dollar = DOLLAR_QUOTE.exec(text);
+      if (dollar !== null) {
+        const end = text.indexOf(dollar[0], i + dollar[0].length);
+        const stop = end === -1 ? text.length : end + dollar[0].length;
+        out += text.slice(i, stop);
+        i = stop;
+        continue;
+      }
+    }
+    if ((ch === "-" && at(i + 1) === "-") || ch === "#") {
+      while (i < text.length && at(i) !== "\n") {
+        out += at(i);
+        i += 1;
+      }
+      if (i < text.length) {
+        out += at(i); // the newline ending a line comment stays verbatim
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === "/" && at(i + 1) === "*") {
+      out += "/*";
+      i += 2;
+      while (i < text.length && !(at(i) === "*" && at(i + 1) === "/")) {
+        out += at(i);
+        i += 1;
+      }
+      if (i < text.length) {
+        out += "*/";
+        i += 2;
+      }
+      continue;
+    }
+    if (ch === "\n") {
+      if (stack.includes(true)) {
+        let indent = i + 1;
+        while (indent < text.length && (at(indent) === " " || at(indent) === "\t")) {
+          indent += 1;
+        }
+        let peek = indent;
+        while (peek < text.length && (at(peek) === "\n" || at(peek) === " " || at(peek) === "\t")) {
+          peek += 1;
+        }
+        const next = at(peek);
+        const prev = out.slice(-1);
+        i = indent; // swallow this newline and its indent
+        // `(` and `,`/`)` need no separating space; everything else does.
+        if (prev !== "(" && next !== "," && next !== ")") out += " ";
+      } else {
+        out += ch;
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === "(") {
+      stack.push(isCallOpener());
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (ch === ")") {
+      stack.pop();
+      out += ch;
+      i += 1;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -231,6 +351,9 @@ function formatOnce(
   }
   formatted = breakTrailingFieldMarkers(formatted);
   formatted = moveCommasBeforeLineComments(formatted);
+  if (options.keepFunctionsInline) {
+    formatted = rejoinFunctionCalls(formatted);
+  }
   if (options.commaPosition === "before") {
     formatted = moveCommasToLineStarts(formatted);
   }

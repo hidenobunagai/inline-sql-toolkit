@@ -19,5 +19,6 @@
   "semanticTokenTypes.inlineSqlIdentifier.description": "An SQL identifier inside an inline SQL literal.",
   "untrustedWorkspaces.description": "Inline SQL formatting is disabled until this workspace is trusted.",
   "configuration.format.replaceOrdinals.description": "Replaces GROUP BY and ORDER BY ordinal numbers (1, 2, ...) with the referenced column names (alias preferred) when formatting.",
-  "configuration.format.commaPosition.description": "Chooses where a comma that wraps to the next line sits: \"after\" keeps it at the end of the previous line, \"before\" moves it to the start of the next line."
+  "configuration.format.commaPosition.description": "Chooses where a comma that wraps to the next line sits: \"after\" keeps it at the end of the previous line, \"before\" moves it to the start of the next line.",
+  "configuration.format.keepFunctionsInline.description": "Keeps function calls (SUM(...), COUNT(CASE ... END), ...) on a single line instead of breaking their arguments across lines."
 }

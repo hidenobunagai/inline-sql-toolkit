@@ -28,6 +28,7 @@ const DEFAULTS: FormatOptions = {
   replaceOrdinals: true,
   dialect: "postgresql",
   commaPosition: "after",
+  keepFunctionsInline: false,
 };
 
 const goldenCases = JSON.parse(readFileSync(fixturePath, "utf8")) as readonly GoldenCase[];

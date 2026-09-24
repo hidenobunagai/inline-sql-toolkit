@@ -162,6 +162,7 @@ export function formatDocument(
         `indentWidth=${options.indentWidth} wrapAfter=${options.wrapAfter} ` +
         `useSpaceAroundOperators=${options.useSpaceAroundOperators} ` +
         `replaceOrdinals=${options.replaceOrdinals} commaPosition=${options.commaPosition} ` +
+        `keepFunctionsInline=${options.keepFunctionsInline} ` +
         `discovered=${summary.discovered} ` +
         `selected=${summary.selected} changed=${summary.changed} unchanged=${summary.unchanged} ` +
         `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,

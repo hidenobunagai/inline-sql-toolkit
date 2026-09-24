@@ -113,6 +113,10 @@ later atomic precondition.
 - `inlineSql.format.commaPosition`: `after` (default) keeps a wrapping comma at
   the end of the previous line; `before` moves it to the start of the next
   line.
+- `inlineSql.format.keepFunctionsInline`: re-join the formatter's line breaks
+  inside `word(...)` groups so `SUM(...)`, `COUNT(CASE ... END)`, and nested
+  calls stay on one line (default `false`). Newlines inside string literals and
+  comments are never removed.
 
 The extension highlights inline SQL with an injected TextMate grammar: SQL
 strings that start with `-- sql` (or a leading SQL keyword) are embedded as
@@ -148,6 +152,7 @@ When run without file arguments, the CLI reads Python source from standard input
 | `--no-space-around-operators` | Keep dense operators                                              | spaced                     |
 | `--no-ordinals`               | Do not replace `GROUP BY` / `ORDER BY` ordinals with column names | replace                    |
 | `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`                  | `after`                    |
+| `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line               | off                        |
 | `-c, --config <file>`         | Configuration JSON file                                           | Nearest `.inline-sql.json` |
 | `-h, --help`                  | Show usage help                                                   |                            |
 | `--version`                   | Show version number                                               |                            |
@@ -167,7 +172,8 @@ The CLI automatically searches for a `.inline-sql.json` file in the current work
     "useSpaceAroundOperators": true,
     "replaceOrdinals": true,
     "dialect": "postgresql",
-    "commaPosition": "after"
+    "commaPosition": "after",
+    "keepFunctionsInline": false
   }
 }
 ```

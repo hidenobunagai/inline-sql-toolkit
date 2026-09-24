@@ -21,6 +21,7 @@ export interface FormatOptions {
   readonly replaceOrdinals: boolean;
   readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
   readonly commaPosition: "after" | "before";
+  readonly keepFunctionsInline: boolean;
 }
 
 export interface FormatTarget {

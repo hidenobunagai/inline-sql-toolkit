@@ -227,6 +227,28 @@ describe("CLI inline-sql-toolkit", () => {
     expect(badRes.stderr).toContain("inline-sql-toolkit: invalid configuration");
   });
 
+  it("keeps functions on one line with --keep-functions-inline", () => {
+    const filePath = join(tempDir, "fn_inline.py");
+    writeFileSync(
+      filePath,
+      [
+        'query = """--sql',
+        "SELECT COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n FROM t",
+        '"""',
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const on = runCli(["--keep-functions-inline", filePath]);
+    expect(on.status).toBe(0);
+    expect(on.stdout).toContain("  COUNT(CASE WHEN a THEN 1 ELSE 0 END) AS n\n");
+
+    const off = runCli([filePath]);
+    expect(off.status).toBe(0);
+    expect(off.stdout).toContain("COUNT(\n");
+  });
+
   it("displays version matching package.json on --version", () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf8")) as {
       version: string;

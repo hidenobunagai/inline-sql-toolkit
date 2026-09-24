@@ -114,6 +114,12 @@
           "default": "after",
           "scope": "resource",
           "description": "%configuration.format.commaPosition.description%"
+        },
+        "inlineSql.format.keepFunctionsInline": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "%configuration.format.keepFunctionsInline.description%"
         }
       }
     },

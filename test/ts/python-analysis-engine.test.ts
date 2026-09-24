@@ -22,6 +22,7 @@ const OPTIONS: FormatOptions = {
   replaceOrdinals: true,
   dialect: "postgresql",
   commaPosition: "after",
+  keepFunctionsInline: false,
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);
 const ALL: FormatTarget = { mode: "all" };

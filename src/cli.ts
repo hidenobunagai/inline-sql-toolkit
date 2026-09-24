@@ -20,6 +20,7 @@ export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
       --no-space-around-operators  keep dense operators (default: spaced)
       --no-ordinals                do not replace GROUP BY / ORDER BY ordinals
       --comma-position <pos>       after | before (default: after)
+      --keep-functions-inline      keep SUM(...) / COUNT(CASE ...) on one line
   -c, --config <file>              config JSON (default: nearest .inline-sql.json)
   -h, --help / --version`;
 
@@ -90,6 +91,7 @@ export function buildRawOptions(
     "no-space-around-operators"?: boolean;
     "no-ordinals"?: boolean;
     "comma-position"?: string;
+    "keep-functions-inline"?: boolean;
   },
 ): RawFormatOptions {
   return {
@@ -108,6 +110,9 @@ export function buildRawOptions(
       : fileOptions.useSpaceAroundOperators,
     replaceOrdinals: cliValues["no-ordinals"] ? false : fileOptions.replaceOrdinals,
     commaPosition: cliValues["comma-position"] ?? fileOptions.commaPosition,
+    keepFunctionsInline: cliValues["keep-functions-inline"]
+      ? true
+      : fileOptions.keepFunctionsInline,
   };
 }
 
@@ -150,6 +155,7 @@ export function runCli(argv: string[]): number {
         "no-space-around-operators": { type: "boolean", default: false },
         "no-ordinals": { type: "boolean", default: false },
         "comma-position": { type: "string" },
+        "keep-functions-inline": { type: "boolean", default: false },
         config: { type: "string", short: "c" },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", default: false },

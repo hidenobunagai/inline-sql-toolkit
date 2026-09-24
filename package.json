@@ -104,6 +104,16 @@
           "default": "postgresql",
           "scope": "resource",
           "description": "%configuration.format.dialect.description%"
+        },
+        "inlineSql.format.commaPosition": {
+          "type": "string",
+          "enum": [
+            "after",
+            "before"
+          ],
+          "default": "after",
+          "scope": "resource",
+          "description": "%configuration.format.commaPosition.description%"
         }
       }
     },

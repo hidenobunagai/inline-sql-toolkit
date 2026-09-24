@@ -12,6 +12,7 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
   const useSpaceAroundOperators = configuration.get<unknown>("format.useSpaceAroundOperators");
   const replaceOrdinals = configuration.get<unknown>("format.replaceOrdinals");
   const dialect = configuration.get<unknown>("format.dialect");
+  const commaPosition = configuration.get<unknown>("format.commaPosition");
   return resolveFormatOptions({
     keywordCase,
     indentWidth,
@@ -19,5 +20,6 @@ export function readFormatOptions(resourceUri: vscode.Uri): FormatOptionsResult 
     useSpaceAroundOperators,
     replaceOrdinals,
     dialect,
+    commaPosition,
   });
 }

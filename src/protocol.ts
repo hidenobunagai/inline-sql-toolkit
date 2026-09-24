@@ -20,6 +20,7 @@ export interface FormatOptions {
   readonly useSpaceAroundOperators: boolean;
   readonly replaceOrdinals: boolean;
   readonly dialect: "sql" | "mysql" | "postgresql" | "sqlite";
+  readonly commaPosition: "after" | "before";
 }
 
 export interface FormatTarget {

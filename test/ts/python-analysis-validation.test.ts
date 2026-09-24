@@ -15,6 +15,7 @@ const OPTIONS: FormatOptions = {
   useSpaceAroundOperators: true,
   replaceOrdinals: true,
   dialect: "postgresql",
+  commaPosition: "after",
 };
 const formatter: SqlFormatter = (sql, { options }) => formatProtectedSql(sql, options);
 
@@ -237,6 +238,47 @@ GROUP BY
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
         '"""--sql\n  SELECT\n    order_id, --テキスト\n    order_date, --テキスト\n    amount\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("keeps wrapping commas at the end of the line by default", () => {
+    const source = 'query = """--sql\nSELECT id, name FROM users WHERE id = 1\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    id,\n    name\n  FROM\n    users\n  WHERE\n    id = 1\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("moves wrapping commas to the next line when commaPosition is before", () => {
+    const source = 'query = """--sql\nSELECT id, name FROM users WHERE id = 1\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const options = { ...OPTIONS, commaPosition: "before" as const };
+    const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    id\n    , name\n  FROM\n    users\n  WHERE\n    id = 1\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("keeps trailing comments with their column when commaPosition is before", () => {
+    const source = 'query = """--sql\nSELECT order_id -- c\n, order_date -- c\n, amount\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const options = { ...OPTIONS, commaPosition: "before" as const };
+    const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    order_id -- c\n    , order_date -- c\n    , amount\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");

@@ -170,6 +170,45 @@ function breakTrailingDistributeLines(text: string): string {
   );
 }
 
+/** Offset of the separator comma allowed to wrap on this line, else -1. */
+function wrappingComma(line: string): number {
+  let comma = -1;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (char === "'" || char === '"' || char === "`") {
+      for (index += 1; index < line.length && line[index] !== char; index++) {
+        if (line[index] === "\\") index += 1;
+      }
+      continue;
+    }
+    // A comma inside a trailing line comment is text, not a separator.
+    if (char === "-" && line[index + 1] === "-") break;
+    if (char === ",") comma = index;
+  }
+  if (comma < 0) return -1;
+  // Only a comma that ends the line, or heads a trailing comment, may wrap.
+  return /^[ \t]*(?:--.*)?$/.test(line.slice(comma + 1)) ? comma : -1;
+}
+
+/** Move every wrapping separator comma to the front of the next line. */
+function moveCommasToLineStarts(text: string): string {
+  const lines = text.split("\n");
+  for (let index = 0; index + 1 < lines.length; index++) {
+    const line = lines[index] ?? "";
+    const next = lines[index + 1] ?? "";
+    if (next.trim() === "") continue;
+    const comma = wrappingComma(line);
+    // A comma that already leads its line needs no move.
+    if (comma < 0 || line.slice(0, comma).trim() === "") continue;
+    const nextParts = /^([ \t]*)([\s\S]*)$/.exec(next);
+    const indent = nextParts?.[1] ?? "";
+    const content = nextParts?.[2] ?? "";
+    lines[index] = `${line.slice(0, comma)}${line.slice(comma + 1)}`.trimEnd();
+    lines[index + 1] = `${indent}, ${content}`;
+  }
+  return lines.join("\n");
+}
+
 /** Protect, format, restore, and wrap one literal exactly once. */
 function formatOnce(
   analysis: DocumentAnalysis,
@@ -192,6 +231,9 @@ function formatOnce(
   }
   formatted = breakTrailingFieldMarkers(formatted);
   formatted = moveCommasBeforeLineComments(formatted);
+  if (options.commaPosition === "before") {
+    formatted = moveCommasToLineStarts(formatted);
+  }
   formatted = breakTrailingDistributeLines(formatted);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;

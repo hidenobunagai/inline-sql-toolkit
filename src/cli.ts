@@ -19,6 +19,7 @@ export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
       --wrap-after <20-500>        (default: 88)
       --no-space-around-operators  keep dense operators (default: spaced)
       --no-ordinals                do not replace GROUP BY / ORDER BY ordinals
+      --comma-position <pos>       after | before (default: after)
   -c, --config <file>              config JSON (default: nearest .inline-sql.json)
   -h, --help / --version`;
 
@@ -88,6 +89,7 @@ export function buildRawOptions(
     "wrap-after"?: string;
     "no-space-around-operators"?: boolean;
     "no-ordinals"?: boolean;
+    "comma-position"?: string;
   },
 ): RawFormatOptions {
   return {
@@ -105,6 +107,7 @@ export function buildRawOptions(
       ? false
       : fileOptions.useSpaceAroundOperators,
     replaceOrdinals: cliValues["no-ordinals"] ? false : fileOptions.replaceOrdinals,
+    commaPosition: cliValues["comma-position"] ?? fileOptions.commaPosition,
   };
 }
 
@@ -146,6 +149,7 @@ export function runCli(argv: string[]): number {
         "wrap-after": { type: "string" },
         "no-space-around-operators": { type: "boolean", default: false },
         "no-ordinals": { type: "boolean", default: false },
+        "comma-position": { type: "string" },
         config: { type: "string", short: "c" },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", default: false },

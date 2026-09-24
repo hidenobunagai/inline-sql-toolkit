@@ -21,6 +21,7 @@ describe("readFormatOptions", () => {
           useSpaceAroundOperators: true,
           replaceOrdinals: true,
           dialect: "postgresql",
+          commaPosition: "after",
         },
       },
     );
@@ -47,6 +48,11 @@ describe("readFormatOptions", () => {
       "format.useSpaceAroundOperators",
       false,
     );
+    __mock.setConfiguration(
+      __mock.document({ uri: resource, languageId: "python" }).uri,
+      "format.commaPosition",
+      "before",
+    );
     expect(readFormatOptions(__mock.document({ uri: resource, languageId: "python" }).uri)).toEqual(
       {
         ok: true,
@@ -57,6 +63,7 @@ describe("readFormatOptions", () => {
           useSpaceAroundOperators: false,
           replaceOrdinals: true,
           dialect: "postgresql",
+          commaPosition: "before",
         },
       },
     );
@@ -76,6 +83,9 @@ describe("readFormatOptions", () => {
     ["format.wrapAfter", null],
     ["format.useSpaceAroundOperators", "true"],
     ["format.useSpaceAroundOperators", null],
+    ["format.commaPosition", "middle"],
+    ["format.commaPosition", 1],
+    ["format.commaPosition", null],
   ])("rejects invalid %s=%j without defaulting", (key, value) => {
     const uri = __mock.document({ uri: resource, languageId: "python" }).uri;
     __mock.setConfiguration(uri, key, value);

@@ -161,7 +161,8 @@ export function formatDocument(
       `format: dialect=${options.dialect} keywordCase=${options.keywordCase} ` +
         `indentWidth=${options.indentWidth} wrapAfter=${options.wrapAfter} ` +
         `useSpaceAroundOperators=${options.useSpaceAroundOperators} ` +
-        `replaceOrdinals=${options.replaceOrdinals} discovered=${summary.discovered} ` +
+        `replaceOrdinals=${options.replaceOrdinals} commaPosition=${options.commaPosition} ` +
+        `discovered=${summary.discovered} ` +
         `selected=${summary.selected} changed=${summary.changed} unchanged=${summary.unchanged} ` +
         `skipped=${summary.skipped}${skipReasons.length > 0 ? ` reasons=[${skipReasons.join(", ")}]` : ""}`,
     );

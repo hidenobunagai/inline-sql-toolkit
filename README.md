@@ -110,6 +110,9 @@ later atomic precondition.
   aliases (default `true`).
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
+- `inlineSql.format.commaPosition`: `after` (default) keeps a wrapping comma at
+  the end of the previous line; `before` moves it to the start of the next
+  line.
 
 The extension highlights inline SQL with an injected TextMate grammar: SQL
 strings that start with `-- sql` (or a leading SQL keyword) are embedded as
@@ -144,6 +147,7 @@ When run without file arguments, the CLI reads Python source from standard input
 | `--wrap-after <20-500>`       | Preferred expression line width                                   | `88`                       |
 | `--no-space-around-operators` | Keep dense operators                                              | spaced                     |
 | `--no-ordinals`               | Do not replace `GROUP BY` / `ORDER BY` ordinals with column names | replace                    |
+| `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`                  | `after`                    |
 | `-c, --config <file>`         | Configuration JSON file                                           | Nearest `.inline-sql.json` |
 | `-h, --help`                  | Show usage help                                                   |                            |
 | `--version`                   | Show version number                                               |                            |
@@ -162,7 +166,8 @@ The CLI automatically searches for a `.inline-sql.json` file in the current work
     "wrapAfter": 88,
     "useSpaceAroundOperators": true,
     "replaceOrdinals": true,
-    "dialect": "postgresql"
+    "dialect": "postgresql",
+    "commaPosition": "after"
   }
 }
 ```

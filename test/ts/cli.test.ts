@@ -148,6 +148,7 @@ describe("CLI inline-sql-toolkit", () => {
           keywordCase: "lower",
           indentWidth: 4,
           dialect: "sqlite",
+          commaPosition: "before",
         },
       }),
       "utf8",
@@ -168,6 +169,8 @@ describe("CLI inline-sql-toolkit", () => {
     expect(res.stdout).toContain("from");
     // Indent width 4
     expect(res.stdout).toContain("    id");
+    // Leading comma from parent config
+    expect(res.stdout).toMatch(/id\n\s+, name/);
 
     // CLI flag overrides config file
     const overrideRes = runCli(["--keyword-case", "upper", "query.py"], { cwd: childDir });
@@ -201,6 +204,27 @@ describe("CLI inline-sql-toolkit", () => {
     const res = runCli(["--no-such-option"]);
     expect(res.status).toBe(2);
     expect(res.stderr).toContain("inline-sql-toolkit:");
+  });
+
+  it("moves wrapping commas to the next line with --comma-position before", () => {
+    const filePath = join(tempDir, "comma_before.py");
+    writeFileSync(
+      filePath,
+      ['query = """--sql', "SELECT id, name FROM users", '"""', ""].join("\n"),
+      "utf8",
+    );
+
+    const res = runCli(["--comma-position", "before", filePath]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("    id\n    , name\n");
+
+    const defaultRes = runCli([filePath]);
+    expect(defaultRes.status).toBe(0);
+    expect(defaultRes.stdout).toContain("    id,\n    name\n");
+
+    const badRes = runCli(["--comma-position", "middle", filePath]);
+    expect(badRes.status).toBe(2);
+    expect(badRes.stderr).toContain("inline-sql-toolkit: invalid configuration");
   });
 
   it("displays version matching package.json on --version", () => {

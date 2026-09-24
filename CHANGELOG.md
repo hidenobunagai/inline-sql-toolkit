@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.11 - 2026-09-24
+
+- Feature: added the `inlineSql.format.commaPosition` setting (`after` |
+  `before`, default `after`) for codebases that want a wrapped item's comma at
+  the start of the next line instead of the end of the previous one. The
+  default reproduces the previous output byte for byte, so existing files do
+  not move until the setting is turned on; `before` emits the comma at the
+  next line's indent in front of the item, and a trailing `-- comment` stays
+  with its own column (`order_id -- note` followed by `, order_date -- note`)
+  rather than pinning the comma behind it.
+- The same choice is exposed everywhere the other options are: the VS Code
+  setting, the CLI flag `--comma-position after|before`, and
+  `"commaPosition"` in `.inline-sql.json`, under the unchanged CLI flags >
+  configuration file > defaults precedence.
+- Safety: `sql-formatter` removed its own `commaPosition` option long ago, so
+  the move is a small post-pass over its output. A scanner locates the
+  wrapping separator comma and never moves one from inside a quoted string
+  (`'...'`, `"..."`, backticks) or from after a `--` line comment, and a
+  candidate whose output still fails to converge to a fixed point is skipped
+  untouched as before, so no file can be rewritten with corrupted SQL.
+
 ## 0.4.10 - 2026-09-19
 
 - CI: the npm publish job is now OIDC-only. The dormant `NPM_TOKEN` path that was

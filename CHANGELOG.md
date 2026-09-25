@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.14 - 2026-09-25
+
+- Changed: `inlineSql.format.commaPosition: "before"` emits the moved comma
+  with a space after it again (`id` / `    , name`). 0.4.13 removed the space
+  for a single release; the spaced form is the wanted style. The default
+  `after` output is unchanged, and `src/` and `test/` are byte-identical to
+  v0.4.12.
+
 ## 0.4.13 - 2026-09-25
 
 - Changed: `inlineSql.format.commaPosition: "before"` now emits the moved

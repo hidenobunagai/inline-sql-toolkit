@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.12 - 2026-09-24
+
+- Feature: added the `inlineSql.format.keepFunctionsInline` setting (default
+  `false`). `sql-formatter` has no option that holds function arguments on
+  one line — it breaks `CASE` structurally regardless of `wrapAfter` — so the
+  extension re-joins the line breaks the engine inserts inside `word(...)`
+  groups as a post-pass over its output. With the setting on,
+  `COUNT(CASE WHEN a THEN 1 ELSE 0 END)` stays on a single line while select
+  lists, clause breaks, and `AND` / `OR` chains keep their usual layout.
+- The same choice is exposed everywhere the other options are: the VS Code
+  setting, the CLI flag `--keep-functions-inline`, and
+  `"keepFunctionsInline"` in `.inline-sql.json`, under the unchanged CLI
+  flags > configuration file > defaults precedence.
+- Safety: only newlines in code state are removed. A newline inside a string
+  literal, a `$$ … $$` body, or a block comment is copied verbatim, and the
+  newline that terminates a `-- line comment` is kept, so literal content can
+  never change and no code can fall into a comment. The default `false`
+  reproduces the previous output byte for byte, and the fixed-point loop still
+  skips any candidate whose formatting does not converge.
+
 ## 0.4.11 - 2026-09-24
 
 - Feature: added the `inlineSql.format.commaPosition` setting (`after` |

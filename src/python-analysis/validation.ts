@@ -204,7 +204,7 @@ function moveCommasToLineStarts(text: string): string {
     const indent = nextParts?.[1] ?? "";
     const content = nextParts?.[2] ?? "";
     lines[index] = `${line.slice(0, comma)}${line.slice(comma + 1)}`.trimEnd();
-    lines[index + 1] = `${indent}, ${content}`;
+    lines[index + 1] = `${indent},${content}`;
   }
   return lines.join("\n");
 }

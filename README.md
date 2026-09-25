@@ -112,7 +112,7 @@ later atomic precondition.
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 - `inlineSql.format.commaPosition`: `after` (default) keeps a wrapping comma at
   the end of the previous line; `before` moves it to the start of the next
-  line.
+  line, with no space after the comma (`id` / `    ,name`).
 - `inlineSql.format.keepFunctionsInline`: re-join the formatter's line breaks
   inside `word(...)` groups so `SUM(...)`, `COUNT(CASE ... END)`, and nested
   calls stay on one line (default `false`). Newlines inside string literals and

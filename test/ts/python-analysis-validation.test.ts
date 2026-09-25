@@ -265,7 +265,7 @@ GROUP BY
     const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    id\n    , name\n  FROM\n    users\n  WHERE\n    id = 1\n"""',
+        '"""--sql\n  SELECT\n    id\n    ,name\n  FROM\n    users\n  WHERE\n    id = 1\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");
@@ -279,7 +279,7 @@ GROUP BY
     const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    order_id -- c\n    , order_date -- c\n    , amount\n"""',
+        '"""--sql\n  SELECT\n    order_id -- c\n    ,order_date -- c\n    ,amount\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");

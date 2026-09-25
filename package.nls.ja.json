@@ -19,6 +19,6 @@
   "semanticTokenTypes.inlineSqlIdentifier.description": "インライン SQL リテラル内の SQL 識別子。",
   "untrustedWorkspaces.description": "このワークスペースを信頼するまで Inline SQL のフォーマットは無効です。",
   "configuration.format.replaceOrdinals.description": "フォーマット時に、GROUP BY および ORDER BY の序数 (1, 2, ...) を参照先の列名 (エイリアス優先) に置き換えます。",
-  "configuration.format.commaPosition.description": "改行するカンマの位置を指定します。\"after\" は前の行の末尾に、\"before\" は次行の先頭に置きます。",
+  "configuration.format.commaPosition.description": "改行するカンマの位置を指定します。\"after\" は前の行の末尾に、\"before\" は次行の先頭にカンマの後スペースなしで置きます。",
   "configuration.format.keepFunctionsInline.description": "関数呼び出し（SUM(...)、COUNT(CASE ... END) など）の引数を改行せず、1行に保ちます。"
 }

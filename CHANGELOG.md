@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.13 - 2026-09-25
+
+- Changed: `inlineSql.format.commaPosition: "before"` now emits the moved
+  comma with no following space — `id` / `    ,name` instead of `, name` —
+  per user feedback. The default `after` output is byte-for-byte unchanged,
+  and the mover's safety rules are identical: commas inside string literals,
+  `$$ … $$` bodies, and comments are still never touched.
+
 ## 0.4.12 - 2026-09-24
 
 - Feature: added the `inlineSql.format.keepFunctionsInline` setting (default

@@ -170,7 +170,7 @@ describe("CLI inline-sql-toolkit", () => {
     // Indent width 4
     expect(res.stdout).toContain("    id");
     // Leading comma from parent config
-    expect(res.stdout).toMatch(/id\n\s+,name/);
+    expect(res.stdout).toMatch(/id\n\s+, name/);
 
     // CLI flag overrides config file
     const overrideRes = runCli(["--keyword-case", "upper", "query.py"], { cwd: childDir });
@@ -216,7 +216,7 @@ describe("CLI inline-sql-toolkit", () => {
 
     const res = runCli(["--comma-position", "before", filePath]);
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain("    id\n    ,name\n");
+    expect(res.stdout).toContain("    id\n    , name\n");
 
     const defaultRes = runCli([filePath]);
     expect(defaultRes.status).toBe(0);

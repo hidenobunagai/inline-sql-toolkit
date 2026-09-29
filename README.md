@@ -1,5 +1,7 @@
 # Inline SQL Toolkit
 
+![Inline SQL Toolkit demo](https://raw.githubusercontent.com/hidenobunagai/inline-sql-toolkit/main/docs/demo.gif)
+
 Inline SQL Toolkit highlights SQL embedded in Python strings and formats selected
 SQL with the bundled `sql-formatter` layout engine. It supports ordinary `.py`
 files, marimo

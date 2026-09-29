@@ -4,12 +4,11 @@
     uv run --with pillow --with pygments python tools/demo/make_demo.py
 
 Frames are drawn with Pillow, piped to ffmpeg as raw RGB (demo.mp4), then
-converted to a palette GIF. Every "after" snippet comes from dist/cli.js.
+converted to a palette GIF (docs/demo.gif). Every "after" snippet comes from dist/cli.js.
 """
 
 import re
 import subprocess
-import tempfile
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -309,25 +308,24 @@ def frames():
 
 def main():
     OUT_DIR.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        mp4 = Path(tmp) / "demo.mp4"
-        ff = subprocess.Popen(
-            ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
-             "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-             "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(mp4)],
-            stdin=subprocess.PIPE,
-        )
-        for f in frames():
-            ff.stdin.write(f.tobytes())
-        ff.stdin.close()
-        assert ff.wait() == 0
-        subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vf",
-             "fps=12,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=5",
-             str(OUT_DIR / "demo.gif")],
-            check=True,
-        )
-    print("wrote", OUT_DIR / "demo.gif")
+    mp4 = OUT_DIR / "demo.mp4"
+    ff = subprocess.Popen(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+         "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
+         "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p", str(mp4)],
+        stdin=subprocess.PIPE,
+    )
+    for f in frames():
+        ff.stdin.write(f.tobytes())
+    ff.stdin.close()
+    assert ff.wait() == 0
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vf",
+         "fps=12,scale=800:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=5",
+         str(OUT_DIR / "demo.gif")],
+        check=True,
+    )
+    print("wrote", mp4, "and", OUT_DIR / "demo.gif")
 
 
 if __name__ == "__main__":

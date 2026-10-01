@@ -27,7 +27,7 @@ export function resolveFormatOptions(raw: RawFormatOptions): FormatOptionsResult
   const wrapAfter = raw.wrapAfter === undefined ? 88 : raw.wrapAfter;
   const useSpaceAroundOperators =
     raw.useSpaceAroundOperators === undefined ? true : raw.useSpaceAroundOperators;
-  const replaceOrdinals = raw.replaceOrdinals === undefined ? true : raw.replaceOrdinals;
+  const replaceOrdinals = raw.replaceOrdinals === undefined ? false : raw.replaceOrdinals;
   const dialect = raw.dialect === undefined ? "postgresql" : raw.dialect;
   const commaPosition = raw.commaPosition === undefined ? "after" : raw.commaPosition;
   const keepFunctionsInline =

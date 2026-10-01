@@ -17,7 +17,8 @@ export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
       --indent-width <1-8>         (default: 2)
       --wrap-after <20-500>        (default: 88)
       --no-space-around-operators  keep dense operators (default: spaced)
-      --no-ordinals                do not replace GROUP BY / ORDER BY ordinals
+      --ordinals                   replace GROUP BY / ORDER BY ordinals (default: off)
+      --no-ordinals                do not replace ordinals (overrides the config file)
       --comma-position <pos>       after | before (default: after)
       --keep-functions-inline      keep SUM(...) / COUNT(CASE ...) on one line
   -c, --config <file>              config JSON (default: nearest .inline-sql.json)
@@ -88,6 +89,7 @@ export function buildRawOptions(
     "indent-width"?: string;
     "wrap-after"?: string;
     "no-space-around-operators"?: boolean;
+    ordinals?: boolean;
     "no-ordinals"?: boolean;
     "comma-position"?: string;
     "keep-functions-inline"?: boolean;
@@ -107,7 +109,11 @@ export function buildRawOptions(
     useSpaceAroundOperators: cliValues["no-space-around-operators"]
       ? false
       : fileOptions.useSpaceAroundOperators,
-    replaceOrdinals: cliValues["no-ordinals"] ? false : fileOptions.replaceOrdinals,
+    replaceOrdinals: cliValues.ordinals
+      ? true
+      : cliValues["no-ordinals"]
+        ? false
+        : fileOptions.replaceOrdinals,
     commaPosition: cliValues["comma-position"] ?? fileOptions.commaPosition,
     keepFunctionsInline: cliValues["keep-functions-inline"]
       ? true
@@ -145,6 +151,7 @@ export function runCli(argv: string[]): number {
         "indent-width": { type: "string" },
         "wrap-after": { type: "string" },
         "no-space-around-operators": { type: "boolean", default: false },
+        ordinals: { type: "boolean", default: false },
         "no-ordinals": { type: "boolean", default: false },
         "comma-position": { type: "string" },
         "keep-functions-inline": { type: "boolean", default: false },
@@ -173,6 +180,11 @@ export function runCli(argv: string[]): number {
 
   if (values.write && values.check) {
     printError("inline-sql-toolkit: cannot use --write and --check together");
+    return 2;
+  }
+
+  if (values.ordinals && values["no-ordinals"]) {
+    printError("inline-sql-toolkit: cannot use --ordinals and --no-ordinals together");
     return 2;
   }
 

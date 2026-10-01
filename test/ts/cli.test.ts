@@ -178,6 +178,31 @@ describe("CLI inline-sql-toolkit", () => {
     expect(overrideRes.stdout).toContain("SELECT");
   });
 
+  it("keeps ordinals by default and replaces them only when asked", () => {
+    const input = 'query = "select a, b from t order by 1, 2"\n';
+    expect(runCli([], { input }).stdout).toBe('query = "SELECT a, b FROM t ORDER BY 1, 2"\n');
+    expect(runCli(["--ordinals"], { input }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY a, b"\n',
+    );
+
+    const configDir = join(tempDir, "ordinals_config");
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(
+      join(configDir, ".inline-sql.json"),
+      JSON.stringify({ format: { replaceOrdinals: true } }),
+      "utf8",
+    );
+    expect(runCli([], { input, cwd: configDir }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY a, b"\n',
+    );
+    expect(runCli(["--no-ordinals"], { input, cwd: configDir }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY 1, 2"\n',
+    );
+    const both = runCli(["--ordinals", "--no-ordinals"], { input });
+    expect(both.status).toBe(2);
+    expect(both.stderr).toContain("cannot use --ordinals and --no-ordinals together");
+  });
+
   it("exits 2 on invalid configuration values", () => {
     const filePath = join(tempDir, "valid.py");
     writeFileSync(filePath, 'query = "select 1"\n', "utf8");

@@ -108,8 +108,15 @@ later atomic precondition.
 - `inlineSql.format.useSpaceAroundOperators`: add spaces around operators
   (default `true`).
 - `inlineSql.format.replaceOrdinals`: replace `GROUP BY` / `ORDER BY` ordinal
-  numbers (`1`, `2`, ...) with the referenced column names, preferring
-  aliases (default `true`).
+  numbers (`1`, `2`, ...) with the referenced select-list column (default
+  `false`). This rewrites the query rather than its layout, so it is opt-in.
+  `GROUP BY` copies the column's expression, because PostgreSQL, MySQL, and
+  SQLite resolve a `GROUP BY` name to an input column before an alias;
+  `ORDER BY` uses the alias when it is unique. An ordinal is kept when its
+  position is unknown (at or after `*` / `t.*`), when it follows `UNION`,
+  `EXCEPT`, or `INTERSECT` (`ORDER BY`), when the replacement would name
+  another output column, or when the expression is an aggregate without an
+  alias or calls a volatile function such as `random()`.
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 - `inlineSql.format.commaPosition`: `after` (default) keeps a wrapping comma at
@@ -143,21 +150,22 @@ When run without file arguments, the CLI reads Python source from standard input
 
 ### CLI Options
 
-| Option                        | Description                                                       | Default                    |
-| ----------------------------- | ----------------------------------------------------------------- | -------------------------- |
-| `-w, --write`                 | Rewrite files in place (no write if unchanged)                    | off                        |
-| `--check`                     | Exit with code 1 if any file would change                         | off                        |
-| `--dialect <name>`            | SQL dialect: `sql`, `mysql`, `postgresql`, or `sqlite`            | `postgresql`               |
-| `--keyword-case <case>`       | Case for SQL keywords: `upper`, `lower`, or `preserve`            | `upper`                    |
-| `--indent-width <1-8>`        | SQL indentation width in spaces                                   | `2`                        |
-| `--wrap-after <20-500>`       | Preferred expression line width                                   | `88`                       |
-| `--no-space-around-operators` | Keep dense operators                                              | spaced                     |
-| `--no-ordinals`               | Do not replace `GROUP BY` / `ORDER BY` ordinals with column names | replace                    |
-| `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`                  | `after`                    |
-| `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line               | off                        |
-| `-c, --config <file>`         | Configuration JSON file                                           | Nearest `.inline-sql.json` |
-| `-h, --help`                  | Show usage help                                                   |                            |
-| `--version`                   | Show version number                                               |                            |
+| Option                        | Description                                                | Default                    |
+| ----------------------------- | ---------------------------------------------------------- | -------------------------- |
+| `-w, --write`                 | Rewrite files in place (no write if unchanged)             | off                        |
+| `--check`                     | Exit with code 1 if any file would change                  | off                        |
+| `--dialect <name>`            | SQL dialect: `sql`, `mysql`, `postgresql`, or `sqlite`     | `postgresql`               |
+| `--keyword-case <case>`       | Case for SQL keywords: `upper`, `lower`, or `preserve`     | `upper`                    |
+| `--indent-width <1-8>`        | SQL indentation width in spaces                            | `2`                        |
+| `--wrap-after <20-500>`       | Preferred expression line width                            | `88`                       |
+| `--no-space-around-operators` | Keep dense operators                                       | spaced                     |
+| `--ordinals`                  | Replace `GROUP BY` / `ORDER BY` ordinals with column names | off                        |
+| `--no-ordinals`               | Do not replace ordinals (overrides the configuration file) |                            |
+| `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`           | `after`                    |
+| `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line        | off                        |
+| `-c, --config <file>`         | Configuration JSON file                                    | Nearest `.inline-sql.json` |
+| `-h, --help`                  | Show usage help                                            |                            |
+| `--version`                   | Show version number                                        |                            |
 
 Exit codes: `0` on success, `1` when `--check` finds unformatted files, and `2` on usage, configuration, I/O, or formatting errors.
 
@@ -172,7 +180,7 @@ The CLI automatically searches for a `.inline-sql.json` file in the current work
     "indentWidth": 2,
     "wrapAfter": 88,
     "useSpaceAroundOperators": true,
-    "replaceOrdinals": true,
+    "replaceOrdinals": false,
     "dialect": "postgresql",
     "commaPosition": "after",
     "keepFunctionsInline": false

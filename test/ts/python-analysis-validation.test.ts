@@ -142,7 +142,7 @@ describe("formatCandidate", () => {
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    user_id,\n    date_trunc(\'month\', paid_at) AS ym\n  FROM\n    payments\n  GROUP BY\n    user_id,\n    ym\n"""',
+        '"""--sql\n  SELECT\n    user_id,\n    date_trunc(\'month\', paid_at) AS ym\n  FROM\n    payments\n  GROUP BY\n    user_id,\n    date_trunc(\'month\', paid_at)\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");
@@ -332,7 +332,7 @@ GROUP BY
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    label,\n    amount\n"""',
+        '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END,\n    amount\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");

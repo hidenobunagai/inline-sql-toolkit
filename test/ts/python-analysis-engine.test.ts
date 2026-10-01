@@ -6,10 +6,15 @@ import {
   type DetectedUnit,
   discover,
   formatDocument,
+  preservesDocumentShape,
   selectUnits,
 } from "../../src/python-analysis/engine.js";
 import { analyzeDocument } from "../../src/python-analysis/literals.js";
-import { PositionMappingError, SourceMap } from "../../src/python-analysis/positions.js";
+import {
+  PositionMappingError,
+  SourceMap,
+  SourceSpan,
+} from "../../src/python-analysis/positions.js";
 import type { SqlFormatter } from "../../src/python-analysis/validation.js";
 import { formatProtectedSql } from "../../src/sql-formatter.js";
 
@@ -99,6 +104,32 @@ describe("combinedSource", () => {
         { sourceSpan: { start: 1, end: 3 }, expectedText: "b", replacementText: "y" },
       ]),
     ).toThrow(Error);
+  });
+});
+
+describe("preservesDocumentShape", () => {
+  const source = 'a = "select 1"\nb = f"select {x}"\n';
+  const analysis = analyzeDocument(source);
+  const edit = (start: number, end: number, replacementText: string) => ({
+    sourceSpan: new SourceSpan(start, end),
+    expectedText: source.slice(start, end),
+    replacementText,
+  });
+
+  it("accepts edits that keep every literal's place and shape", () => {
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"SELECT 1"')])).toBe(true);
+    expect(
+      preservesDocumentShape(source, analysis, [
+        edit(4, 14, '"SELECT\n 1"'),
+        edit(19, 32, 'f"SELECT {x}"'),
+      ]),
+    ).toBe(true);
+  });
+
+  it("rejects edits that add, merge, or reshape literals", () => {
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"SELECT 1" "x"')])).toBe(false);
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"""SELECT 1')])).toBe(false);
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, 'r"SELECT 1"')])).toBe(false);
   });
 });
 

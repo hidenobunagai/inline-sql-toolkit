@@ -97,6 +97,50 @@ export function combinedSource(source: string, edits: readonly CandidateEdit[]):
   return result;
 }
 
+/** Every literal of *analysis*, supported or not, in source order. */
+function literalsOf(
+  analysis: DocumentAnalysis,
+): readonly (SupportedLiteral | UnsupportedLiteral)[] {
+  return [...analysis.supported, ...analysis.unsupported].sort(
+    (left, right) => left.span.start - right.span.start,
+  );
+}
+
+/**
+ * Return whether *source* with *edits* applied reads back as the same
+ * document: the same literals in the same order and classification, every
+ * edited literal keeping its prefix, delimiter, and kind. Text outside the
+ * edited literals is untouched by construction.
+ */
+export function preservesDocumentShape(
+  source: string,
+  analysis: DocumentAnalysis,
+  edits: readonly CandidateEdit[],
+): boolean {
+  const before = literalsOf(analysis);
+  const after = literalsOf(analyzeDocument(combinedSource(source, edits)));
+  if (before.length !== after.length) return false;
+  const editAt = new Map(edits.map((edit) => [edit.sourceSpan.start, edit]));
+  let delta = 0;
+  return before.every((original, index) => {
+    const updated = after[index];
+    if (updated === undefined || updated.span.start !== original.span.start + delta) return false;
+    const edit = editAt.get(original.span.start);
+    if (edit !== undefined) {
+      delta += edit.replacementText.length - (original.span.end - original.span.start);
+    }
+    if (updated.span.end !== original.span.end + delta) return false;
+    if (!("contentSpan" in original) || !("contentSpan" in updated)) {
+      return !("contentSpan" in original) && !("contentSpan" in updated);
+    }
+    return (
+      updated.prefix === original.prefix &&
+      updated.delimiter === original.delimiter &&
+      updated.kind === original.kind
+    );
+  });
+}
+
 /** Format every selected SQL literal behind the shared safety checks. */
 export function formatDocument(
   source: string,
@@ -147,8 +191,19 @@ export function formatDocument(
       unchanged++;
     }
   }
-  const combined = combinedSource(source, edits);
-  analyzeDocument(combined);
+  // One whole-document check for all edits; only on failure, find the edits
+  // to blame one by one so the others can still be applied.
+  if (!preservesDocumentShape(source, analysis, edits)) {
+    const kept = edits.filter((edit) => preservesDocumentShape(source, analysis, [edit]));
+    const accepted = preservesDocumentShape(source, analysis, kept) ? kept : [];
+    for (const edit of edits) {
+      if (accepted.includes(edit)) continue;
+      logger?.("candidate skipped (FORMATTER_FAILED): the document no longer reads back the same");
+      skipReasons.push("FORMATTER_FAILED");
+      changed--;
+    }
+    edits.splice(0, edits.length, ...accepted);
+  }
   const summary = {
     discovered: units.length,
     selected: selected.length,

@@ -25,6 +25,13 @@ export interface ApplyGuard {
   readonly isWorkspaceTrusted: () => boolean;
 }
 
+/** Formatting results for one document, checked against its snapshot. */
+export interface DocumentEdits {
+  readonly document: vscode.TextDocument;
+  readonly snapshot: DocumentSnapshot;
+  readonly response: FormatSuccess;
+}
+
 export interface EditApplicator {
   apply(
     document: vscode.TextDocument,
@@ -32,6 +39,8 @@ export interface EditApplicator {
     response: FormatSuccess,
     guard: ApplyGuard,
   ): Promise<ApplyOutcome>;
+  /** Validate every document, then apply all edits as one undo step. */
+  applyAll(entries: readonly DocumentEdits[], guard: ApplyGuard): Promise<ApplyOutcome>;
 }
 
 export interface EditApplicatorDependencies {
@@ -178,19 +187,26 @@ export class DefaultEditApplicator implements EditApplicator {
     response: FormatSuccess,
     guard: ApplyGuard,
   ): Promise<ApplyOutcome> {
-    if (
-      document.uri.toString() !== snapshot.uri.toString() ||
-      document.version !== snapshot.version ||
-      document.getText() !== snapshot.text
-    ) {
-      return { ok: false, reason: "DOCUMENT_CHANGED" };
-    }
-    const edits = validateEdits(document, snapshot, response);
-    if (edits === undefined) return { ok: false, reason: "PROTOCOL_ERROR" };
+    return this.applyAll([{ document, snapshot, response }], guard);
+  }
 
+  async applyAll(entries: readonly DocumentEdits[], guard: ApplyGuard): Promise<ApplyOutcome> {
     const workspaceEdit = new vscode.WorkspaceEdit();
-    for (const edit of edits) {
-      workspaceEdit.replace(snapshot.uri, edit.range, edit.newText);
+    let count = 0;
+    for (const { document, snapshot, response } of entries) {
+      if (
+        document.uri.toString() !== snapshot.uri.toString() ||
+        document.version !== snapshot.version ||
+        document.getText() !== snapshot.text
+      ) {
+        return { ok: false, reason: "DOCUMENT_CHANGED" };
+      }
+      const edits = validateEdits(document, snapshot, response);
+      if (edits === undefined) return { ok: false, reason: "PROTOCOL_ERROR" };
+      for (const edit of edits) {
+        workspaceEdit.replace(snapshot.uri, edit.range, edit.newText);
+      }
+      count += edits.length;
     }
     // These checks intentionally sit immediately before applyWorkspaceEdit.  The
     // controller's barrier can cancel or revoke trust during all prior work.
@@ -202,9 +218,7 @@ export class DefaultEditApplicator implements EditApplicator {
     }
     try {
       const applied = await this.applyWorkspaceEdit(workspaceEdit);
-      return applied
-        ? { ok: true, applied: edits.length }
-        : { ok: false, reason: "APPLY_EDIT_FAILED" };
+      return applied ? { ok: true, applied: count } : { ok: false, reason: "APPLY_EDIT_FAILED" };
     } catch {
       return { ok: false, reason: "APPLY_EDIT_FAILED" };
     }

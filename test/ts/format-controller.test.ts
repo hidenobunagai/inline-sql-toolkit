@@ -179,6 +179,76 @@ describe("DefaultFormatController", () => {
     expect(applied).toHaveLength(1);
   });
 
+  function notebookSetup(...texts: string[]) {
+    const cells = texts.map((text, index) =>
+      __mock.document({ uri: `file:///workspace/cell${index}.py`, languageId: "python", text }),
+    );
+    const notebook = __mock.notebook({
+      uri: "file:///workspace/book.ipynb",
+      notebookType: "jupyter-notebook",
+      cells,
+    });
+    __mock.setNotebookDocuments([notebook]);
+    __mock.setActiveNotebook(notebook);
+    const value = setup();
+    __mock.setActiveEditor(__mock.editor(cells[0] as vscode.TextDocument));
+    const applied: unknown[] = [];
+    (
+      value.hook as { applyWorkspaceEdit: (edit: unknown) => Thenable<boolean> }
+    ).applyWorkspaceEdit = (edit) => {
+      applied.push(edit);
+      return Promise.resolve(true);
+    };
+    return { ...value, cells, applied };
+  }
+
+  it("rejects a notebook edit when a cell changed after formatting", async () => {
+    const value = notebookSetup('q1 = "select 1"', 'q2 = "select 2"');
+    (
+      value.hook as { afterHelperResponse: (cancel: () => void) => Promise<void> }
+    ).afterHelperResponse = () => {
+      (value.cells[1] as { version: number }).version += 1;
+      return Promise.resolve();
+    };
+    await value.controller.execute("all");
+    expect(value.note.calls).toEqual(["reason:DOCUMENT_CHANGED"]);
+    expect(value.applied).toEqual([]);
+  });
+
+  it("cancels a notebook edit at the barrier", async () => {
+    const value = notebookSetup('q1 = "select 1"');
+    (
+      value.hook as { afterHelperResponse: (cancel: () => void) => Promise<void> }
+    ).afterHelperResponse = (cancel) => {
+      cancel();
+      return Promise.resolve();
+    };
+    await value.controller.execute("all");
+    expect(value.note.calls).toEqual(["reason:PROCESS_CANCELLED"]);
+    expect(value.applied).toEqual([]);
+  });
+
+  it("reports a notebook without SQL as having no candidate", async () => {
+    const value = notebookSetup('x = "not sql"', "y = 1");
+    await value.controller.execute("all");
+    expect(value.note.calls).toEqual(["reason:NO_SQL_CANDIDATE"]);
+  });
+
+  it("reports too many candidates as a resource limit", async () => {
+    const value = setup(
+      Array.from({ length: 1_001 }, (_, i) => `q${i} = "select ${i}"`).join("\n"),
+    );
+    await value.controller.execute("all");
+    expect(value.note.calls).toEqual(["reason:RESOURCE_LIMIT_EXCEEDED"]);
+    const book = notebookSetup(
+      Array.from({ length: 1_001 }, (_, i) => `q${i} = "select ${i}"`).join("\n"),
+      'q = "select 1"',
+    );
+    await book.controller.execute("all");
+    expect(book.hook.outcomes).toEqual([{ changed: 1, skipped: 1 }]);
+    expect(book.applied).toHaveLength(1);
+  });
+
   it("rejects trust and unsupported targets before formatting", async () => {
     const untrusted = setup();
     untrusted.setTrusted(false);

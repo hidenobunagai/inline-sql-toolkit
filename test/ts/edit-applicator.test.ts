@@ -164,6 +164,45 @@ describe("DefaultEditApplicator", () => {
     expect(failedApply.apply).toHaveBeenCalledTimes(1);
   });
 
+  it("applies several documents as one edit only when every snapshot is current", async () => {
+    const first = setup();
+    const second = __mock.document({
+      uri: "file:///workspace/other.py",
+      languageId: "python",
+      text: "SELECT 3",
+    });
+    const secondSnapshot: DocumentSnapshot = {
+      uri: second.uri,
+      version: second.version,
+      text: "SELECT 3",
+    };
+    const entries = [
+      {
+        document: first.document,
+        snapshot: first.snapshot,
+        response: response([
+          edit(new vscode.Position(0, 0), new vscode.Position(0, 8), "SELECT 1", "SELECT 9"),
+        ]),
+      },
+      {
+        document: second,
+        snapshot: secondSnapshot,
+        response: response([
+          edit(new vscode.Position(0, 0), new vscode.Position(0, 8), "SELECT 3", "SELECT 7"),
+        ]),
+      },
+    ];
+    expect(await first.applicator.applyAll(entries, first.guard)).toEqual({ ok: true, applied: 2 });
+    expect(first.apply).toHaveBeenCalledTimes(1);
+
+    const stale = [entries[0], { ...entries[1], snapshot: { ...secondSnapshot, version: 99 } }];
+    expect(await first.applicator.applyAll(stale as typeof entries, first.guard)).toEqual({
+      ok: false,
+      reason: "DOCUMENT_CHANGED",
+    });
+    expect(first.apply).toHaveBeenCalledTimes(1);
+  });
+
   it("checks cancellation and trust immediately before apply", async () => {
     const cancelled = setup();
     const source = new vscode.CancellationTokenSource();

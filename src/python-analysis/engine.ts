@@ -16,6 +16,9 @@ export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_CANDIDATE_BYTES = 1024 * 1024;
 export const MAX_CANDIDATES = 1_000;
 
+/** The document or its candidate count exceeds a safety limit. */
+export class ResourceLimitError extends Error {}
+
 /** One literal syntax unit whose source content looks like SQL. */
 export interface DetectedUnit {
   readonly literal: SupportedLiteral | UnsupportedLiteral;
@@ -151,12 +154,12 @@ export function formatDocument(
   logger?: DebugLogger,
 ): EngineResult {
   if (Buffer.byteLength(source, "utf8") > MAX_DOCUMENT_BYTES) {
-    throw new PositionMappingError("document exceeds the size limit");
+    throw new ResourceLimitError("document exceeds the size limit");
   }
   const analysis = analyzeDocument(source);
   const units = discover(analysis);
   if (units.length > MAX_CANDIDATES) {
-    throw new PositionMappingError("candidate count exceeds the limit");
+    throw new ResourceLimitError("candidate count exceeds the limit");
   }
   const selected = selectUnits(units, target, analysis.sourceMap);
   const edits: CandidateEdit[] = [];

@@ -203,6 +203,19 @@ describe("CLI inline-sql-toolkit", () => {
     expect(both.stderr).toContain("cannot use --ordinals and --no-ordinals together");
   });
 
+  it("reports skipped candidates on stderr unless --quiet", () => {
+    const input = 'query = "SELECT 1 " "FROM t"\nother = "select 1"\n';
+    const res = runCli(["--check"], { input });
+    expect(res.status).toBe(1);
+    expect(res.stderr).toContain(
+      "inline-sql-toolkit: <stdin>: skipped 1 SQL candidate (UNSUPPORTED_LITERAL x1)",
+    );
+    const quiet = runCli(["--quiet"], { input });
+    expect(quiet.status).toBe(0);
+    expect(quiet.stderr).toBe("");
+    expect(quiet.stdout).toBe('query = "SELECT 1 " "FROM t"\nother = "SELECT 1"\n');
+  });
+
   it("exits 2 on invalid configuration values", () => {
     const filePath = join(tempDir, "valid.py");
     writeFileSync(filePath, 'query = "select 1"\n', "utf8");

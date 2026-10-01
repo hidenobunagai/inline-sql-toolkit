@@ -164,10 +164,13 @@ When run without file arguments, the CLI reads Python source from standard input
 | `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`           | `after`                    |
 | `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line        | off                        |
 | `-c, --config <file>`         | Configuration JSON file                                    | Nearest `.inline-sql.json` |
+| `-q, --quiet`                 | Do not report skipped candidates on stderr                 | report                     |
 | `-h, --help`                  | Show usage help                                            |                            |
 | `--version`                   | Show version number                                        |                            |
 
 Exit codes: `0` on success, `1` when `--check` finds unformatted files, and `2` on usage, configuration, I/O, or formatting errors.
+
+A detected SQL candidate that cannot be formatted safely is left as it is and does not change the exit code. Unless `--quiet` is given, the CLI prints one line per affected file on stderr, such as `inline-sql-toolkit: app.py: skipped 2 SQL candidates (UNSUPPORTED_LITERAL x2)`; [SUPPORT.md](SUPPORT.md) lists the reason codes.
 
 ### Configuration file (`.inline-sql.json`)
 

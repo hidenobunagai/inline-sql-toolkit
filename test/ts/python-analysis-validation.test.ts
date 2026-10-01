@@ -231,6 +231,31 @@ GROUP BY
     }
   });
 
+  it.each([
+    [
+      "a string literal",
+      "SELECT id FROM t WHERE note = 'we distribute to all'",
+      "'we distribute to all'",
+    ],
+    [
+      "a line comment",
+      "SELECT id, distribute FROM t -- we distribute evenly",
+      "-- we distribute evenly",
+    ],
+    [
+      "a block comment",
+      "SELECT id FROM t /* we distribute evenly */",
+      "/* we distribute evenly */",
+    ],
+    ["a quoted identifier", 'SELECT "a distribute b" FROM t', '"a distribute b"'],
+  ])("never splits DISTRIBUTE inside %s", (_label, sql, kept) => {
+    const source = `query = """--sql\n${sql}\n"""`;
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    expect("replacementText" in result).toBe(true);
+    if ("replacementText" in result) expect(result.replacementText).toContain(kept);
+  });
+
   it("moves a comma before a trailing line comment", () => {
     const source =
       'query = """--sql\nSELECT\n    order_id --テキスト\n,\n    order_date --テキスト\n,\n    amount\n"""';

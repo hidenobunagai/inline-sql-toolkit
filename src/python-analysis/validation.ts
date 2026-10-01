@@ -5,6 +5,7 @@ import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { replaceOrdinals } from "./ordinals.js";
 import { SourceSpan } from "./positions.js";
 import { buildProtectionPlan, restoreProtected, UnsafeRestore } from "./protection.js";
+import { lexSql } from "./sql-lexer.js";
 import type { SupportedLiteral } from "./tokenizer.js";
 
 export type ReasonCode = (typeof REASON_CODES)[number];
@@ -162,12 +163,29 @@ function moveCommasBeforeLineComments(text: string): string {
   return result.join("\n");
 }
 
-/** Break a trailing DISTRIBUTE clause onto its own line. */
-function breakTrailingDistributeLines(text: string): string {
-  return text.replace(
-    /^([ \t]*)(.*?)\s+(DISTRIBUTE\b.*)$/gim,
-    (_, indent: string, before: string, rest: string) => `${indent}${before}\n${indent}${rest}`,
-  );
+/**
+ * Break a trailing `DISTRIBUTE <word>` clause onto its own line. Only a code
+ * DISTRIBUTE that follows other code on its line moves; one inside a string,
+ * quoted identifier, or comment is text and is never split.
+ */
+function breakTrailingDistributeLines(text: string, dialect: FormatOptions["dialect"]): string {
+  const tokens = lexSql(text, dialect);
+  const splits: number[] = [];
+  tokens.forEach((token, index) => {
+    if (token.kind !== "word" || token.text.toLowerCase() !== "distribute") return;
+    const gap = tokens[index + 1];
+    const clause = tokens[index + 2];
+    if (gap?.kind !== "space" || /[\r\n]/.test(gap.text) || clause?.kind !== "word") return;
+    const lineStart = text.lastIndexOf("\n", token.start - 1) + 1;
+    if (text.slice(lineStart, token.start).trim() !== "") splits.push(token.start);
+  });
+  let result = text;
+  for (const start of splits.reverse()) {
+    const lineStart = result.lastIndexOf("\n", start - 1) + 1;
+    const indent = /^[ \t]*/.exec(result.slice(lineStart))?.[0] ?? "";
+    result = `${result.slice(0, start).trimEnd()}\n${indent}${result.slice(start)}`;
+  }
+  return result;
 }
 
 /** Offset of the separator comma allowed to wrap on this line, else -1. */
@@ -357,7 +375,7 @@ function formatOnce(
   if (options.commaPosition === "before") {
     formatted = moveCommasToLineStarts(formatted);
   }
-  formatted = breakTrailingDistributeLines(formatted);
+  formatted = breakTrailingDistributeLines(formatted, options.dialect);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   if (literal.delimiter.length !== 3) {

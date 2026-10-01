@@ -8,7 +8,7 @@ release.
 ## 1. Version and changelog
 
 1. Confirm the intended version in `package.json`, the Python project metadata,
-   and the VSIX filename. The current release is **0.5.0**.
+   and the VSIX filename. The current release is **0.5.1**.
 2. Add a dated next-version entry to `CHANGELOG.md` describing
    user-visible behavior, safety boundaries, and compatibility changes.
 3. Review the README, security/support guidance, and third-party notices for

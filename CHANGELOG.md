@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 - 2026-10-02
+
+- Security: pins patched versions of OSV-flagged transitive dependencies
+  (`brace-expansion` 5.0.12, `fast-uri` 3.1.8, `undici` 7.29.1) and refreshes
+  `markdown-it` to 14.3.2, clearing the 17 advisories that failed the scheduled
+  OSV scan on main.
+- No formatting behavior changes: the shipped runtime dependency
+  (`sql-formatter`) is unchanged.
+
 ## 0.5.0 - 2026-10-01
 
 - Changed: `inlineSql.format.replaceOrdinals` now defaults to `false`, since it

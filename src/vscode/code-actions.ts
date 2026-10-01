@@ -20,6 +20,11 @@ export interface CodeActionDependencies {
 export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
   static readonly providedCodeActionKinds = [vscode.CodeActionKind.RefactorRewrite];
 
+  private readonly candidateCache = new WeakMap<
+    vscode.TextDocument,
+    { readonly version: number; readonly ranges: readonly TextRange[] }
+  >();
+
   constructor(private readonly dependencies: CodeActionDependencies) {}
 
   private locateCandidates(
@@ -38,11 +43,17 @@ export class InlineSqlCodeActionProvider implements vscode.CodeActionProvider {
 
     const options = readFormatOptions(resource.resourceUri);
     if (!options.ok) return undefined;
+    // Code Actions are requested on every cursor move; re-scan only on edits.
+    const cached = this.candidateCache.get(document);
+    if (cached?.version === document.version) return cached.ranges;
     const text = document.getText();
     if (Buffer.byteLength(text, "utf8") > MAX_DOCUMENT_BYTES) return undefined;
-
     const analysis = analyzeDocument(text);
-    return discover(analysis).map((unit) => analysis.sourceMap.vscodeRange(unit.literal.span));
+    const ranges = discover(analysis).map((unit) =>
+      analysis.sourceMap.vscodeRange(unit.literal.span),
+    );
+    this.candidateCache.set(document, { version: document.version, ranges });
+    return ranges;
   }
 
   provideCodeActions(

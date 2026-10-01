@@ -12,5 +12,7 @@ export default defineConfig({
     environment: "node",
     include: ["test/ts/**/*.test.ts"],
     restoreMocks: true,
+    // Measure the shipped code; test helpers and build tools would dilute it.
+    coverage: { include: ["src/**/*.ts"] },
   },
 });

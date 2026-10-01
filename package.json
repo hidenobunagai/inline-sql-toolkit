@@ -135,69 +135,6 @@
           "meta.embedded.sql": "sql"
         }
       }
-    ],
-    "semanticTokenTypes": [
-      {
-        "id": "inlineSqlKeyword",
-        "superType": "keyword",
-        "description": "%semanticTokenTypes.inlineSqlKeyword.description%"
-      },
-      {
-        "id": "inlineSqlString",
-        "superType": "string",
-        "description": "%semanticTokenTypes.inlineSqlString.description%"
-      },
-      {
-        "id": "inlineSqlNumber",
-        "superType": "number",
-        "description": "%semanticTokenTypes.inlineSqlNumber.description%"
-      },
-      {
-        "id": "inlineSqlOperator",
-        "superType": "operator",
-        "description": "%semanticTokenTypes.inlineSqlOperator.description%"
-      },
-      {
-        "id": "inlineSqlComment",
-        "superType": "comment",
-        "description": "%semanticTokenTypes.inlineSqlComment.description%"
-      },
-      {
-        "id": "inlineSqlIdentifier",
-        "description": "%semanticTokenTypes.inlineSqlIdentifier.description%"
-      }
-    ],
-    "semanticTokenScopes": [
-      {
-        "scopes": {
-          "inlineSqlKeyword": [
-            "keyword.other.sql",
-            "keyword"
-          ],
-          "inlineSqlString": [
-            "string.quoted.sql",
-            "string.quoted.double.sql",
-            "string.quoted.single.sql",
-            "string"
-          ],
-          "inlineSqlNumber": [
-            "constant.numeric.sql",
-            "constant.numeric"
-          ],
-          "inlineSqlOperator": [
-            "keyword.operator.sql",
-            "keyword.operator"
-          ],
-          "inlineSqlComment": [
-            "comment.line.double-dash.sql",
-            "comment.block.sql",
-            "comment"
-          ],
-          "inlineSqlIdentifier": [
-            "source.sql"
-          ]
-        }
-      }
     ]
   },
   "packageManager": "bun@1.3.8",

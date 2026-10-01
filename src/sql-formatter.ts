@@ -7,7 +7,7 @@ export function formatProtectedSql(sql: string, options: FormatOptions): string 
   return formatSql(sql, {
     language: options.dialect,
     tabWidth: options.indentWidth,
-    keywordCase: options.keywordCase === "preserve" ? "preserve" : options.keywordCase,
+    keywordCase: options.keywordCase,
     linesBetweenQueries: 1,
     expressionWidth: options.wrapAfter,
     denseOperators: !options.useSpaceAroundOperators,

@@ -178,6 +178,44 @@ describe("CLI inline-sql-toolkit", () => {
     expect(overrideRes.stdout).toContain("SELECT");
   });
 
+  it("keeps ordinals by default and replaces them only when asked", () => {
+    const input = 'query = "select a, b from t order by 1, 2"\n';
+    expect(runCli([], { input }).stdout).toBe('query = "SELECT a, b FROM t ORDER BY 1, 2"\n');
+    expect(runCli(["--ordinals"], { input }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY a, b"\n',
+    );
+
+    const configDir = join(tempDir, "ordinals_config");
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(
+      join(configDir, ".inline-sql.json"),
+      JSON.stringify({ format: { replaceOrdinals: true } }),
+      "utf8",
+    );
+    expect(runCli([], { input, cwd: configDir }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY a, b"\n',
+    );
+    expect(runCli(["--no-ordinals"], { input, cwd: configDir }).stdout).toBe(
+      'query = "SELECT a, b FROM t ORDER BY 1, 2"\n',
+    );
+    const both = runCli(["--ordinals", "--no-ordinals"], { input });
+    expect(both.status).toBe(2);
+    expect(both.stderr).toContain("cannot use --ordinals and --no-ordinals together");
+  });
+
+  it("reports skipped candidates on stderr unless --quiet", () => {
+    const input = 'query = "SELECT 1 " "FROM t"\nother = "select 1"\n';
+    const res = runCli(["--check"], { input });
+    expect(res.status).toBe(1);
+    expect(res.stderr).toContain(
+      "inline-sql-toolkit: <stdin>: skipped 1 SQL candidate (UNSUPPORTED_LITERAL x1)",
+    );
+    const quiet = runCli(["--quiet"], { input });
+    expect(quiet.status).toBe(0);
+    expect(quiet.stderr).toBe("");
+    expect(quiet.stdout).toBe('query = "SELECT 1 " "FROM t"\nother = "SELECT 1"\n');
+  });
+
   it("exits 2 on invalid configuration values", () => {
     const filePath = join(tempDir, "valid.py");
     writeFileSync(filePath, 'query = "select 1"\n', "utf8");

@@ -40,7 +40,7 @@ describe("formatCandidate", () => {
     expect(result).toEqual({
       sourceSpan: literal.span,
       expectedText: '"select 1"',
-      replacementText: '"SELECT\n  1"',
+      replacementText: '"SELECT 1"',
     });
   });
 
@@ -142,12 +142,34 @@ describe("formatCandidate", () => {
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    user_id,\n    date_trunc(\'month\', paid_at) AS ym\n  FROM\n    payments\n  GROUP BY\n    user_id,\n    ym\n"""',
+        '"""--sql\n  SELECT\n    user_id,\n    date_trunc(\'month\', paid_at) AS ym\n  FROM\n    payments\n  GROUP BY\n    user_id,\n    date_trunc(\'month\', paid_at)\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");
     }
   });
+
+  it.each(["-- SQL", "--Sql", "  --SQL  "])(
+    "formats a %j marker like a lower-case one",
+    (marker) => {
+      const source = `query = """${marker}\nselect id from users\n"""`;
+      const { analysis, literal, detection } = analyzeOne(source);
+      const result = formatCandidate(
+        source,
+        analysis,
+        literal,
+        detection,
+        OPTIONS,
+        NONCE,
+        formatter,
+      );
+      expect(result).toEqual({
+        sourceSpan: literal.span,
+        expectedText: source.slice(literal.span.start),
+        replacementText: `"""${marker}\n  SELECT\n    id\n  FROM\n    users\n"""`,
+      });
+    },
+  );
 
   it("keeps ordinals when replaceOrdinals is disabled", () => {
     const source = 'query = """--sql\nSELECT user_id FROM payments GROUP BY 1\n"""';
@@ -231,6 +253,31 @@ GROUP BY
     }
   });
 
+  it.each([
+    [
+      "a string literal",
+      "SELECT id FROM t WHERE note = 'we distribute to all'",
+      "'we distribute to all'",
+    ],
+    [
+      "a line comment",
+      "SELECT id, distribute FROM t -- we distribute evenly",
+      "-- we distribute evenly",
+    ],
+    [
+      "a block comment",
+      "SELECT id FROM t /* we distribute evenly */",
+      "/* we distribute evenly */",
+    ],
+    ["a quoted identifier", 'SELECT "a distribute b" FROM t', '"a distribute b"'],
+  ])("never splits DISTRIBUTE inside %s", (_label, sql, kept) => {
+    const source = `query = """--sql\n${sql}\n"""`;
+    const { analysis, literal, detection } = analyzeOne(source);
+    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    expect("replacementText" in result).toBe(true);
+    if ("replacementText" in result) expect(result.replacementText).toContain(kept);
+  });
+
   it("moves a comma before a trailing line comment", () => {
     const source =
       'query = """--sql\nSELECT\n    order_id --テキスト\n,\n    order_date --テキスト\n,\n    amount\n"""';
@@ -307,7 +354,7 @@ GROUP BY
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    label,\n    amount\n"""',
+        '"""--sql\n  SELECT\n    chn /* テキスト */,\n    nm /* テキスト */,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END AS label,\n    amount\n  FROM\n    t\n  GROUP BY\n    chn,\n    nm,\n    CASE\n      WHEN site = 1 THEN chn\n      ELSE nm\n    END,\n    amount\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");
@@ -406,5 +453,53 @@ GROUP BY
     expect(
       lines.some((line) => line.includes("FORMATTER_FAILED") && line.includes("literal:")),
     ).toBe(true);
+  });
+});
+
+describe("SQL token gate", () => {
+  const source = 'query = """--sql\nSELECT a, \'x y\' FROM t -- note\nWHERE b = 1\n"""';
+
+  function withFormatter(
+    rewrite: (formatted: string) => string,
+  ): ReturnType<typeof formatCandidate> {
+    const { analysis, literal, detection } = analyzeOne(source);
+    const changing: SqlFormatter = (sql, context) => rewrite(formatter(sql, context));
+    return formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, changing);
+  }
+
+  it("accepts output that only moves whitespace and changes keyword case", () => {
+    const result = withFormatter((formatted) =>
+      formatted.replace("SELECT", "select").replace("WHERE", "where").replace(/\n/g, "\n "),
+    );
+    expect("replacementText" in result).toBe(true);
+  });
+
+  it.each([
+    ["a string literal changes", (text: string) => text.replace("'x y'", "'x  y'")],
+    ["a token disappears", (text: string) => text.replace("b = 1", "b =")],
+    ["a symbol changes", (text: string) => text.replace("b = 1", "b <> 1")],
+    ["code falls into a comment", (text: string) => text.replace(/-- note\s*\n\s*/, "-- note ")],
+    ["a comment changes", (text: string) => text.replace("-- note", "-- notes")],
+  ])("skips the candidate when %s", (_label, rewrite) => {
+    expect(withFormatter(rewrite)).toEqual({
+      sourceSpan: analyzeOne(source).literal.span,
+      reason: "FORMATTER_FAILED",
+    });
+  });
+
+  it("keeps an f-string field inside a trailing comment in the comment", () => {
+    const fstring = 'query = f"""--sql\nSELECT a FROM t -- note {x}\n"""';
+    const { analysis, literal, detection } = analyzeOne(fstring);
+    const result = formatCandidate(
+      fstring,
+      analysis,
+      literal,
+      detection,
+      OPTIONS,
+      NONCE,
+      formatter,
+    );
+    expect("replacementText" in result).toBe(true);
+    if ("replacementText" in result) expect(result.replacementText).toContain("-- note {x}\n");
   });
 });

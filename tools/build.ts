@@ -4,7 +4,14 @@ import { fileURLToPath } from "node:url";
 
 import { build, type Metafile } from "esbuild";
 
-export async function buildExtension(): Promise<Metafile> {
+export interface BuildOptions {
+  /** false computes the bundle and its metafile without touching dist/. */
+  readonly write?: boolean;
+}
+
+/** Mark dist/ as CommonJS; the root package.json says "type": "module". */
+async function prepareDist(write: boolean): Promise<void> {
+  if (!write) return;
   await mkdir("dist", { recursive: true });
   // The repository uses ESM for TypeScript tooling, while VS Code loads the
   // bundled extension through require(). Scope the generated bundle as
@@ -12,6 +19,10 @@ export async function buildExtension(): Promise<Metafile> {
   await writeFile("dist/package.json", JSON.stringify({ type: "commonjs" }), {
     encoding: "utf8",
   });
+}
+
+export async function buildExtension({ write = true }: BuildOptions = {}): Promise<Metafile> {
+  await prepareDist(write);
   const result = await build({
     entryPoints: ["src/extension.ts"],
     outfile: "dist/extension.js",
@@ -24,6 +35,7 @@ export async function buildExtension(): Promise<Metafile> {
     legalComments: "none",
     metafile: true,
     packages: "bundle",
+    write,
   });
   if (result.metafile === undefined) {
     throw new Error("esbuild did not return a metafile");
@@ -31,11 +43,8 @@ export async function buildExtension(): Promise<Metafile> {
   return result.metafile;
 }
 
-export async function buildCli(): Promise<Metafile> {
-  await mkdir("dist", { recursive: true });
-  await writeFile("dist/package.json", JSON.stringify({ type: "commonjs" }), {
-    encoding: "utf8",
-  });
+export async function buildCli({ write = true }: BuildOptions = {}): Promise<Metafile> {
+  await prepareDist(write);
   const result = await build({
     entryPoints: ["src/cli.ts"],
     outfile: "dist/cli.js",
@@ -47,6 +56,7 @@ export async function buildCli(): Promise<Metafile> {
     legalComments: "none",
     metafile: true,
     packages: "bundle",
+    write,
     banner: {
       js: "#!/usr/bin/env node",
     },

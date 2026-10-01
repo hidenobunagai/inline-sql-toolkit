@@ -195,7 +195,7 @@ describe("extension manifest", () => {
       "bytes",
       "concatenat",
       "t-string",
-      "invalid Python",
+      "unterminated string",
       "manual-only",
       "never executed",
       "never validated",
@@ -255,9 +255,10 @@ describe("extension manifest", () => {
   it("notices every npm package the bundle inlines", async () => {
     // The esbuild metafile is the only place that knows which node_modules
     // code ends up inside dist/extension.js and dist/cli.js, so the guard
-    // builds the real bundles instead of trusting a hand-kept list.
-    const extensionMetafile = await buildExtension();
-    const cliMetafile = await buildCli();
+    // builds the real bundles instead of trusting a hand-kept list. It does
+    // not write them: cli.test.ts runs dist/cli.js in parallel.
+    const extensionMetafile = await buildExtension({ write: false });
+    const cliMetafile = await buildCli({ write: false });
     const bundles = [
       extensionMetafile.outputs["dist/extension.js"],
       cliMetafile.outputs["dist/cli.js"],

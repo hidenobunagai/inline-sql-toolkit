@@ -10,10 +10,12 @@ describe("SourceMap position conversion", () => {
   it.each([
     ["abc", 3, 0, 3],
     ["日本", 1, 0, 1],
-    ["😀x", 1, 0, 2],
-    ["𝔘x", 1, 0, 2],
+    ["😀x", 2, 0, 2],
+    ["𝔘x", 2, 0, 2],
     ["e\u0301", 2, 0, 2],
     ["a\r\n😀", 3, 1, 0],
+    ["a\r\n😀b", 5, 1, 2],
+    ['x = "😀"; q = "select 1"', 15, 0, 15],
   ] as const)("converts %j at offset %i", (text, offset, line, character) => {
     const sourceMap = SourceMap.fromText(text);
     expect(sourceMap.vscodeFromOffset(offset)).toEqual({ line, character });
@@ -22,9 +24,10 @@ describe("SourceMap position conversion", () => {
 });
 
 describe("SourceMap offset conversion", () => {
-  it("rejects columns that are not code-point boundaries", () => {
+  it("rejects columns and offsets that are not code-point boundaries", () => {
     const sourceMap = SourceMap.fromText("😀x");
     expect(() => sourceMap.offsetFromVscode(0, 1)).toThrow(PositionMappingError);
+    expect(() => sourceMap.vscodeFromOffset(1)).toThrow(PositionMappingError);
   });
 
   it("rejects offsets inside a line terminator", () => {
@@ -37,7 +40,7 @@ describe("SourceMap offset conversion", () => {
     expect(() => sourceMap.slice(new SourceSpan(1, 4))).toThrow(PositionMappingError);
   });
 
-  it("slices code-point spans", () => {
+  it("slices UTF-16 spans", () => {
     const sourceMap = SourceMap.fromText("日本x");
     expect(sourceMap.slice(new SourceSpan(0, 2))).toBe("日本");
   });

@@ -3,7 +3,7 @@ import type { Position, TextRange } from "../protocol.js";
 /** A source position is outside a representable code-point boundary. */
 export class PositionMappingError extends Error {}
 
-/** A half-open source offset span measured in Python code points. */
+/** A half-open source span in UTF-16 code units, i.e. JavaScript string offsets. */
 export class SourceSpan {
   readonly start: number;
   readonly end: number;
@@ -64,7 +64,11 @@ function upperBound(values: readonly number[], value: number): number {
   return low;
 }
 
-/** Immutable source map with exact UTF-8 and UTF-16 boundary conversions. */
+/**
+ * Immutable map between source offsets and VS Code positions. Both count
+ * UTF-16 code units, so a conversion only checks that the position lies on a
+ * code-point boundary (never inside a surrogate pair) and inside its line.
+ */
 export class SourceMap {
   readonly text: string;
   readonly lines: readonly LineMap[];
@@ -116,7 +120,8 @@ export class SourceMap {
   /** Convert a zero-based VS Code line and UTF-16 column to an offset. */
   offsetFromVscode(line: number, utf16Col: number): number {
     const record = this.line(line);
-    return record.start + exactIndex(record.utf16AtCodepoint, utf16Col);
+    exactIndex(record.utf16AtCodepoint, utf16Col);
+    return record.start + utf16Col;
   }
 
   /** Convert a source offset to a strict zero-based VS Code position. */
@@ -132,11 +137,8 @@ export class SourceMap {
     if (offset > record.contentEnd) {
       throw new PositionMappingError("offset is inside a line terminator");
     }
-    const codepointCol = offset - record.start;
-    const character = record.utf16AtCodepoint[codepointCol];
-    if (character === undefined) {
-      throw new PositionMappingError("column is not a code-point boundary");
-    }
+    const character = offset - record.start;
+    exactIndex(record.utf16AtCodepoint, character);
     return { line: lineIndex, character };
   }
 

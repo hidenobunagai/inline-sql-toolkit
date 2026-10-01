@@ -59,6 +59,41 @@ describe("analyzeDocument", () => {
     expect(analysis.unsupported).toHaveLength(0);
   });
 
+  it("marks implicit concatenation across a comment as unsupported", () => {
+    const analysis = analyzeDocument(
+      'query = (\n    "SELECT id, name "  # columns\n    "FROM users"\n)',
+    );
+    expect(analysis.supported).toHaveLength(0);
+    expect(analysis.unsupported).toHaveLength(2);
+  });
+
+  it("marks implicit concatenation across a backslash continuation as unsupported", () => {
+    const analysis = analyzeDocument('query = "SELECT id, name " \\\n    "FROM users"');
+    expect(analysis.supported).toHaveLength(0);
+    expect(analysis.unsupported).toHaveLength(2);
+  });
+
+  it("marks literals joined with + to a non-literal operand as unsupported", () => {
+    const analysis = analyzeDocument(
+      'query = "SELECT id FROM " + table + " WHERE id = 1"\nmore = prefix + "SELECT 1"',
+    );
+    expect(analysis.supported).toHaveLength(0);
+    expect(analysis.unsupported).toHaveLength(3);
+  });
+
+  it("marks a literal appended with += as unsupported", () => {
+    const analysis = analyzeDocument('query = ""\nquery += "SELECT * FROM t"');
+    expect(analysis.unsupported.map((item) => item.span.start)).toContain(20);
+  });
+
+  it("keeps %-formatting with a non-literal operand and list items supported", () => {
+    const analysis = analyzeDocument(
+      'a = "SELECT %s FROM t" % (x,)\nqueries = [\n    "SELECT 1",  # one\n    "SELECT 2",  # two\n]',
+    );
+    expect(analysis.supported).toHaveLength(3);
+    expect(analysis.unsupported).toHaveLength(0);
+  });
+
   it("keeps separate statements independent", () => {
     const analysis = analyzeDocument('a = "select 1"\nb = "select 2"');
     expect(analysis.supported).toHaveLength(2);

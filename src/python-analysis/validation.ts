@@ -1,10 +1,11 @@
 import { REASON_CODES } from "../constants.js";
 import type { FormatOptions } from "../protocol.js";
-import { detectSql, type SqlDetection } from "./detection.js";
+import { detectSql, isSqlMarker, type SqlDetection } from "./detection.js";
 import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { replaceOrdinals } from "./ordinals.js";
 import { SourceSpan } from "./positions.js";
 import { buildProtectionPlan, restoreProtected, UnsafeRestore } from "./protection.js";
+import { lexSql, sqlTokenDifference } from "./sql-lexer.js";
 import type { SupportedLiteral } from "./tokenizer.js";
 
 export type ReasonCode = (typeof REASON_CODES)[number];
@@ -57,7 +58,6 @@ function literalText(literal: SupportedLiteral, content: string): string {
   return `${literal.prefix}${literal.delimiter}${content}${literal.delimiter}`;
 }
 
-/** Keep triple-quoted frame boundaries on their own lines. */
 /** Return the leading whitespace of the literal's source line. */
 function baseIndentOf(analysis: DocumentAnalysis, literal: SupportedLiteral): string {
   const line = analysis.sourceMap.vscodeFromOffset(literal.span.start).line;
@@ -80,7 +80,7 @@ function applyBaseIndent(
   const first = nonEmpty[0];
   if (first === undefined) return text;
   const firstTrimmed = first.line.trim();
-  const isMarker = firstTrimmed.startsWith("--sql") || firstTrimmed.startsWith("-- sql");
+  const isMarker = isSqlMarker(firstTrimmed);
   const keepsFirstLine = !tripleQuoted || isMarker;
   const shifted = keepsFirstLine ? nonEmpty.slice(1) : nonEmpty;
   const minIndent =
@@ -104,13 +104,9 @@ function normalizeFrame(
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   const sourceContent = analysis.sourceMap.slice(literal.contentSpan);
   const firstNonEmptyLine = sourceContent.split("\n").find((line) => line.trim() !== "");
-  const startsWithMarker =
-    firstNonEmptyLine?.trim().startsWith("--sql") || firstNonEmptyLine?.trim().startsWith("-- sql");
+  const startsWithMarker = firstNonEmptyLine !== undefined && isSqlMarker(firstNonEmptyLine);
   const lines = content.split("\n");
-  const markerIndex = lines.findIndex((line) => {
-    const trimmed = line.trim();
-    return trimmed.startsWith("--sql") || trimmed.startsWith("-- sql");
-  });
+  const markerIndex = lines.findIndex(isSqlMarker);
   let normalized = content;
   if (startsWithMarker) {
     if (markerIndex > 0) {
@@ -126,12 +122,19 @@ function normalizeFrame(
   return `${normalized}${baseIndent}`;
 }
 
-/** Move a field marker that ends the formatted SQL onto its own line. */
-function breakTrailingFieldMarkers(text: string): string {
+/**
+ * Move a field marker that ends the formatted SQL onto its own line. A marker
+ * inside a trailing comment stays put: on the next line it would become code.
+ */
+function breakTrailingFieldMarkers(text: string, dialect: FormatOptions["dialect"]): string {
   const markerPattern = /(__INLINE_SQL_[0-9a-f]{32}_[A-Z_]+_[0-9]+__)\s*$/;
   const match = markerPattern.exec(text);
   if (match === null || match[1] === undefined) return text;
   const markerStart = match.index;
+  const token = lexSql(text, dialect).find(
+    (candidate) => candidate.start <= markerStart && markerStart < candidate.end,
+  );
+  if (token?.kind !== "word") return text;
   const lineStart = text.lastIndexOf("\n", markerStart - 1) + 1;
   const before = text.slice(lineStart, markerStart);
   if (before.trim() === "") return text;
@@ -162,12 +165,29 @@ function moveCommasBeforeLineComments(text: string): string {
   return result.join("\n");
 }
 
-/** Break a trailing DISTRIBUTE clause onto its own line. */
-function breakTrailingDistributeLines(text: string): string {
-  return text.replace(
-    /^([ \t]*)(.*?)\s+(DISTRIBUTE\b.*)$/gim,
-    (_, indent: string, before: string, rest: string) => `${indent}${before}\n${indent}${rest}`,
-  );
+/**
+ * Break a trailing `DISTRIBUTE <word>` clause onto its own line. Only a code
+ * DISTRIBUTE that follows other code on its line moves; one inside a string,
+ * quoted identifier, or comment is text and is never split.
+ */
+function breakTrailingDistributeLines(text: string, dialect: FormatOptions["dialect"]): string {
+  const tokens = lexSql(text, dialect);
+  const splits: number[] = [];
+  tokens.forEach((token, index) => {
+    if (token.kind !== "word" || token.text.toLowerCase() !== "distribute") return;
+    const gap = tokens[index + 1];
+    const clause = tokens[index + 2];
+    if (gap?.kind !== "space" || /[\r\n]/.test(gap.text) || clause?.kind !== "word") return;
+    const lineStart = text.lastIndexOf("\n", token.start - 1) + 1;
+    if (text.slice(lineStart, token.start).trim() !== "") splits.push(token.start);
+  });
+  let result = text;
+  for (const start of splits.reverse()) {
+    const lineStart = result.lastIndexOf("\n", start - 1) + 1;
+    const indent = /^[ \t]*/.exec(result.slice(lineStart))?.[0] ?? "";
+    result = `${result.slice(0, start).trimEnd()}\n${indent}${result.slice(start)}`;
+  }
+  return result;
 }
 
 /** Offset of the separator comma allowed to wrap on this line, else -1. */
@@ -329,7 +349,10 @@ function rejoinFunctionCalls(text: string): string {
   return out;
 }
 
-/** Protect, format, restore, and wrap one literal exactly once. */
+/**
+ * Protect, format, restore, and wrap one literal exactly once. *analysis*
+ * covers just the literal; *baseIndent* is its line's indent in the document.
+ */
 function formatOnce(
   analysis: DocumentAnalysis,
   literal: SupportedLiteral,
@@ -337,6 +360,7 @@ function formatOnce(
   options: FormatOptions,
   nonce: string,
   sqlFormatter: SqlFormatter,
+  baseIndent: string,
 ): string {
   const plan = buildProtectionPlan(analysis.sourceMap, literal, detection, nonce);
   let formatted = sqlFormatter(plan.protectedSql, {
@@ -349,7 +373,7 @@ function formatOnce(
       formatted = formatted.replace(fragment.marker + lineEnding, fragment.marker);
     }
   }
-  formatted = breakTrailingFieldMarkers(formatted);
+  formatted = breakTrailingFieldMarkers(formatted, options.dialect);
   formatted = moveCommasBeforeLineComments(formatted);
   if (options.keepFunctionsInline) {
     formatted = rejoinFunctionCalls(formatted);
@@ -357,43 +381,71 @@ function formatOnce(
   if (options.commaPosition === "before") {
     formatted = moveCommasToLineStarts(formatted);
   }
-  formatted = breakTrailingDistributeLines(formatted);
+  formatted = breakTrailingDistributeLines(formatted, options.dialect);
+  // Final gate: the formatter and every post-pass may only move whitespace
+  // and change keyword case. Anything else would change what the SQL means.
+  const difference = sqlTokenDifference(plan.protectedSql, formatted, options.dialect);
+  if (difference !== undefined) {
+    throw new CandidateFailure("FORMATTER_FAILED", `formatting changed the SQL: ${difference}`);
+  }
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
-  const baseIndent = baseIndentOf(analysis, literal);
-  const indented = applyBaseIndent(
-    resolved,
-    baseIndent,
-    " ".repeat(options.indentWidth),
-    literal.delimiter.length === 3,
-  );
+  if (literal.delimiter.length !== 3) {
+    return literalText(
+      literal,
+      singleLineContent(analysis.sourceMap.slice(literal.contentSpan), resolved),
+    );
+  }
+  const indented = applyBaseIndent(resolved, baseIndent, " ".repeat(options.indentWidth), true);
   return literalText(literal, normalizeFrame(indented, literal, analysis, baseIndent));
 }
 
-/** Replace one half-open source span while preserving all surrounding text. */
-function replaceSource(source: string, span: SourceSpan, replacement: string): string {
-  return source.slice(0, span.start) + replacement + source.slice(span.end);
+/**
+ * Join single-quoted output onto one line and keep the source's leading and
+ * trailing spaces: the literal may be glued to other text at runtime
+ * (`+=`, `"".join`, interpolation), where a dropped edge space breaks SQL.
+ */
+function singleLineContent(sourceContent: string, formatted: string): string {
+  const leading = /^[ \t]*/.exec(sourceContent)?.[0] ?? "";
+  const trailing = /[ \t]*$/.exec(sourceContent)?.[0] ?? "";
+  return `${leading}${formatted.replace(/\s*\n\s*/g, " ").trim()}${trailing}`;
 }
 
-/** Find the reparsed literal and require its Python surface identity. */
-function replacementLiteral(
-  updated: DocumentAnalysis,
+/**
+ * Analyze one literal's text on its own. It must read back as exactly one
+ * supported literal covering the whole text, with the original's prefix,
+ * delimiter, and kind. A literal is self-contained, so this equals reading it
+ * inside its document; formatDocument re-checks the document as a whole once.
+ */
+function analyzeLiteral(
+  text: string,
   original: SupportedLiteral,
-): SupportedLiteral {
-  const matches = updated.supported.filter((item) => item.span.start === original.span.start);
-  if (matches.length !== 1) {
-    throw new CandidateFailure("FORMATTER_FAILED", `reparse found ${matches.length} literals`);
+): { readonly analysis: DocumentAnalysis; readonly literal: SupportedLiteral } {
+  let analysis: DocumentAnalysis;
+  try {
+    analysis = analyzeDocument(text);
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    throw new CandidateFailure("FORMATTER_FAILED", `reparse threw: ${message}`);
   }
-  const result = matches[0];
-  if (result === undefined) throw new CandidateFailure("FORMATTER_FAILED", "reparse found none");
+  const literal = analysis.supported[0];
   if (
-    result.prefix !== original.prefix ||
-    result.delimiter !== original.delimiter ||
-    result.kind !== original.kind
+    literal === undefined ||
+    analysis.supported.length !== 1 ||
+    analysis.unsupported.length !== 0 ||
+    literal.span.start !== 0 ||
+    literal.span.end !== text.length
   ) {
     throw new CandidateFailure("UNSAFE_RAW_STRING");
   }
-  return result;
+  if (
+    literal.prefix !== original.prefix ||
+    literal.delimiter !== original.delimiter ||
+    literal.kind !== original.kind
+  ) {
+    throw new CandidateFailure("UNSAFE_RAW_STRING");
+  }
+  return { analysis, literal };
 }
 
 /** Return source spellings of every replacement field. */
@@ -401,58 +453,41 @@ function fieldTexts(analysis: DocumentAnalysis, literal: SupportedLiteral): read
   return literal.fieldSpans.map((span) => analysis.sourceMap.slice(span));
 }
 
-/** Parse, reconcile, and format the candidate again with identical inputs. */
 /** Require each iteration to be a valid candidate, then re-format until stable. */
 function convergeToFixedPoint(
-  source: string,
   analysis: DocumentAnalysis,
   literal: SupportedLiteral,
   detection: SqlDetection,
   options: FormatOptions,
   nonce: string,
   sqlFormatter: SqlFormatter,
+  baseIndent: string,
 ): string {
-  let current = formatOnce(analysis, literal, detection, options, nonce, sqlFormatter);
+  const fieldsBefore = fieldTexts(analysis, literal).join("\u0000");
+  let current = formatOnce(analysis, literal, detection, options, nonce, sqlFormatter, baseIndent);
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const reparsed = analyzeDocument(current);
-      if (reparsed.supported.length !== 1 || reparsed.unsupported.length !== 0) {
-        throw new CandidateFailure("UNSAFE_RAW_STRING");
-      }
-    } catch (error) {
-      if (error instanceof CandidateFailure) throw error;
-      throw new CandidateFailure("UNSAFE_RAW_STRING");
-    }
-    const updatedSource = replaceSource(source, literal.span, current);
-    let updatedAnalysis: DocumentAnalysis;
-    try {
-      updatedAnalysis = analyzeDocument(updatedSource);
-    } catch (error) {
-      const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
-      throw new CandidateFailure("FORMATTER_FAILED", `reparse threw: ${message}`);
-    }
-    const updatedLiteral = replacementLiteral(updatedAnalysis, literal);
-    const before = fieldTexts(analysis, literal).join("\u0000");
-    const after = fieldTexts(updatedAnalysis, updatedLiteral).join("\u0000");
-    if (before !== after) {
+    const updated = analyzeLiteral(current, literal);
+    const fieldsAfter = fieldTexts(updated.analysis, updated.literal).join("\u0000");
+    if (fieldsBefore !== fieldsAfter) {
       throw new CandidateFailure(
         "UNSAFE_FSTRING_RESTORE",
-        `field texts changed: before=[${before.split("\u0000").join(", ")}] after=[${after
+        `field texts changed: before=[${fieldsBefore.split("\u0000").join(", ")}] after=[${fieldsAfter
           .split("\u0000")
           .join(", ")}]`,
       );
     }
-    const updatedDetection = detectSql(updatedLiteral, updatedAnalysis.sourceMap);
+    const updatedDetection = detectSql(updated.literal, updated.analysis.sourceMap);
     if (!updatedDetection.matched) {
       throw new CandidateFailure("FORMATTER_FAILED", "updated candidate no longer matches --sql");
     }
     const next = formatOnce(
-      updatedAnalysis,
-      updatedLiteral,
+      updated.analysis,
+      updated.literal,
       updatedDetection,
       options,
       nonce,
       sqlFormatter,
+      baseIndent,
     );
     if (next === current) return current;
     current = next;
@@ -485,14 +520,17 @@ export function formatCandidate(
   }
   let first: string;
   try {
+    // Work on the literal alone so each candidate costs its own size, not the
+    // document's; only the line's indent comes from the document.
+    const local = analyzeLiteral(expected, literal);
     first = convergeToFixedPoint(
-      source,
-      analysis,
-      literal,
-      detection,
+      local.analysis,
+      local.literal,
+      detectSql(local.literal, local.analysis.sourceMap),
       options,
       nonce,
       sqlFormatter,
+      baseIndentOf(analysis, literal),
     );
   } catch (error) {
     if (error instanceof CandidateFailure) {

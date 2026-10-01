@@ -11,11 +11,14 @@ import type {
   FormatTarget,
   Position,
   ReasonCode,
-  TextRange,
 } from "../protocol.js";
-import { allocateNonce, formatDocument, MAX_DOCUMENT_BYTES } from "../python-analysis/engine.js";
+import {
+  allocateNonce,
+  formatDocument,
+  MAX_DOCUMENT_BYTES,
+  ResourceLimitError,
+} from "../python-analysis/engine.js";
 import { PositionMappingError } from "../python-analysis/positions.js";
-import { collapseReplacement } from "../replacement.js";
 import { formatProtectedSql } from "../sql-formatter.js";
 import { readFormatOptions } from "./configuration.js";
 import {
@@ -25,6 +28,7 @@ import {
 } from "./document-target.js";
 import {
   DefaultEditApplicator,
+  type DocumentEdits,
   type DocumentSnapshot,
   type EditApplicator,
 } from "./edit-applicator.js";
@@ -136,13 +140,6 @@ export function protocolTarget(
   };
 }
 
-function toVscodeRange(range: TextRange): vscode.Range {
-  return new vscode.Range(
-    new vscode.Position(range.start.line, range.start.character),
-    new vscode.Position(range.end.line, range.end.character),
-  );
-}
-
 /** Format one source text behind the shared safety checks. */
 function formatText(
   text: string,
@@ -164,14 +161,11 @@ function formatText(
     logger,
   );
   return {
-    edits: result.edits.map((edit) => {
-      const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
-      return {
-        range: result.sourceMap.vscodeRange(edit.sourceSpan),
-        expectedText: literalText,
-        newText: collapseReplacement(literalText, edit.replacementText),
-      };
-    }),
+    edits: result.edits.map((edit) => ({
+      range: result.sourceMap.vscodeRange(edit.sourceSpan),
+      expectedText: edit.expectedText,
+      newText: edit.replacementText,
+    })),
     summary: result.summary,
     skipReasons: [...result.skipReasons],
   };
@@ -186,7 +180,7 @@ export class DefaultFormatController implements FormatController {
     this.applicator =
       dependencies.applicator ??
       new DefaultEditApplicator({
-        applyWorkspaceEdit: dependencies.hooks.applyWorkspaceEdit,
+        applyWorkspaceEdit: (edit) => dependencies.hooks.applyWorkspaceEdit(edit),
       });
     this.notifications = dependencies.notifications ?? createNotifications();
     const channel = dependencies.debugChannel;
@@ -220,10 +214,10 @@ export class DefaultFormatController implements FormatController {
     notebook: vscode.NotebookDocument,
     options: FormatOptions,
     token: vscode.CancellationToken,
+    cancelOperation: () => void,
   ): Promise<void> {
-    const edits = new vscode.WorkspaceEdit();
-    let changed = 0;
-    let skipped = 0;
+    const entries: DocumentEdits[] = [];
+    const totals = { discovered: 0, selected: 0, changed: 0, unchanged: 0, skipped: 0 };
     const skipReasons: ReasonCode[] = [];
     for (const cell of notebook.getCells()) {
       if (cell.kind !== vscode.NotebookCellKind.Code) continue;
@@ -234,49 +228,60 @@ export class DefaultFormatController implements FormatController {
         this.notifyReason("PROCESS_CANCELLED");
         return;
       }
-      const text = cell.document.getText();
-      if (Buffer.byteLength(text, "utf8") > MAX_DOCUMENT_BYTES) {
-        skipped++;
-        continue;
-      }
+      const document = cell.document;
+      const text = document.getText();
+      let formatted: ReturnType<typeof formatText>;
       try {
-        const formatted = formatText(text, options, { mode: "all" }, this.logger);
-        for (const edit of formatted.edits) {
-          edits.replace(cell.document.uri, toVscodeRange(edit.range), edit.newText);
-        }
-        changed += formatted.summary.changed;
-        skipped += formatted.summary.skipped;
-        skipReasons.push(...formatted.skipReasons);
+        formatted = formatText(text, options, { mode: "all" }, this.logger);
       } catch (error) {
         if (error instanceof PositionMappingError) {
           this.notifyReason("PROTOCOL_ERROR");
           return;
         }
-        skipped++;
+        totals.skipped++;
+        skipReasons.push(
+          error instanceof ResourceLimitError ? "RESOURCE_LIMIT_EXCEEDED" : "PROCESS_FAILED",
+        );
+        continue;
+      }
+      totals.discovered += formatted.summary.discovered;
+      totals.selected += formatted.summary.selected;
+      totals.changed += formatted.summary.changed;
+      totals.unchanged += formatted.summary.unchanged;
+      totals.skipped += formatted.summary.skipped;
+      skipReasons.push(...formatted.skipReasons);
+      if (formatted.edits.length > 0) {
+        entries.push({
+          document,
+          snapshot: { uri: document.uri, version: document.version, text },
+          response: { edits: formatted.edits, summary: formatted.summary },
+        });
       }
     }
-    await this.dependencies.hooks.afterHelperResponse(() => {});
-    if (changed === 0) {
-      this.complete({ changed: 0, skipped });
-      this.notifications.summary(
-        { discovered: 0, selected: 0, changed: 0, unchanged: 0, skipped },
-        skipped,
-        skipReasons,
-      );
+    await this.dependencies.hooks.afterHelperResponse(cancelOperation);
+    if (totals.selected === 0 && totals.skipped === 0) {
+      this.notifyReason("NO_SQL_CANDIDATE");
       return;
     }
-    const applied = await this.dependencies.hooks.applyWorkspaceEdit(edits);
-    if (!applied) {
-      this.notifyReason("APPLY_EDIT_FAILED");
+    if (entries.length === 0) {
+      this.complete({ changed: 0, skipped: totals.skipped });
+      this.notifications.summary(totals, totals.skipped, skipReasons);
       return;
     }
-    this.complete({ changed, skipped });
-    if (skipped > 0) {
-      this.notifications.summary(
-        { discovered: 0, selected: 0, changed, unchanged: 0, skipped },
-        skipped,
-        skipReasons,
-      );
+    // Same guarded path as a single document: every cell is re-checked against
+    // its snapshot, then cancellation and trust right before one WorkspaceEdit.
+    const outcome = await this.applicator.applyAll(entries, {
+      token,
+      isWorkspaceTrusted: () =>
+        this.dependencies.hooks.isWorkspaceTrusted(vscode.workspace.isTrusted),
+    });
+    if (!outcome.ok) {
+      this.notifyReason(outcome.reason);
+      return;
+    }
+    this.complete({ changed: totals.changed, skipped: totals.skipped });
+    if (totals.skipped > 0) {
+      this.notifications.summary(totals, totals.skipped, skipReasons);
     }
   }
 
@@ -308,7 +313,7 @@ export class DefaultFormatController implements FormatController {
       return;
     }
     if (mode === "all" && resource.notebook !== undefined) {
-      await this.formatAllCells(resource.notebook, options.options, token);
+      await this.formatAllCells(resource.notebook, options.options, token, cancelOperation);
       return;
     }
     const text = resource.document.getText();
@@ -330,6 +335,10 @@ export class DefaultFormatController implements FormatController {
       skipReasons = result.skipReasons;
       formatted = { edits: result.edits, summary: result.summary };
     } catch (error) {
+      if (error instanceof ResourceLimitError) {
+        this.notifyReason("RESOURCE_LIMIT_EXCEEDED");
+        return;
+      }
       if (error instanceof PositionMappingError) {
         this.notifyReason("PROTOCOL_ERROR");
         return;

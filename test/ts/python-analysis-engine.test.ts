@@ -6,10 +6,15 @@ import {
   type DetectedUnit,
   discover,
   formatDocument,
+  preservesDocumentShape,
   selectUnits,
 } from "../../src/python-analysis/engine.js";
 import { analyzeDocument } from "../../src/python-analysis/literals.js";
-import { PositionMappingError, SourceMap } from "../../src/python-analysis/positions.js";
+import {
+  PositionMappingError,
+  SourceMap,
+  SourceSpan,
+} from "../../src/python-analysis/positions.js";
 import type { SqlFormatter } from "../../src/python-analysis/validation.js";
 import { formatProtectedSql } from "../../src/sql-formatter.js";
 
@@ -102,13 +107,90 @@ describe("combinedSource", () => {
   });
 });
 
+describe("preservesDocumentShape", () => {
+  const source = 'a = "select 1"\nb = f"select {x}"\n';
+  const analysis = analyzeDocument(source);
+  const edit = (start: number, end: number, replacementText: string) => ({
+    sourceSpan: new SourceSpan(start, end),
+    expectedText: source.slice(start, end),
+    replacementText,
+  });
+
+  it("accepts edits that keep every literal's place and shape", () => {
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"SELECT 1"')])).toBe(true);
+    expect(
+      preservesDocumentShape(source, analysis, [
+        edit(4, 14, '"SELECT\n 1"'),
+        edit(19, 32, 'f"SELECT {x}"'),
+      ]),
+    ).toBe(true);
+  });
+
+  it("rejects edits that add, merge, or reshape literals", () => {
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"SELECT 1" "x"')])).toBe(false);
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"""SELECT 1')])).toBe(false);
+    expect(preservesDocumentShape(source, analysis, [edit(4, 14, 'r"SELECT 1"')])).toBe(false);
+  });
+});
+
 describe("formatDocument", () => {
   it("formats every selected SQL literal", () => {
     const source = 'a = "select 1"\nb = "select 2"';
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
     expect(result.edits).toHaveLength(2);
     expect(result.summary).toMatchObject({ discovered: 2, selected: 2, changed: 2 });
-    expect(combinedSource(source, result.edits)).toBe('a = "SELECT\n  1"\nb = "SELECT\n  2"');
+    expect(combinedSource(source, result.edits)).toBe('a = "SELECT 1"\nb = "SELECT 2"');
+  });
+
+  it("leaves prose and bare keyword values that start with a SQL keyword untouched", () => {
+    const source = [
+      'label = "Update available"',
+      'msg = "Select an option, then press OK"',
+      'hint = "Drop files here"',
+      'title = "Create a new account"',
+      'confirm = "Delete this item? This cannot be undone."',
+      'note = "With love, from the team"',
+      'err = "Explain why"',
+      'op = "update"',
+      'mode = "create"',
+      'kind = "select"',
+      'msg2 = "update failed for user %s"',
+    ].join("\n");
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.summary.discovered).toBe(0);
+    expect(result.edits).toEqual([]);
+  });
+
+  it.each([
+    'query = (\n    "SELECT id FROM users "  # filter\n    "WHERE active"\n)',
+    'query = "SELECT id FROM users " \\\n    "WHERE active"',
+    'query = "SELECT id, name FROM " + table + " WHERE id = 1"',
+  ])("never edits a concatenated SQL piece: %j", (source) => {
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
+  });
+
+  it("formats nothing in a document with an unterminated string", () => {
+    const source = 'def f():\n    """unterminated docstring\n    x = "SELECT a,b FROM t"\n';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
+  });
+
+  it("skips an f-string whose field reuses the f-string's quote", () => {
+    const source = 'q = f"SELECT * FROM t WHERE id = {row["id"]} AND x = 1"';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toEqual(["UNSUPPORTED_LITERAL"]);
+  });
+
+  it("keeps the edge spaces of a single-line literal", () => {
+    const source = 'head = "  select * from t "\nquery = head + tail';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(combinedSource(source, result.edits)).toBe(
+      'head = "  SELECT * FROM t "\nquery = head + tail',
+    );
   });
 
   it("skips unsupported literals", () => {

@@ -85,6 +85,25 @@ describe("InlineSqlCodeActionProvider", () => {
     });
   });
 
+  it("scans a document once per version across cursor moves", () => {
+    const value = document();
+    const getText = vi.spyOn(value, "getText");
+    const provider = providerFor();
+    const ask = () =>
+      provider.provideCodeActions(
+        value,
+        new vscode.Range(0, 11, 0, 11),
+        {} as vscode.CodeActionContext,
+        new vscode.CancellationTokenSource().token,
+      );
+    expect(ask()).toHaveLength(1);
+    expect(ask()).toHaveLength(1);
+    expect(getText).toHaveBeenCalledTimes(1);
+    (value as { version: number }).version += 1;
+    expect(ask()).toHaveLength(1);
+    expect(getText).toHaveBeenCalledTimes(2);
+  });
+
   it("uses selection mode for non-empty ranges without changing the action range", () => {
     const value = document();
     const provider = providerFor();

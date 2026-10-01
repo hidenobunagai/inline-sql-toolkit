@@ -376,8 +376,8 @@ export async function assertFstringAndPartialSuccess(
 ): Promise<void> {
   const newline = document.getText().endsWith("\n") ? "\n" : "";
   const field = "{value!r}";
-  const before = `safe = f"select ${field}"\nunsupported = "select " "2"${newline}`;
-  const after = `safe = f"SELECT ${field}"\nunsupported = "select " "2"${newline}`;
+  const before = `safe = f"select ${field}"\nunsupported = "select 1 " "from t"${newline}`;
+  const after = `safe = f"SELECT ${field}"\nunsupported = "select 1 " "from t"${newline}`;
   await replaceWholeDocument(document, before);
   editor.selection = new vscode.Selection(0, 0, 0, 0);
   await vscode.commands.executeCommand(TEST_HOOK_COMMANDS.configure, {});

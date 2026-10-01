@@ -6,7 +6,6 @@ import { parseArgs } from "node:util";
 import { type RawFormatOptions, resolveFormatOptions } from "./format-options.js";
 import type { FormatOptions } from "./protocol.js";
 import { allocateNonce, combinedSource, formatDocument } from "./python-analysis/engine.js";
-import { collapseReplacement } from "./replacement.js";
 import { formatProtectedSql } from "./sql-formatter.js";
 
 export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
@@ -18,10 +17,12 @@ export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
       --indent-width <1-8>         (default: 2)
       --wrap-after <20-500>        (default: 88)
       --no-space-around-operators  keep dense operators (default: spaced)
-      --no-ordinals                do not replace GROUP BY / ORDER BY ordinals
+      --ordinals                   replace GROUP BY / ORDER BY ordinals (default: off)
+      --no-ordinals                do not replace ordinals (overrides the config file)
       --comma-position <pos>       after | before (default: after)
       --keep-functions-inline      keep SUM(...) / COUNT(CASE ...) on one line
   -c, --config <file>              config JSON (default: nearest .inline-sql.json)
+  -q, --quiet                      do not report skipped candidates on stderr
   -h, --help / --version`;
 
 function printError(message: string): void {
@@ -89,6 +90,7 @@ export function buildRawOptions(
     "indent-width"?: string;
     "wrap-after"?: string;
     "no-space-around-operators"?: boolean;
+    ordinals?: boolean;
     "no-ordinals"?: boolean;
     "comma-position"?: string;
     "keep-functions-inline"?: boolean;
@@ -108,7 +110,11 @@ export function buildRawOptions(
     useSpaceAroundOperators: cliValues["no-space-around-operators"]
       ? false
       : fileOptions.useSpaceAroundOperators,
-    replaceOrdinals: cliValues["no-ordinals"] ? false : fileOptions.replaceOrdinals,
+    replaceOrdinals: cliValues.ordinals
+      ? true
+      : cliValues["no-ordinals"]
+        ? false
+        : fileOptions.replaceOrdinals,
     commaPosition: cliValues["comma-position"] ?? fileOptions.commaPosition,
     keepFunctionsInline: cliValues["keep-functions-inline"]
       ? true
@@ -116,11 +122,17 @@ export function buildRawOptions(
   };
 }
 
-export function formatPythonSource(
+/** Formatted source plus the reasons of every candidate left unformatted. */
+export interface FormatReport {
+  readonly output: string;
+  readonly skipReasons: readonly string[];
+}
+
+export function formatPythonSourceWithReport(
   text: string,
   options: FormatOptions,
   logger?: (message: string) => void,
-): string {
+): FormatReport {
   const nonce = allocateNonce(text, () => randomBytes(16).toString("hex"));
   const result = formatDocument(
     text,
@@ -130,14 +142,24 @@ export function formatPythonSource(
     (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
     logger,
   );
-  const edits = result.edits.map((edit) => ({
-    ...edit,
-    replacementText: collapseReplacement(
-      text.slice(edit.sourceSpan.start, edit.sourceSpan.end),
-      edit.replacementText,
-    ),
-  }));
-  return combinedSource(text, edits);
+  return { output: combinedSource(text, result.edits), skipReasons: result.skipReasons };
+}
+
+export function formatPythonSource(
+  text: string,
+  options: FormatOptions,
+  logger?: (message: string) => void,
+): string {
+  return formatPythonSourceWithReport(text, options, logger).output;
+}
+
+/** One stderr line naming why candidates in *name* were left unformatted. */
+function skipNote(name: string, reasons: readonly string[]): string {
+  const counts = new Map<string, number>();
+  for (const reason of reasons) counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  const detail = [...counts].map(([reason, count]) => `${reason} x${count}`).join(", ");
+  const noun = reasons.length === 1 ? "candidate" : "candidates";
+  return `inline-sql-toolkit: ${name}: skipped ${reasons.length} SQL ${noun} (${detail})`;
 }
 
 export function runCli(argv: string[]): number {
@@ -153,10 +175,12 @@ export function runCli(argv: string[]): number {
         "indent-width": { type: "string" },
         "wrap-after": { type: "string" },
         "no-space-around-operators": { type: "boolean", default: false },
+        ordinals: { type: "boolean", default: false },
         "no-ordinals": { type: "boolean", default: false },
         "comma-position": { type: "string" },
         "keep-functions-inline": { type: "boolean", default: false },
         config: { type: "string", short: "c" },
+        quiet: { type: "boolean", short: "q", default: false },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", default: false },
       },
@@ -181,6 +205,11 @@ export function runCli(argv: string[]): number {
 
   if (values.write && values.check) {
     printError("inline-sql-toolkit: cannot use --write and --check together");
+    return 2;
+  }
+
+  if (values.ordinals && values["no-ordinals"]) {
+    printError("inline-sql-toolkit: cannot use --ordinals and --no-ordinals together");
     return 2;
   }
 
@@ -227,7 +256,11 @@ export function runCli(argv: string[]): number {
     }
     let output: string;
     try {
-      output = formatPythonSource(input, options);
+      const report = formatPythonSourceWithReport(input, options);
+      output = report.output;
+      if (!values.quiet && report.skipReasons.length > 0) {
+        printError(skipNote("<stdin>", report.skipReasons));
+      }
     } catch (err) {
       printError(`inline-sql-toolkit: ${(err as Error).message}`);
       return 2;
@@ -260,7 +293,11 @@ export function runCli(argv: string[]): number {
     }
     let output: string;
     try {
-      output = formatPythonSource(input, options);
+      const report = formatPythonSourceWithReport(input, options);
+      output = report.output;
+      if (!values.quiet && report.skipReasons.length > 0) {
+        printError(skipNote(file, report.skipReasons));
+      }
     } catch (err) {
       printError(`inline-sql-toolkit: ${file}: ${(err as Error).message}`);
       return 2;

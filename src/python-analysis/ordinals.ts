@@ -12,6 +12,12 @@ interface SelectColumn {
   readonly expressionEnd: number;
   readonly alias: string | undefined;
   readonly aggregate: boolean;
+  /** `*` or `t.*`: it expands to an unknown number of columns. */
+  readonly star: boolean;
+  /** Normalized output column name: the alias, or a simple column's last part. */
+  readonly outputName: string | undefined;
+  /** Normalized names referenced by the expression. */
+  readonly names: readonly string[];
 }
 
 interface Clause {
@@ -20,6 +26,8 @@ interface Clause {
 
 interface PendingScope {
   readonly depth: number;
+  /** The SELECT follows UNION / EXCEPT / INTERSECT. */
+  readonly setOperand: boolean;
   readonly columns: SelectColumn[];
   phase: "select" | "from";
   columnStart: number;
@@ -50,6 +58,35 @@ const AGGREGATE_FUNCTIONS = new Set([
   "string_agg",
   "sum",
   "xmlagg",
+]);
+
+/** Calls whose copy would be evaluated again and yield a different value. */
+const VOLATILE_FUNCTIONS = new Set([
+  "clock_timestamp",
+  "gen_random_uuid",
+  "newid",
+  "nextval",
+  "rand",
+  "random",
+  "setval",
+  "timeofday",
+  "uuid",
+  "uuid_generate_v1",
+  "uuid_generate_v4",
+]);
+
+/** Modifiers between SELECT and the first select-list item. */
+const SELECT_MODIFIERS = new Set([
+  "all",
+  "distinct",
+  "distinctrow",
+  "high_priority",
+  "sql_big_result",
+  "sql_buffer_result",
+  "sql_calc_found_rows",
+  "sql_no_cache",
+  "sql_small_result",
+  "straight_join",
 ]);
 
 /** Directional / position suffixes allowed after an ordinal in ORDER BY / GROUP BY items. */
@@ -127,9 +164,9 @@ function isSelectStart(tokens: readonly SqlToken[], index: number): boolean {
   if (index === 0) return true;
   const previous = tokens[index - 1];
   const text = previous?.text.toLowerCase() ?? "";
-  if (text === "all") {
+  if (text === "all" || text === "distinct") {
     const before = tokens[index - 2]?.text.toLowerCase() ?? "";
-    return before === "union" || before === "except";
+    return before === "union" || before === "except" || before === "intersect";
   }
   return (
     text === "(" ||
@@ -151,13 +188,60 @@ function isCommentToken(token: SqlToken): boolean {
   return token.text.startsWith("--") || token.text.startsWith("/*");
 }
 
-/** Extract alias and aggregate flag from one select-list item. */
+/** Return whether the SELECT at *index* follows a set operator. */
+function isSetOperand(tokens: readonly SqlToken[], index: number): boolean {
+  const operator = (offset: number): boolean =>
+    ["union", "except", "intersect"].includes(tokens[index - offset]?.text.toLowerCase() ?? "");
+  const previous = tokens[index - 1]?.text.toLowerCase() ?? "";
+  return operator(1) || ((previous === "all" || previous === "distinct") && operator(2));
+}
+
+/** Skip SELECT modifiers such as DISTINCT and a DISTINCT ON (...) group. */
+function firstItemStart(tokens: readonly SqlToken[], start: number): number {
+  let index = start;
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (token === undefined || isCommentToken(token)) {
+      index += 1;
+      continue;
+    }
+    if (!SELECT_MODIFIERS.has(token.text.toLowerCase())) break;
+    index += 1;
+    const on = tokens[index];
+    const open = tokens[index + 1];
+    if (token.text.toLowerCase() === "distinct" && on !== undefined && isKeyword(on, "on")) {
+      if (open?.text !== "(") break;
+      const close = tokens.findIndex(
+        (candidate, at) =>
+          at > index + 1 && candidate.text === ")" && candidate.depth === open.depth + 1,
+      );
+      if (close === -1) return tokens.length;
+      index = close + 1;
+    }
+  }
+  return index;
+}
+
+/** Fold an identifier for collision checks: unquoted and case-insensitive. */
+function normalizeName(text: string): string {
+  return text.replace(/^["`]|["`]$/g, "").toLowerCase();
+}
+
+/** Extract alias, output name, and safety flags from one select-list item. */
 function columnOf(tokens: readonly SqlToken[], start: number, end: number): SelectColumn {
   const visible = tokens.slice(start, end).filter((token) => !isCommentToken(token));
   const first = visible[0];
   const last = visible[visible.length - 1];
   if (first === undefined || last === undefined) {
-    return { expressionStart: 0, expressionEnd: 0, alias: undefined, aggregate: false };
+    return {
+      expressionStart: 0,
+      expressionEnd: 0,
+      alias: undefined,
+      aggregate: false,
+      star: false,
+      outputName: undefined,
+      names: [],
+    };
   }
   const secondLast = visible[visible.length - 2];
   const simpleColumn =
@@ -183,37 +267,111 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     expressionEnd = last.start;
   }
   const aggregate = AGGREGATE_FUNCTIONS.has(first.text.toLowerCase()) || first.text === "*";
+  const star = last.text === "*" && (visible.length === 1 || secondLast?.text === ".");
+  const outputName =
+    alias !== undefined
+      ? normalizeName(alias)
+      : simpleColumn
+        ? normalizeName(last.text)
+        : undefined;
+  const names = visible
+    .filter(
+      (token) => token.end <= expressionEnd && (isNameToken(token) || /^["`]/.test(token.text)),
+    )
+    .map((token) => normalizeName(token.text));
   return {
     expressionStart: first.start,
     expressionEnd,
     alias,
     aggregate,
+    star,
+    outputName,
+    names,
   };
 }
 
-function flatten(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+/**
+ * Choose the text that may replace ordinal *ordinal* in a GROUP BY or ORDER
+ * BY clause without changing what the query means, or undefined to keep it.
+ *
+ * - A `*` / `t.*` column at or before the ordinal makes its position unknown.
+ * - GROUP BY never uses an alias: PostgreSQL, MySQL, and SQLite resolve a
+ *   GROUP BY name to an input column first, so `upper(name) AS name` would
+ *   group by the raw column. The expression is copied instead.
+ * - ORDER BY resolves a bare name to the output column first, so a unique
+ *   alias is safe. Not after UNION / EXCEPT / INTERSECT, where ORDER BY names
+ *   the first branch's columns.
+ * - A copied ORDER BY expression must not mention any output name, which an
+ *   ORDER BY could resolve to that column instead.
+ */
+function ordinalReplacement(
+  sql: string,
+  tokens: readonly SqlToken[],
+  scope: PendingScope,
+  clause: "group" | "order",
+  ordinal: number,
+): string | undefined {
+  const column = scope.columns[ordinal - 1];
+  if (column === undefined) return undefined;
+  if (scope.columns.slice(0, ordinal).some((candidate) => candidate.star)) return undefined;
+  if (clause === "order" && scope.setOperand) return undefined;
+  const others = scope.columns.filter((candidate) => candidate !== column);
+  const otherNames = new Set(others.map((candidate) => candidate.outputName));
+  if (clause === "order" && column.alias !== undefined) {
+    return otherNames.has(column.outputName) ? undefined : column.alias;
+  }
+  if (column.aggregate || column.names.some((name) => VOLATILE_FUNCTIONS.has(name))) {
+    return undefined;
+  }
+  if (clause === "order" && column.names.some((name) => otherNames.has(name))) return undefined;
+  const expression = expressionText(sql, tokens, column);
+  // ponytail: copying an expression that contains an f-string field or
+  // a %-placeholder would duplicate it; keep the ordinal.
+  if (expression.length === 0 || expression.includes("{") || expression.includes("%")) {
+    return undefined;
+  }
+  return expression;
 }
 
-/** Copy a select expression without comments, preserving original spacing. */
+/**
+ * Copy a select expression onto one line without its comments. Tokens are
+ * copied verbatim, so whitespace inside string literals survives; text the
+ * tokenizer could not classify (a multi-line string) makes the copy unsafe.
+ */
 function expressionText(sql: string, tokens: readonly SqlToken[], column: SelectColumn): string {
   let result = "";
   let cursor = column.expressionStart;
+  let spaced = false;
   for (const token of tokens) {
     if (token.start < column.expressionStart || token.end > column.expressionEnd) continue;
-    if (!isCommentToken(token)) continue;
-    result += sql.slice(cursor, token.start);
+    const gap = sql.slice(cursor, token.start);
+    if (gap.trim() !== "") return "";
+    spaced ||= gap !== "";
     cursor = token.end;
+    if (isCommentToken(token)) {
+      spaced = true;
+      continue;
+    }
+    if (
+      spaced &&
+      result !== "" &&
+      !result.endsWith("(") &&
+      token.text !== ")" &&
+      token.text !== ","
+    ) {
+      result += " ";
+    }
+    result += token.text;
+    spaced = false;
   }
-  result += sql.slice(cursor, column.expressionEnd);
-  return flatten(result);
+  return sql.slice(cursor, column.expressionEnd).trim() === "" ? result : "";
 }
 
 /**
  * Replace `GROUP BY 1, 2` and `ORDER BY 1` ordinals with the corresponding
- * select-list column (its alias when present, otherwise its expression).
- * Unresolvable ordinals and aggregate expressions without an alias are left
- * untouched.
+ * select-list column: its expression in GROUP BY, its alias (or expression)
+ * in ORDER BY. An ordinal whose replacement could change the query's meaning
+ * is left untouched (see ordinalReplacement).
  */
 export function replaceOrdinals(sql: string): string {
   const tokens = tokenize(sql);
@@ -221,8 +379,9 @@ export function replaceOrdinals(sql: string): string {
   const replacements: { readonly start: number; readonly end: number; readonly text: string }[] =
     [];
 
-  const newScope = (depth: number, columnStart: number): PendingScope => ({
+  const newScope = (depth: number, columnStart: number, setOperand: boolean): PendingScope => ({
     depth,
+    setOperand,
     columns: [],
     phase: "select",
     columnStart,
@@ -247,7 +406,10 @@ export function replaceOrdinals(sql: string): string {
 
   const finishScope = (scope: PendingScope, endIndex: number): void => {
     closeClause(scope, endIndex);
-    for (const clause of [scope.groupBy, scope.orderBy]) {
+    for (const [kind, clause] of [
+      ["group", scope.groupBy],
+      ["order", scope.orderBy],
+    ] as const) {
       if (clause === undefined) continue;
       for (const [start, end] of clause.itemRanges) {
         const itemTokens = tokens.slice(start, end);
@@ -269,18 +431,8 @@ export function replaceOrdinals(sql: string): string {
         }
         if (ordinalToken === undefined || !isNumberToken(ordinalToken)) continue;
         const ordinal = Number.parseInt(ordinalToken.text, 10);
-        const column = scope.columns[ordinal - 1];
-        if (column === undefined) continue;
-        let text: string | undefined;
-        if (column.alias !== undefined) {
-          text = column.alias;
-        } else if (!column.aggregate) {
-          const expression = expressionText(sql, tokens, column);
-          // ponytail: copying an expression that contains an f-string field or
-          // a %-placeholder would duplicate it; keep the ordinal.
-          if (!expression.includes("{") && !expression.includes("%")) text = expression;
-        }
-        if (text === undefined || text.length === 0) continue;
+        const text = ordinalReplacement(sql, tokens, scope, kind, ordinal);
+        if (text === undefined) continue;
         replacements.push({ start: ordinalToken.start, end: ordinalToken.end, text });
       }
     }
@@ -301,7 +453,9 @@ export function replaceOrdinals(sql: string): string {
         finishScope(top, index);
         scopes.pop();
       }
-      scopes.push(newScope(token.depth, index + 1));
+      scopes.push(
+        newScope(token.depth, firstItemStart(tokens, index + 1), isSetOperand(tokens, index)),
+      );
       continue;
     }
     const scope = scopes[scopes.length - 1];

@@ -108,8 +108,15 @@ later atomic precondition.
 - `inlineSql.format.useSpaceAroundOperators`: add spaces around operators
   (default `true`).
 - `inlineSql.format.replaceOrdinals`: replace `GROUP BY` / `ORDER BY` ordinal
-  numbers (`1`, `2`, ...) with the referenced column names, preferring
-  aliases (default `true`).
+  numbers (`1`, `2`, ...) with the referenced select-list column (default
+  `false`). This rewrites the query rather than its layout, so it is opt-in.
+  `GROUP BY` copies the column's expression, because PostgreSQL, MySQL, and
+  SQLite resolve a `GROUP BY` name to an input column before an alias;
+  `ORDER BY` uses the alias when it is unique. An ordinal is kept when its
+  position is unknown (at or after `*` / `t.*`), when it follows `UNION`,
+  `EXCEPT`, or `INTERSECT` (`ORDER BY`), when the replacement would name
+  another output column, or when the expression is an aggregate without an
+  alias or calls a volatile function such as `random()`.
 - `inlineSql.format.dialect`: SQL dialect used by the formatter (`sql`,
   `mysql`, `postgresql`, or `sqlite`; default `postgresql`).
 - `inlineSql.format.commaPosition`: `after` (default) keeps a wrapping comma at
@@ -131,7 +138,7 @@ disappears, disable semantic highlighting for the language server
 
 ## Command line (CLI)
 
-The `inline-sql-toolkit` command-line tool formats Python files or standard input using the exact same formatting engine and safety checks as the VS Code extension's **Format All** command. Unsafe candidates (such as invalid Python syntax, unsupported literals, or unparseable f-strings) are skipped rather than producing corrupt output.
+The `inline-sql-toolkit` command-line tool formats Python files or standard input using the exact same formatting engine and safety checks as the VS Code extension's **Format All** command. Unsafe candidates (such as unsupported literals, unparseable f-strings, or any candidate in a document with an unterminated string) are skipped rather than producing corrupt output.
 
 Run directly via `npx` or install with `bun add -d inline-sql-toolkit` (or `npm install -D inline-sql-toolkit`):
 
@@ -143,23 +150,27 @@ When run without file arguments, the CLI reads Python source from standard input
 
 ### CLI Options
 
-| Option                        | Description                                                       | Default                    |
-| ----------------------------- | ----------------------------------------------------------------- | -------------------------- |
-| `-w, --write`                 | Rewrite files in place (no write if unchanged)                    | off                        |
-| `--check`                     | Exit with code 1 if any file would change                         | off                        |
-| `--dialect <name>`            | SQL dialect: `sql`, `mysql`, `postgresql`, or `sqlite`            | `postgresql`               |
-| `--keyword-case <case>`       | Case for SQL keywords: `upper`, `lower`, or `preserve`            | `upper`                    |
-| `--indent-width <1-8>`        | SQL indentation width in spaces                                   | `2`                        |
-| `--wrap-after <20-500>`       | Preferred expression line width                                   | `88`                       |
-| `--no-space-around-operators` | Keep dense operators                                              | spaced                     |
-| `--no-ordinals`               | Do not replace `GROUP BY` / `ORDER BY` ordinals with column names | replace                    |
-| `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`                  | `after`                    |
-| `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line               | off                        |
-| `-c, --config <file>`         | Configuration JSON file                                           | Nearest `.inline-sql.json` |
-| `-h, --help`                  | Show usage help                                                   |                            |
-| `--version`                   | Show version number                                               |                            |
+| Option                        | Description                                                | Default                    |
+| ----------------------------- | ---------------------------------------------------------- | -------------------------- |
+| `-w, --write`                 | Rewrite files in place (no write if unchanged)             | off                        |
+| `--check`                     | Exit with code 1 if any file would change                  | off                        |
+| `--dialect <name>`            | SQL dialect: `sql`, `mysql`, `postgresql`, or `sqlite`     | `postgresql`               |
+| `--keyword-case <case>`       | Case for SQL keywords: `upper`, `lower`, or `preserve`     | `upper`                    |
+| `--indent-width <1-8>`        | SQL indentation width in spaces                            | `2`                        |
+| `--wrap-after <20-500>`       | Preferred expression line width                            | `88`                       |
+| `--no-space-around-operators` | Keep dense operators                                       | spaced                     |
+| `--ordinals`                  | Replace `GROUP BY` / `ORDER BY` ordinals with column names | off                        |
+| `--no-ordinals`               | Do not replace ordinals (overrides the configuration file) |                            |
+| `--comma-position <pos>`      | Where a wrapping comma sits: `after` or `before`           | `after`                    |
+| `--keep-functions-inline`     | Keep `SUM(...)` / `COUNT(CASE ... END)` on one line        | off                        |
+| `-c, --config <file>`         | Configuration JSON file                                    | Nearest `.inline-sql.json` |
+| `-q, --quiet`                 | Do not report skipped candidates on stderr                 | report                     |
+| `-h, --help`                  | Show usage help                                            |                            |
+| `--version`                   | Show version number                                        |                            |
 
 Exit codes: `0` on success, `1` when `--check` finds unformatted files, and `2` on usage, configuration, I/O, or formatting errors.
+
+A detected SQL candidate that cannot be formatted safely is left as it is and does not change the exit code. Unless `--quiet` is given, the CLI prints one line per affected file on stderr, such as `inline-sql-toolkit: app.py: skipped 2 SQL candidates (UNSUPPORTED_LITERAL x2)`; [SUPPORT.md](SUPPORT.md) lists the reason codes.
 
 ### Configuration file (`.inline-sql.json`)
 
@@ -172,7 +183,7 @@ The CLI automatically searches for a `.inline-sql.json` file in the current work
     "indentWidth": 2,
     "wrapAfter": 88,
     "useSpaceAroundOperators": true,
-    "replaceOrdinals": true,
+    "replaceOrdinals": false,
     "dialect": "postgresql",
     "commaPosition": "after",
     "keepFunctionsInline": false
@@ -196,7 +207,21 @@ is found when either condition holds:
    characters, the source starts with one of `SELECT`, `WITH`, `INSERT`,
    `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, or
    `EXPLAIN`, followed by a word boundary. The two source characters `\n` are
-   not treated as whitespace.
+   not treated as whitespace before the keyword. The keyword must be written
+   entirely in upper or lower case (`SELECT` / `select`, never `Select`), and
+   it must open a recognizable statement so that prose and bare values are
+   left alone:
+   - `SELECT` is followed by a `FROM` clause or by a select-list expression
+     (`*`, a number, a string, a parameter, a function call such as `now()`,
+     `CASE`, ...), so `SELECT 1` matches but `Select an option` does not.
+   - `WITH name AS (`, `INSERT INTO`, `UPDATE table SET`, `DELETE FROM`,
+     `MERGE INTO`, `CREATE`/`ALTER`/`DROP` followed by an object kind such as
+     `TABLE`, `VIEW`, or `INDEX`, `TRUNCATE [TABLE] table`, and `EXPLAIN`
+     followed by a statement.
+
+   Inside this shape check, the escapes `\n`, `\r`, `\t`, and a
+   backslash-newline count as whitespace. Use the `--sql` marker for any
+   statement that does not fit these shapes.
 
 Standalone plain and raw strings, f-strings, and raw f-strings (`f`, `rf`, and
 `fr`, in either case) are supported with single, double, and triple delimiters
@@ -204,9 +229,22 @@ Standalone plain and raw strings, f-strings, and raw f-strings (`f`, `rf`, and
 also the candidate used by the syntax highlighting grammar.
 
 The following are intentionally skipped: bytes and byte strings (`b`/`rb`),
-implicit or explicit string concatenation, t-strings, invalid Python, dynamic
-or non-literal SQL, and SQL-language cells. A candidate that cannot be restored
-without changing Python source is reported as unsafe and is not edited.
+implicit or explicit string concatenation, t-strings, f-strings whose
+replacement field reuses the literal's own quote (`f"{row["id"]}"`), dynamic or
+non-literal SQL, and SQL-language cells. The extension does not run a Python
+parser: it scans string literals only. A document with an unterminated string
+literal is not formatted at all, because the scan can no longer tell code from
+string text; other syntax errors outside a literal do not stop formatting. Concatenation covers adjacent
+literals even across comments or `\` line continuations, and any literal joined
+with `+` or `+=`, whatever the other operand is. A candidate that cannot be
+restored without changing Python source is reported as unsafe and is not
+edited. Before any edit, the formatted SQL is lexed again and compared with
+the original: apart from whitespace and keyword case, every string, quoted
+identifier, number, operator, and comment must be unchanged and in the same
+order, or the candidate is skipped (`FORMATTER_FAILED`).
+
+A single-quoted literal stays on one line and keeps its leading and trailing
+spaces, because the string may be joined to other text at runtime.
 
 ## Trust, privacy, and offline behavior
 
@@ -223,7 +261,7 @@ over the network, passed to a shell/database, or executed. The bundled
   the first logical line has `-- sql`/`--sql`, or that a listed keyword is at
   the source-level start with a word boundary.
 - **Unsupported literal or unsafe f-string:** remove concatenation, bytes or
-  t-string syntax, and verify that Python parses the document. Complex f-string
+  t-string syntax, and close every string literal in the document. Complex f-string
   expressions are skipped when their source spans cannot be restored exactly.
 - **Formatting is unavailable:** use a trusted workspace and check the
   diagnostic reason shown by the extension (`WORKSPACE_UNTRUSTED`,

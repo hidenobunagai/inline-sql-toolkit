@@ -97,13 +97,13 @@ describe("buildProtectionPlan and restoreProtected", () => {
   });
 
   it("protects python escapes and doubled braces", () => {
-    const plan = planFor(String.raw`query = f"SELECT \N{SNOWMAN} \x41 {{value}}"`);
+    const plan = planFor(String.raw`query = f"SELECT \N{SNOWMAN} \x41 {{value}} FROM t"`);
     const kinds = planKinds(plan);
     expect(kinds).toContain("python_escape");
     expect(kinds).toContain("escaped_brace");
     expect(kinds).not.toContain("field");
     expect(restoreProtected(plan.protectedSql, plan)).toBe(
-      String.raw`SELECT \N{SNOWMAN} \x41 {{value}}`,
+      String.raw`SELECT \N{SNOWMAN} \x41 {{value}} FROM t`,
     );
   });
 
@@ -114,7 +114,7 @@ describe("buildProtectionPlan and restoreProtected", () => {
     String.raw`\123`,
     String.raw`\q`,
   ])("keeps %j as one escape fragment", (escape) => {
-    const plan = planFor(`query = "SELECT ${escape}"`);
+    const plan = planFor(`query = "SELECT ${escape} FROM t"`);
     expect(plan.fragments.map((fragment) => fragment.sourceText)).toEqual([escape]);
     expect(plan.fragments[0]?.kind).toBe("python_escape");
   });

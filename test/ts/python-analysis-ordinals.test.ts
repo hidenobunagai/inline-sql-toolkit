@@ -3,16 +3,17 @@ import { describe, expect, it } from "vitest";
 import { replaceOrdinals } from "../../src/python-analysis/ordinals.js";
 
 describe("replaceOrdinals", () => {
-  it("prefers the alias over the expression", () => {
-    const sql = "SELECT user_id, date_trunc('month', paid_at) AS ym FROM payments GROUP BY 1, 2";
-    expect(replaceOrdinals(sql)).toBe(
-      "SELECT user_id, date_trunc('month', paid_at) AS ym FROM payments GROUP BY user_id, ym",
+  it("prefers the alias in ORDER BY and copies the expression in GROUP BY", () => {
+    const select = "SELECT user_id, date_trunc('month', paid_at) AS ym FROM payments";
+    expect(replaceOrdinals(`${select} ORDER BY 1, 2`)).toBe(`${select} ORDER BY user_id, ym`);
+    expect(replaceOrdinals(`${select} GROUP BY 1, 2`)).toBe(
+      `${select} GROUP BY user_id, date_trunc('month', paid_at)`,
     );
   });
 
   it("uses implicit aliases after function calls", () => {
-    expect(replaceOrdinals("SELECT SUM(amount) paid FROM t GROUP BY 1")).toBe(
-      "SELECT SUM(amount) paid FROM t GROUP BY paid",
+    expect(replaceOrdinals("SELECT SUM(amount) paid FROM t ORDER BY 1")).toBe(
+      "SELECT SUM(amount) paid FROM t ORDER BY paid",
     );
   });
 
@@ -53,16 +54,16 @@ describe("replaceOrdinals", () => {
   });
 
   it("handles a case expression alias", () => {
-    const sql = "SELECT CASE WHEN x THEN y ELSE z END tier FROM t GROUP BY 1";
+    const sql = "SELECT CASE WHEN x THEN y ELSE z END tier FROM t ORDER BY 1";
     expect(replaceOrdinals(sql)).toBe(
-      "SELECT CASE WHEN x THEN y ELSE z END tier FROM t GROUP BY tier",
+      "SELECT CASE WHEN x THEN y ELSE z END tier FROM t ORDER BY tier",
     );
   });
 
   it("flattens multi-line expressions", () => {
-    const sql = "SELECT\n  date_trunc('month', paid_at) AS ym\nFROM t\nGROUP BY 1";
+    const sql = "SELECT\n  date_trunc(\n    'month',\n    paid_at\n  ) AS ym\nFROM t\nGROUP BY 1";
     expect(replaceOrdinals(sql)).toBe(
-      "SELECT\n  date_trunc('month', paid_at) AS ym\nFROM t\nGROUP BY ym",
+      "SELECT\n  date_trunc(\n    'month',\n    paid_at\n  ) AS ym\nFROM t\nGROUP BY date_trunc('month', paid_at)",
     );
   });
 
@@ -84,9 +85,18 @@ describe("replaceOrdinals", () => {
     );
   });
 
-  it("skips the star column and replaces the following column", () => {
+  it("keeps every ordinal at or after a star column, whose width is unknown", () => {
     expect(replaceOrdinals("SELECT *, a FROM t GROUP BY 1, 2")).toBe(
-      "SELECT *, a FROM t GROUP BY 1, a",
+      "SELECT *, a FROM t GROUP BY 1, 2",
+    );
+    expect(replaceOrdinals("SELECT *, upper(name) AS n FROM users ORDER BY 2")).toBe(
+      "SELECT *, upper(name) AS n FROM users ORDER BY 2",
+    );
+    expect(replaceOrdinals("SELECT t.*, a FROM t ORDER BY 2")).toBe(
+      "SELECT t.*, a FROM t ORDER BY 2",
+    );
+    expect(replaceOrdinals("SELECT a, * FROM t ORDER BY 1, 2")).toBe(
+      "SELECT a, * FROM t ORDER BY a, 2",
     );
   });
 
@@ -112,8 +122,8 @@ describe("replaceOrdinals", () => {
   });
 
   it("uses quoted aliases verbatim", () => {
-    expect(replaceOrdinals('SELECT a AS "quoted alias", b FROM t GROUP BY 1, 2')).toBe(
-      'SELECT a AS "quoted alias", b FROM t GROUP BY "quoted alias", b',
+    expect(replaceOrdinals('SELECT a AS "quoted alias", b FROM t ORDER BY 1, 2')).toBe(
+      'SELECT a AS "quoted alias", b FROM t ORDER BY "quoted alias", b',
     );
   });
 
@@ -139,8 +149,8 @@ describe("replaceOrdinals", () => {
   });
 
   it("treats comments as whitespace between expression and implicit alias", () => {
-    expect(replaceOrdinals("SELECT a /* c */ b FROM t GROUP BY 1")).toBe(
-      "SELECT a /* c */ b FROM t GROUP BY b",
+    expect(replaceOrdinals("SELECT a /* c */ b FROM t ORDER BY 1")).toBe(
+      "SELECT a /* c */ b FROM t ORDER BY b",
     );
   });
 
@@ -155,20 +165,75 @@ describe("replaceOrdinals", () => {
       replaceOrdinals("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, 2"),
     ).toBe("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, amount");
     expect(replaceOrdinals("SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, 2")).toBe(
-      "SELECT ci.{parameter} AS p, amount FROM t GROUP BY p, amount",
+      "SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, amount",
+    );
+    expect(replaceOrdinals("SELECT ci.{parameter} AS p, amount FROM t ORDER BY 1, 2")).toBe(
+      "SELECT ci.{parameter} AS p, amount FROM t ORDER BY p, amount",
     );
   });
 
   it("detects aliases that trail a comment", () => {
     expect(
       replaceOrdinals(
-        "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t GROUP BY 1, 2",
+        "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t ORDER BY 1, 2",
       ),
     ).toBe(
-      "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t GROUP BY label, amount",
+      "SELECT CASE WHEN site = 1 /* テキスト */ THEN chn ELSE nm END AS label /* テキスト */, amount FROM t ORDER BY label, amount",
     );
-    expect(replaceOrdinals("SELECT SUM(amount) AS total /* c */ FROM t GROUP BY 1")).toBe(
-      "SELECT SUM(amount) AS total /* c */ FROM t GROUP BY total",
+    expect(replaceOrdinals("SELECT SUM(amount) AS total /* c */ FROM t ORDER BY 1")).toBe(
+      "SELECT SUM(amount) AS total /* c */ FROM t ORDER BY total",
+    );
+  });
+  it("never groups by an alias, which may name an input column instead", () => {
+    expect(replaceOrdinals("SELECT upper(name) AS name, count(*) AS n FROM users GROUP BY 1")).toBe(
+      "SELECT upper(name) AS name, count(*) AS n FROM users GROUP BY upper(name)",
+    );
+  });
+
+  it("drops SELECT modifiers from the copied expression", () => {
+    expect(replaceOrdinals("SELECT DISTINCT upper(name) FROM users ORDER BY 1")).toBe(
+      "SELECT DISTINCT upper(name) FROM users ORDER BY upper(name)",
+    );
+    expect(replaceOrdinals("SELECT DISTINCT ON (a) a, b FROM t ORDER BY 1, 2")).toBe(
+      "SELECT DISTINCT ON (a) a, b FROM t ORDER BY a, b",
+    );
+  });
+
+  it("keeps ORDER BY ordinals after a set operator", () => {
+    expect(replaceOrdinals("SELECT a FROM t UNION SELECT b FROM u ORDER BY 1")).toBe(
+      "SELECT a FROM t UNION SELECT b FROM u ORDER BY 1",
+    );
+    expect(
+      replaceOrdinals("SELECT a FROM t GROUP BY 1 UNION DISTINCT SELECT b FROM u GROUP BY 1"),
+    ).toBe("SELECT a FROM t GROUP BY a UNION DISTINCT SELECT b FROM u GROUP BY b");
+  });
+
+  it("keeps ORDER BY ordinals whose replacement names another output column", () => {
+    expect(replaceOrdinals("SELECT a AS x, b AS x FROM t ORDER BY 1")).toBe(
+      "SELECT a AS x, b AS x FROM t ORDER BY 1",
+    );
+    expect(replaceOrdinals("SELECT a AS b, b FROM t ORDER BY 1, 2")).toBe(
+      "SELECT a AS b, b FROM t ORDER BY 1, 2",
+    );
+    expect(replaceOrdinals("SELECT x AS a, a + b FROM t ORDER BY 2")).toBe(
+      "SELECT x AS a, a + b FROM t ORDER BY 2",
+    );
+  });
+
+  it("never copies a volatile expression", () => {
+    expect(replaceOrdinals("SELECT random() FROM t ORDER BY 1")).toBe(
+      "SELECT random() FROM t ORDER BY 1",
+    );
+    expect(replaceOrdinals("SELECT nextval('s') FROM t GROUP BY 1")).toBe(
+      "SELECT nextval('s') FROM t GROUP BY 1",
+    );
+  });
+  it("copies string literals in an expression verbatim", () => {
+    expect(replaceOrdinals("SELECT concat(a, '  x') FROM t GROUP BY 1")).toBe(
+      "SELECT concat(a, '  x') FROM t GROUP BY concat(a, '  x')",
+    );
+    expect(replaceOrdinals("SELECT concat(a, 'x\n  y') FROM t GROUP BY 1")).toBe(
+      "SELECT concat(a, 'x\n  y') FROM t GROUP BY 1",
     );
   });
 });

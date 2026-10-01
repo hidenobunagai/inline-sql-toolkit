@@ -130,6 +130,23 @@ describe("DefaultFormatController", () => {
     expect(value.hook.outcomes).toEqual([{ changed: 2, skipped: 0 }]);
   });
 
+  it("formats candidates on lines with astral characters such as emoji", async () => {
+    const value = setup('x = "😀"; q = "select a,b from t"\ny = "select \'😀\' as e from t"');
+    await value.controller.execute("all");
+    expect(value.note.calls).toEqual([]);
+    expect(value.hook.outcomes).toEqual([{ changed: 2, skipped: 0 }]);
+    value.hook.outcomes.length = 0;
+    // UTF-16 column 16 sits inside the second literal, after the two-unit emoji.
+    (value.editor as { selection: vscode.Selection }).selection = new vscode.Selection(
+      0,
+      16,
+      0,
+      16,
+    );
+    await value.controller.execute("cursor");
+    expect(value.hook.outcomes).toEqual([{ changed: 1, skipped: 0 }]);
+  });
+
   it("formats every code cell when running all on a notebook", async () => {
     const first = __mock.document({
       uri: "file:///workspace/cell1.py",

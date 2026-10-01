@@ -38,7 +38,8 @@ const KEYWORD_SHAPES: readonly (readonly [string, (text: string) => boolean])[] 
     "select",
     (text) => {
       const rest = text.slice("select".length);
-      return /\bfrom\b/i.test(rest) || SELECT_LIST_START.test(rest);
+      const list = rest.replace(/^\s+(?:all|distinct(?:\s+on\s*\([^)]*\))?)(?=[\s(]|$)/i, "");
+      return /\bfrom\b/i.test(rest) || SELECT_LIST_START.test(list);
     },
   ],
   [

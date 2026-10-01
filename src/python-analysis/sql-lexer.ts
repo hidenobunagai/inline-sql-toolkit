@@ -50,7 +50,8 @@ function quotedEnd(text: string, start: number, quote: string, backslash: boolea
  * Split SQL into tokens that separate code from string, quoted-identifier,
  * dollar-quoted, and comment text. An unterminated quote or comment runs to
  * the end. `#` starts a comment and backslashes escape quotes only for MySQL
- * (plus PostgreSQL `E'...'` strings), matching the dialect the formatter used.
+ * (plus PostgreSQL `E'...'` strings), and `[...]` is an identifier only for
+ * SQLite, matching the dialect the formatter used.
  */
 export function lexSql(text: string, dialect: FormatOptions["dialect"]): readonly SqlLexToken[] {
   const mysql = dialect === "mysql";
@@ -93,6 +94,14 @@ export function lexSql(text: string, dialect: FormatOptions["dialect"]): readonl
         (previous?.kind === "word" && /^[eE]$/.test(previous.text) && previous.end === index);
       const end = quotedEnd(text, index, "'", escaped);
       push("string", index, end);
+      index = end;
+      continue;
+    }
+    if (char === "[" && dialect === "sqlite") {
+      // SQLite's [bracketed identifier]; elsewhere `[` indexes arrays.
+      const close = text.indexOf("]", index + 1);
+      const end = close === -1 ? text.length : close + 1;
+      push("quoted", index, end);
       index = end;
       continue;
     }

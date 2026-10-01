@@ -120,7 +120,7 @@ describe("preservesDocumentShape", () => {
     expect(preservesDocumentShape(source, analysis, [edit(4, 14, '"SELECT 1"')])).toBe(true);
     expect(
       preservesDocumentShape(source, analysis, [
-        edit(4, 14, '"SELECT\n 1"'),
+        edit(4, 14, '"SELECT  1"'),
         edit(19, 32, 'f"SELECT {x}"'),
       ]),
     ).toBe(true);
@@ -176,6 +176,13 @@ describe("formatDocument", () => {
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
     expect(result.edits).toEqual([]);
     expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
+  });
+
+  it("treats a single-quoted string that reaches a newline as unterminated", () => {
+    const source = 'broken = "unterminated\n# "\nq = "select a,b from t"\n';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toEqual(["UNSUPPORTED_LITERAL"]);
   });
 
   it("skips an f-string whose field reuses the f-string's quote", () => {

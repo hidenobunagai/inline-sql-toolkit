@@ -270,10 +270,20 @@ GROUP BY
       "/* we distribute evenly */",
     ],
     ["a quoted identifier", 'SELECT "a distribute b" FROM t', '"a distribute b"'],
+    ["a SQLite bracketed identifier", "SELECT [a distribute b] FROM t", "[a distribute b]"],
   ])("never splits DISTRIBUTE inside %s", (_label, sql, kept) => {
     const source = `query = """--sql\n${sql}\n"""`;
     const { analysis, literal, detection } = analyzeOne(source);
-    const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
+    const dialect = sql.includes("[") ? "sqlite" : OPTIONS.dialect;
+    const result = formatCandidate(
+      source,
+      analysis,
+      literal,
+      detection,
+      { ...OPTIONS, dialect },
+      NONCE,
+      formatter,
+    );
     expect("replacementText" in result).toBe(true);
     if ("replacementText" in result) expect(result.replacementText).toContain(kept);
   });

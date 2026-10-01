@@ -236,4 +236,27 @@ describe("replaceOrdinals", () => {
       "SELECT concat(a, 'x\n  y') FROM t GROUP BY 1",
     );
   });
+  it("treats an aggregate call anywhere in the expression as an aggregate", () => {
+    expect(replaceOrdinals("SELECT coalesce(sum(amount), 0) FROM t GROUP BY 1")).toBe(
+      "SELECT coalesce(sum(amount), 0) FROM t GROUP BY 1",
+    );
+    expect(replaceOrdinals("SELECT pg_catalog.count(*) FROM t GROUP BY 1")).toBe(
+      "SELECT pg_catalog.count(*) FROM t GROUP BY 1",
+    );
+  });
+
+  it("keeps bracket groups opaque and verbatim", () => {
+    expect(replaceOrdinals("SELECT [a  b] FROM t ORDER BY 1")).toBe(
+      "SELECT [a  b] FROM t ORDER BY [a  b]",
+    );
+    expect(replaceOrdinals("SELECT ARRAY[1, 2], b FROM t ORDER BY 2")).toBe(
+      "SELECT ARRAY[1, 2], b FROM t ORDER BY b",
+    );
+  });
+
+  it("keeps ORDER BY ordinals after a parenthesized set operand", () => {
+    expect(replaceOrdinals("SELECT a + 1 FROM t UNION (SELECT b FROM u) ORDER BY 1")).toBe(
+      "SELECT a + 1 FROM t UNION (SELECT b FROM u) ORDER BY 1",
+    );
+  });
 });

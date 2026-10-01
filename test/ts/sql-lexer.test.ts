@@ -50,6 +50,14 @@ describe("lexSql", () => {
     expect(kinds("a # b", "mysql")).toEqual(["word:a", "line_comment:# b"]);
   });
 
+  it("reads [brackets] as an identifier only for SQLite", () => {
+    expect(kinds("SELECT [a distribute b]", "sqlite")).toEqual([
+      "word:SELECT",
+      "quoted:[a distribute b]",
+    ]);
+    expect(kinds("arr[1]", "postgresql")).toEqual(["word:arr", "symbol:[", "number:1", "symbol:]"]);
+  });
+
   it("keeps a dollar-quoted body as one token", () => {
     expect(kinds("SELECT $f$ a -- b $f$, $1")).toEqual([
       "word:SELECT",

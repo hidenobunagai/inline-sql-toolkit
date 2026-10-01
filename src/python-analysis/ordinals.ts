@@ -27,7 +27,7 @@ interface Clause {
 interface PendingScope {
   readonly depth: number;
   /** The SELECT follows UNION / EXCEPT / INTERSECT. */
-  readonly setOperand: boolean;
+  setOperand: boolean;
   readonly columns: SelectColumn[];
   phase: "select" | "from";
   columnStart: number;
@@ -121,14 +121,19 @@ function tokenize(sql: string): SqlToken[] {
   let match: RegExpExecArray | null;
   let depth = 0;
   while ((match = TOKEN_PATTERN.exec(sql)) !== null) {
-    if (match[0] === "{") {
+    // An f-string field `{...}` or a bracket group `[...]` (array index or
+    // SQLite identifier) is one opaque token: its commas separate nothing and
+    // its spacing is copied verbatim.
+    if (match[0] === "{" || match[0] === "[") {
+      const open = match[0];
+      const close = open === "{" ? "}" : "]";
       let end = match.index + 1;
-      let braceDepth = 1;
-      while (end < sql.length && braceDepth > 0) {
-        if (sql[end] === "{") {
-          braceDepth += 1;
-        } else if (sql[end] === "}") {
-          braceDepth -= 1;
+      let nesting = 1;
+      while (end < sql.length && nesting > 0) {
+        if (sql[end] === open) {
+          nesting += 1;
+        } else if (sql[end] === close) {
+          nesting -= 1;
         }
         end += 1;
       }
@@ -224,7 +229,7 @@ function firstItemStart(tokens: readonly SqlToken[], start: number): number {
 
 /** Fold an identifier for collision checks: unquoted and case-insensitive. */
 function normalizeName(text: string): string {
-  return text.replace(/^["`]|["`]$/g, "").toLowerCase();
+  return text.replace(/^["`[]|["`\]]$/g, "").toLowerCase();
 }
 
 /** Extract alias, output name, and safety flags from one select-list item. */
@@ -252,7 +257,7 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
   if (
     secondLast !== undefined &&
     isKeyword(secondLast, "as") &&
-    (isNameToken(last) || /^["`]/.test(last.text))
+    (isNameToken(last) || /^["`[]/.test(last.text))
   ) {
     alias = last.text;
     expressionEnd = secondLast.start;
@@ -266,7 +271,14 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     alias = last.text;
     expressionEnd = last.start;
   }
-  const aggregate = AGGREGATE_FUNCTIONS.has(first.text.toLowerCase()) || first.text === "*";
+  // An aggregate call anywhere (`coalesce(sum(x), 0)`, `pg_catalog.count(*)`)
+  // makes the expression invalid in GROUP BY.
+  const aggregate =
+    first.text === "*" ||
+    visible.some(
+      (token, index) =>
+        AGGREGATE_FUNCTIONS.has(token.text.toLowerCase()) && visible[index + 1]?.text === "(",
+    );
   const star = last.text === "*" && (visible.length === 1 || secondLast?.text === ".");
   const outputName =
     alias !== undefined
@@ -276,7 +288,7 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
         : undefined;
   const names = visible
     .filter(
-      (token) => token.end <= expressionEnd && (isNameToken(token) || /^["`]/.test(token.text)),
+      (token) => token.end <= expressionEnd && (isNameToken(token) || /^["`[]/.test(token.text)),
     )
     .map((token) => normalizeName(token.text));
   return {
@@ -460,6 +472,9 @@ export function replaceOrdinals(sql: string): string {
     }
     const scope = scopes[scopes.length - 1];
     if (scope === undefined || token.depth !== scope.depth) continue;
+    // ORDER BY after a set operation names the result's columns, even when an
+    // operand is parenthesized: `SELECT a FROM t UNION (SELECT b FROM u) ORDER BY 1`.
+    if (isKeyword(token, "union", "except", "intersect")) scope.setOperand = true;
     if (scope.phase === "select") {
       if (isKeyword(token, "from")) {
         if (scope.columnStart < index) {

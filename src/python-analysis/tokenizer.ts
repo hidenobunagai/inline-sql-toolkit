@@ -43,6 +43,9 @@ function scanStringBody(source: string, start: number, delimiter: string): numbe
     }
     if (delimiter.length === 1) {
       if (char === delimiter) return index + 1;
+      // A physical newline ends a single-quoted string unclosed; a
+      // backslash-newline continuation was already skipped above.
+      if (char === "\n" || char === "\r") return -1;
       index++;
       continue;
     }

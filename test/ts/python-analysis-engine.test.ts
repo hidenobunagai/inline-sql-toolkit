@@ -111,6 +111,25 @@ describe("formatDocument", () => {
     expect(combinedSource(source, result.edits)).toBe('a = "SELECT\n  1"\nb = "SELECT\n  2"');
   });
 
+  it("leaves prose and bare keyword values that start with a SQL keyword untouched", () => {
+    const source = [
+      'label = "Update available"',
+      'msg = "Select an option, then press OK"',
+      'hint = "Drop files here"',
+      'title = "Create a new account"',
+      'confirm = "Delete this item? This cannot be undone."',
+      'note = "With love, from the team"',
+      'err = "Explain why"',
+      'op = "update"',
+      'mode = "create"',
+      'kind = "select"',
+      'msg2 = "update failed for user %s"',
+    ].join("\n");
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.summary.discovered).toBe(0);
+    expect(result.edits).toEqual([]);
+  });
+
   it("skips unsupported literals", () => {
     const source = 'a = "select 1" "x"\nb = "select 2"';
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);

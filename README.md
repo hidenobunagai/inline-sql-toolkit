@@ -196,7 +196,21 @@ is found when either condition holds:
    characters, the source starts with one of `SELECT`, `WITH`, `INSERT`,
    `UPDATE`, `DELETE`, `MERGE`, `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, or
    `EXPLAIN`, followed by a word boundary. The two source characters `\n` are
-   not treated as whitespace.
+   not treated as whitespace before the keyword. The keyword must be written
+   entirely in upper or lower case (`SELECT` / `select`, never `Select`), and
+   it must open a recognizable statement so that prose and bare values are
+   left alone:
+   - `SELECT` is followed by a `FROM` clause or by a select-list expression
+     (`*`, a number, a string, a parameter, a function call such as `now()`,
+     `CASE`, ...), so `SELECT 1` matches but `Select an option` does not.
+   - `WITH name AS (`, `INSERT INTO`, `UPDATE table SET`, `DELETE FROM`,
+     `MERGE INTO`, `CREATE`/`ALTER`/`DROP` followed by an object kind such as
+     `TABLE`, `VIEW`, or `INDEX`, `TRUNCATE [TABLE] table`, and `EXPLAIN`
+     followed by a statement.
+
+   Inside this shape check, the escapes `\n`, `\r`, `\t`, and a
+   backslash-newline count as whitespace. Use the `--sql` marker for any
+   statement that does not fit these shapes.
 
 Standalone plain and raw strings, f-strings, and raw f-strings (`f`, `rf`, and
 `fr`, in either case) are supported with single, double, and triple delimiters

@@ -440,7 +440,7 @@
   {
     "id": "implicit-concatenation",
     "kind": "source",
-    "source": "query = \"SELECT \" \"1\"",
+    "source": "query = \"SELECT 1 \" \"FROM t\"",
     "detectionExpected": true,
     "formatExpectation": "unsupported-skip",
     "grammarExpectation": "sql",
@@ -449,7 +449,7 @@
   {
     "id": "binop-add",
     "kind": "source",
-    "source": "query = \"SELECT \" + \"1\"",
+    "source": "query = \"SELECT 1 \" + \"FROM t\"",
     "detectionExpected": true,
     "formatExpectation": "unsupported-skip",
     "grammarExpectation": "sql",
@@ -472,5 +472,140 @@
     "formatExpectation": "parse-error",
     "grammarExpectation": "implementation-defined",
     "reason": "invalid-python"
+  },
+  {
+    "id": "prose-title-case-update",
+    "kind": "content",
+    "content": "Update available",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "implementation-defined",
+    "reason": "title-case-keyword-is-prose"
+  },
+  {
+    "id": "prose-title-case-select",
+    "kind": "content",
+    "content": "Select items from the list",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "implementation-defined",
+    "reason": "title-case-keyword-is-prose"
+  },
+  {
+    "id": "prose-title-case-with",
+    "kind": "content",
+    "content": "With love, from the team",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "title-case-keyword-is-prose"
+  },
+  {
+    "id": "prose-single-keyword-value",
+    "kind": "content",
+    "content": "update",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "keyword-without-statement-shape"
+  },
+  {
+    "id": "prose-lowercase-select",
+    "kind": "content",
+    "content": "select an option, then press OK",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "implementation-defined",
+    "reason": "select-without-from-or-expression"
+  },
+  {
+    "id": "prose-lowercase-update",
+    "kind": "content",
+    "content": "update failed for user %s",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "implementation-defined",
+    "reason": "update-without-set"
+  },
+  {
+    "id": "prose-lowercase-delete",
+    "kind": "content",
+    "content": "delete this item?",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "implementation-defined",
+    "reason": "delete-without-from"
+  },
+  {
+    "id": "prose-lowercase-create",
+    "kind": "content",
+    "content": "create a new account",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "create-without-object-kind"
+  },
+  {
+    "id": "prose-lowercase-drop",
+    "kind": "content",
+    "content": "drop files here",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "drop-without-object-kind"
+  },
+  {
+    "id": "prose-lowercase-truncate",
+    "kind": "content",
+    "content": "truncate long text",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "truncate-without-table-shape"
+  },
+  {
+    "id": "prose-lowercase-explain",
+    "kind": "content",
+    "content": "explain why",
+    "detectionExpected": false,
+    "formatExpectation": "ignored",
+    "grammarExpectation": "none",
+    "reason": "explain-without-statement"
+  },
+  {
+    "id": "select-function-without-from",
+    "kind": "content",
+    "content": "select now()",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "select-list-expression"
+  },
+  {
+    "id": "select-escaped-newline-before-from",
+    "kind": "content",
+    "content": "SELECT a\\nFROM t",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "python-escape-whitespace-in-shape"
+  },
+  {
+    "id": "update-fstring-table",
+    "kind": "source",
+    "source": "query = f\"UPDATE {table} SET a = 1\"",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "sql",
+    "reason": "fstring-field-as-table"
+  },
+  {
+    "id": "truncate-bare-table",
+    "kind": "content",
+    "content": "TRUNCATE values_table",
+    "detectionExpected": true,
+    "formatExpectation": "supported",
+    "grammarExpectation": "none",
+    "reason": "truncate-table-list"
   }
 ]

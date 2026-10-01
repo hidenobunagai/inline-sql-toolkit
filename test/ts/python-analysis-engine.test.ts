@@ -171,6 +171,20 @@ describe("formatDocument", () => {
     expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
   });
 
+  it("formats nothing in a document with an unterminated string", () => {
+    const source = 'def f():\n    """unterminated docstring\n    x = "SELECT a,b FROM t"\n';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
+  });
+
+  it("skips an f-string whose field reuses the f-string's quote", () => {
+    const source = 'q = f"SELECT * FROM t WHERE id = {row["id"]} AND x = 1"';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toEqual(["UNSUPPORTED_LITERAL"]);
+  });
+
   it("keeps the edge spaces of a single-line literal", () => {
     const source = 'head = "  select * from t "\nquery = head + tail';
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);

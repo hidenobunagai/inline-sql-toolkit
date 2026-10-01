@@ -1,8 +1,8 @@
 import { SourceMap, SourceSpan } from "./positions.js";
 import {
   fstringKind,
-  scanFstringFieldSpans,
-  scanStringSurfaces,
+  scanFstringFields,
+  scanSource,
   type StringSurface,
   type SupportedLiteral,
   type UnsupportedLiteral,
@@ -11,6 +11,8 @@ import {
 /** Parsed document and its source-ordered literal classifications. */
 export interface DocumentAnalysis {
   readonly sourceMap: SourceMap;
+  /** Some string literal never closes, so no candidate can be trusted. */
+  readonly unterminated: boolean;
   readonly supported: readonly SupportedLiteral[];
   readonly unsupported: readonly UnsupportedLiteral[];
 }
@@ -54,7 +56,7 @@ function isConcatenated(
 /** Parse one complete document and collect plain-string syntax units. */
 export function analyzeDocument(source: string): DocumentAnalysis {
   const sourceMap = SourceMap.fromText(source);
-  const surfaces = scanStringSurfaces(source);
+  const { surfaces, unterminated } = scanSource(source);
   const supported: SupportedLiteral[] = [];
   const unsupported: UnsupportedLiteral[] = [];
   surfaces.forEach((surface, index) => {
@@ -85,10 +87,12 @@ export function analyzeDocument(source: string): DocumentAnalysis {
     }
     if (surface.kind === "fstring") {
       const kind = fstringKind(surface.prefix);
-      if (kind === undefined) {
+      const fields = scanFstringFields(source, surface.contentSpan);
+      if (kind === undefined || fields.unclosed) {
         unsupported.push({
           span: surface.span,
-          detectionContentSpan: undefined,
+          // Still SQL to the user: report it as skipped rather than ignore it.
+          detectionContentSpan: kind === undefined ? undefined : surface.contentSpan,
           reason: "UNSUPPORTED_LITERAL",
         });
         return;
@@ -99,7 +103,7 @@ export function analyzeDocument(source: string): DocumentAnalysis {
         prefix: surface.prefix,
         delimiter: surface.delimiter as SupportedLiteral["delimiter"],
         kind,
-        fieldSpans: scanFstringFieldSpans(source, surface.contentSpan),
+        fieldSpans: fields.fields,
       });
       return;
     }
@@ -114,6 +118,7 @@ export function analyzeDocument(source: string): DocumentAnalysis {
   });
   return {
     sourceMap,
+    unterminated,
     supported: [...supported].sort((left, right) => left.span.start - right.span.start),
     unsupported: [...unsupported].sort((left, right) => left.span.start - right.span.start),
   };

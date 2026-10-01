@@ -195,7 +195,7 @@ describe("extension manifest", () => {
       "bytes",
       "concatenat",
       "t-string",
-      "invalid Python",
+      "unterminated string",
       "manual-only",
       "never executed",
       "never validated",

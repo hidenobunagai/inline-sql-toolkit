@@ -167,7 +167,7 @@ export function formatDocument(
   let changed = 0;
   let unchanged = 0;
   for (const unit of selected) {
-    if (!("contentSpan" in unit.literal)) {
+    if (analysis.unterminated || !("contentSpan" in unit.literal)) {
       skipReasons.push("UNSUPPORTED_LITERAL");
       continue;
     }

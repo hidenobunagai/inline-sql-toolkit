@@ -138,7 +138,7 @@ disappears, disable semantic highlighting for the language server
 
 ## Command line (CLI)
 
-The `inline-sql-toolkit` command-line tool formats Python files or standard input using the exact same formatting engine and safety checks as the VS Code extension's **Format All** command. Unsafe candidates (such as invalid Python syntax, unsupported literals, or unparseable f-strings) are skipped rather than producing corrupt output.
+The `inline-sql-toolkit` command-line tool formats Python files or standard input using the exact same formatting engine and safety checks as the VS Code extension's **Format All** command. Unsafe candidates (such as unsupported literals, unparseable f-strings, or any candidate in a document with an unterminated string) are skipped rather than producing corrupt output.
 
 Run directly via `npx` or install with `bun add -d inline-sql-toolkit` (or `npm install -D inline-sql-toolkit`):
 
@@ -226,8 +226,12 @@ Standalone plain and raw strings, f-strings, and raw f-strings (`f`, `rf`, and
 also the candidate used by the syntax highlighting grammar.
 
 The following are intentionally skipped: bytes and byte strings (`b`/`rb`),
-implicit or explicit string concatenation, t-strings, invalid Python, dynamic
-or non-literal SQL, and SQL-language cells. Concatenation covers adjacent
+implicit or explicit string concatenation, t-strings, f-strings whose
+replacement field reuses the literal's own quote (`f"{row["id"]}"`), dynamic or
+non-literal SQL, and SQL-language cells. The extension does not run a Python
+parser: it scans string literals only. A document with an unterminated string
+literal is not formatted at all, because the scan can no longer tell code from
+string text; other syntax errors outside a literal do not stop formatting. Concatenation covers adjacent
 literals even across comments or `\` line continuations, and any literal joined
 with `+` or `+=`, whatever the other operand is. A candidate that cannot be
 restored without changing Python source is reported as unsafe and is not
@@ -254,7 +258,7 @@ over the network, passed to a shell/database, or executed. The bundled
   the first logical line has `-- sql`/`--sql`, or that a listed keyword is at
   the source-level start with a word boundary.
 - **Unsupported literal or unsafe f-string:** remove concatenation, bytes or
-  t-string syntax, and verify that Python parses the document. Complex f-string
+  t-string syntax, and close every string literal in the document. Complex f-string
   expressions are skipped when their source spans cannot be restored exactly.
 - **Formatting is unavailable:** use a trusted workspace and check the
   diagnostic reason shown by the extension (`WORKSPACE_UNTRUSTED`,

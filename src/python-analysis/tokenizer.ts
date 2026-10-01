@@ -72,9 +72,22 @@ function stringSurfaceAt(source: string, index: number): StringSurface | undefin
   };
 }
 
+/** Every string surface, and whether some quote never closed. */
+export interface SourceScan {
+  readonly surfaces: readonly StringSurface[];
+  /** An unterminated string makes every later code/string boundary a guess. */
+  readonly unterminated: boolean;
+}
+
 /** Return every standalone string surface in source order. */
 export function scanStringSurfaces(source: string): readonly StringSurface[] {
+  return scanSource(source).surfaces;
+}
+
+/** Scan string surfaces and note an unterminated string. */
+export function scanSource(source: string): SourceScan {
   const surfaces: StringSurface[] = [];
+  let unterminated = false;
   let index = 0;
   while (index < source.length) {
     const char = source[index] ?? "";
@@ -94,6 +107,8 @@ export function scanStringSurfaces(source: string): readonly StringSurface[] {
         index = surface.span.end;
         continue;
       }
+      // A bare quote that opens no complete string never closes.
+      if (char === '"' || char === "'") unterminated = true;
     }
     if (NAME.test(source.slice(index))) {
       const name = NAME.exec(source.slice(index))?.[0];
@@ -102,7 +117,7 @@ export function scanStringSurfaces(source: string): readonly StringSurface[] {
     }
     index++;
   }
-  return surfaces;
+  return { surfaces, unterminated };
 }
 
 /**
@@ -114,6 +129,18 @@ export function scanFstringFieldSpans(
   source: string,
   contentSpan: SourceSpan,
 ): readonly SourceSpan[] {
+  return scanFstringFields(source, contentSpan).fields;
+}
+
+/**
+ * Scan replacement fields and report a field still open at the end. That
+ * happens when a field reuses the f-string's own quote (`f"{d["k"]}"`, legal
+ * since Python 3.12): the scanner then ends the literal inside the field.
+ */
+export function scanFstringFields(
+  source: string,
+  contentSpan: SourceSpan,
+): { readonly fields: readonly SourceSpan[]; readonly unclosed: boolean } {
   const fields: SourceSpan[] = [];
   let fieldStart = -1;
   const closers: string[] = [];
@@ -183,7 +210,7 @@ export function scanFstringFieldSpans(
     }
     index++;
   }
-  return fields;
+  return { fields, unclosed: fieldStart !== -1 };
 }
 
 /** Classify one f-string prefix, or return undefined for an unsupported one. */

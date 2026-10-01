@@ -149,6 +149,28 @@ describe("formatCandidate", () => {
     }
   });
 
+  it.each(["-- SQL", "--Sql", "  --SQL  "])(
+    "formats a %j marker like a lower-case one",
+    (marker) => {
+      const source = `query = """${marker}\nselect id from users\n"""`;
+      const { analysis, literal, detection } = analyzeOne(source);
+      const result = formatCandidate(
+        source,
+        analysis,
+        literal,
+        detection,
+        OPTIONS,
+        NONCE,
+        formatter,
+      );
+      expect(result).toEqual({
+        sourceSpan: literal.span,
+        expectedText: source.slice(literal.span.start),
+        replacementText: `"""${marker}\n  SELECT\n    id\n  FROM\n    users\n"""`,
+      });
+    },
+  );
+
   it("keeps ordinals when replaceOrdinals is disabled", () => {
     const source = 'query = """--sql\nSELECT user_id FROM payments GROUP BY 1\n"""';
     const { analysis, literal, detection } = analyzeOne(source);

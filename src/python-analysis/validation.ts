@@ -1,6 +1,6 @@
 import { REASON_CODES } from "../constants.js";
 import type { FormatOptions } from "../protocol.js";
-import { detectSql, type SqlDetection } from "./detection.js";
+import { detectSql, isSqlMarker, type SqlDetection } from "./detection.js";
 import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { replaceOrdinals } from "./ordinals.js";
 import { SourceSpan } from "./positions.js";
@@ -80,7 +80,7 @@ function applyBaseIndent(
   const first = nonEmpty[0];
   if (first === undefined) return text;
   const firstTrimmed = first.line.trim();
-  const isMarker = firstTrimmed.startsWith("--sql") || firstTrimmed.startsWith("-- sql");
+  const isMarker = isSqlMarker(firstTrimmed);
   const keepsFirstLine = !tripleQuoted || isMarker;
   const shifted = keepsFirstLine ? nonEmpty.slice(1) : nonEmpty;
   const minIndent =
@@ -104,13 +104,9 @@ function normalizeFrame(
   if (literal.delimiter.length !== 3 || !content.includes("\n")) return content;
   const sourceContent = analysis.sourceMap.slice(literal.contentSpan);
   const firstNonEmptyLine = sourceContent.split("\n").find((line) => line.trim() !== "");
-  const startsWithMarker =
-    firstNonEmptyLine?.trim().startsWith("--sql") || firstNonEmptyLine?.trim().startsWith("-- sql");
+  const startsWithMarker = firstNonEmptyLine !== undefined && isSqlMarker(firstNonEmptyLine);
   const lines = content.split("\n");
-  const markerIndex = lines.findIndex((line) => {
-    const trimmed = line.trim();
-    return trimmed.startsWith("--sql") || trimmed.startsWith("-- sql");
-  });
+  const markerIndex = lines.findIndex(isSqlMarker);
   let normalized = content;
   if (startsWithMarker) {
     if (markerIndex > 0) {

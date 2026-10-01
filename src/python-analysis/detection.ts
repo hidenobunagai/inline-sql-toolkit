@@ -10,6 +10,11 @@ export interface SqlDetection {
 }
 
 const MARKERS = new Set(["-- sql", "--sql"]);
+
+/** Return whether *line* is exactly an SQL marker, in any case (`-- SQL`). */
+export function isSqlMarker(line: string): boolean {
+  return MARKERS.has(line.trim().toLowerCase());
+}
 const ASCII_WHITESPACE = new Set([" ", "\t", "\r", "\n"]);
 
 // A bare, quoted, or f-string/%-placeholder identifier, optionally dotted.
@@ -115,7 +120,7 @@ function detectSourceSlice(text: string, base: number): SqlDetection {
       cursor += line.length;
       continue;
     }
-    if (MARKERS.has(body.trim().toLowerCase())) {
+    if (isSqlMarker(body)) {
       const marker = new SourceSpan(base + cursor, base + cursor + body.length);
       return {
         matched: true,

@@ -11,6 +11,8 @@ const workflowNames = [
   "compatibility.yml",
   "osv-scanner-pr.yml",
   "osv-scanner-scheduled.yml",
+  "pages.yml",
+  "publish.yml",
 ] as const;
 
 type Workflow = {
@@ -92,6 +94,26 @@ describe("GitHub workflow contracts", () => {
         expect(step.uses).toMatch(/^[^/]+\/[^@]+@[0-9a-f]{40}$/u);
       }
     }
+  });
+
+  it("gates publishing on the CI checks and never runs unpinned tools", async () => {
+    const workflow = await loadWorkflow("publish.yml");
+    const jobs = jobsOf(workflow);
+    const runs = (jobs.publish?.steps ?? []).map((step) => stringValue(step.run));
+    const index = (needle: string): number => runs.findIndex((run) => run.includes(needle));
+    expect(index("bun run ci:quality")).toBeGreaterThanOrEqual(0);
+    expect(index("bun run ci:quality")).toBeLessThan(index("vsce publish"));
+    expect(index("bun run verify:vsix")).toBeLessThan(index("vsce publish"));
+    expect(jobs.npm?.needs).toBe("publish");
+    const source = await readFile(path.join(workflowRoot, "publish.yml"), "utf8");
+    expect(source).not.toMatch(/@latest\b/u);
+    expect(source).not.toMatch(/npx --yes (?:@vscode\/vsce|ovsx) /u);
+    expect(source).not.toMatch(/-p "\$/u);
+  });
+
+  it("lets failing integration jobs fail the CI run", async () => {
+    const source = await readFile(path.join(workflowRoot, "ci.yml"), "utf8");
+    expect(source).not.toContain("continue-on-error");
   });
 
   it("cancels stale pull-request runs and freezes dependency installs", async () => {

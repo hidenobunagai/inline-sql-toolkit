@@ -13,19 +13,24 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3
         with:
           bun-version: 1.3.8
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
-          enable-cache: true
+          version: "0.12.1"
       - run: bun install --frozen-lockfile --ignore-scripts
+      # A tag is a release request, not proof the commit is good: run the same
+      # quality gate and VSIX verification as CI before anything is published.
+      - run: bun run ci:quality
       - run: bun run package:vsix
+      - run: bun run verify:vsix
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish --packagePath dist-vsix/*.vsix -p "$VSCE_PAT" --skip-duplicate
+        # The lockfile-pinned vsce reads VSCE_PAT itself; no token on the command line.
+        run: ./node_modules/.bin/vsce publish --packagePath dist-vsix/*.vsix --skip-duplicate
       - name: Publish to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
@@ -35,7 +40,7 @@ jobs:
         # already-published version reports success.
         run: |
           for attempt in 1 2 3 4; do
-            if npx --yes ovsx publish dist-vsix/*.vsix -p "$OVSX_PAT" --skip-duplicate; then
+            if npx --yes ovsx@1.2.0 publish dist-vsix/*.vsix --skip-duplicate; then
               exit 0
             fi
             echo "::warning::ovsx publish attempt $attempt failed; retrying in 30s"
@@ -45,6 +50,8 @@ jobs:
           exit 1
 
   npm:
+    # Publish the CLI only after the extension shipped from the same gated build.
+    needs: publish
     runs-on: ubuntu-latest
     # Trusted publishing (OIDC) only — no NPM_TOKEN secret, nothing to rotate or
     # expire, and provenance attestations are attached automatically. An
@@ -56,20 +63,20 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3
         with:
           bun-version: 1.3.8
 
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: bun run build
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm for OIDC support
-        run: npm install -g npm@latest
+        run: npm install -g npm@12.2.0
       # dist/package.json must ship as well: it marks dist/ as CommonJS, and the
       # root package.json is "type": "module". 0.4.7 was published without it and
       # the CLI could not start ("module is not defined in ES module scope").

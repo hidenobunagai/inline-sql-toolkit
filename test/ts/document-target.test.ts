@@ -71,6 +71,8 @@ describe("resolveSupportedDocument", () => {
   it.each([
     ["jupyter-notebook", "mo-python"],
     ["custom-notebook", "python"],
+    ["marimo-notebook", "sql"],
+    ["jupyter-notebook", "sql"],
   ])("rejects unsupported notebook member %s/%s", (notebookType, languageId) => {
     const document = __mock.document({
       uri: "vscode-notebook-cell:///query#0",
@@ -173,7 +175,6 @@ describe("INLINE_SQL_SELECTOR", () => {
     expect(INLINE_SQL_SELECTOR).toEqual([
       { language: "python" },
       { language: "mo-python" },
-      { scheme: "vscode-notebook-cell", language: "sql" },
       { notebookType: "jupyter-notebook", language: "python" },
       { notebookType: "marimo-notebook", language: "python" },
       { notebookType: "marimo-notebook", language: "mo-python" },

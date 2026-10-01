@@ -15,10 +15,12 @@ export type TargetResolution =
       readonly reason: "NO_ACTIVE_EDITOR" | "NOTEBOOK_CELL_FOCUS_REQUIRED" | "UNSUPPORTED_DOCUMENT";
     };
 
+// SQL-language cells (marimo's `sql` cells) hold raw SQL, not Python source:
+// analyzing them as Python would rewrite SQL string literals that happen to
+// look like SQL. They are deliberately absent from both tables below.
 export const INLINE_SQL_SELECTOR: vscode.DocumentSelector = [
   { language: "python" },
   { language: "mo-python" },
-  { scheme: "vscode-notebook-cell", language: "sql" },
   { notebookType: "jupyter-notebook", language: "python" },
   { notebookType: "marimo-notebook", language: "python" },
   { notebookType: "marimo-notebook", language: "mo-python" },
@@ -29,7 +31,6 @@ const notebookPairs = new Set([
   "jupyter-notebook\0python",
   "marimo-notebook\0python",
   "marimo-notebook\0mo-python",
-  "marimo-notebook\0sql",
 ]);
 
 export function findNotebookCell(

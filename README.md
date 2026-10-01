@@ -219,8 +219,14 @@ also the candidate used by the syntax highlighting grammar.
 
 The following are intentionally skipped: bytes and byte strings (`b`/`rb`),
 implicit or explicit string concatenation, t-strings, invalid Python, dynamic
-or non-literal SQL, and SQL-language cells. A candidate that cannot be restored
-without changing Python source is reported as unsafe and is not edited.
+or non-literal SQL, and SQL-language cells. Concatenation covers adjacent
+literals even across comments or `\` line continuations, and any literal joined
+with `+` or `+=`, whatever the other operand is. A candidate that cannot be
+restored without changing Python source is reported as unsafe and is not
+edited.
+
+A single-quoted literal stays on one line and keeps its leading and trailing
+spaces, because the string may be joined to other text at runtime.
 
 ## Trust, privacy, and offline behavior
 

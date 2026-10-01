@@ -108,7 +108,7 @@ describe("formatDocument", () => {
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
     expect(result.edits).toHaveLength(2);
     expect(result.summary).toMatchObject({ discovered: 2, selected: 2, changed: 2 });
-    expect(combinedSource(source, result.edits)).toBe('a = "SELECT\n  1"\nb = "SELECT\n  2"');
+    expect(combinedSource(source, result.edits)).toBe('a = "SELECT 1"\nb = "SELECT 2"');
   });
 
   it("leaves prose and bare keyword values that start with a SQL keyword untouched", () => {
@@ -128,6 +128,24 @@ describe("formatDocument", () => {
     const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
     expect(result.summary.discovered).toBe(0);
     expect(result.edits).toEqual([]);
+  });
+
+  it.each([
+    'query = (\n    "SELECT id FROM users "  # filter\n    "WHERE active"\n)',
+    'query = "SELECT id FROM users " \\\n    "WHERE active"',
+    'query = "SELECT id, name FROM " + table + " WHERE id = 1"',
+  ])("never edits a concatenated SQL piece: %j", (source) => {
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(result.edits).toEqual([]);
+    expect(result.skipReasons).toContain("UNSUPPORTED_LITERAL");
+  });
+
+  it("keeps the edge spaces of a single-line literal", () => {
+    const source = 'head = "  select * from t "\nquery = head + tail';
+    const result = formatDocument(source, OPTIONS, ALL, NONCE, formatter);
+    expect(combinedSource(source, result.edits)).toBe(
+      'head = "  SELECT * FROM t "\nquery = head + tail',
+    );
   });
 
   it("skips unsupported literals", () => {

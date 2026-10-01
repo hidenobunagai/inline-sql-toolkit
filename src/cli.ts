@@ -6,7 +6,6 @@ import { parseArgs } from "node:util";
 import { type RawFormatOptions, resolveFormatOptions } from "./format-options.js";
 import type { FormatOptions } from "./protocol.js";
 import { allocateNonce, combinedSource, formatDocument } from "./python-analysis/engine.js";
-import { collapseReplacement } from "./replacement.js";
 import { formatProtectedSql } from "./sql-formatter.js";
 
 export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
@@ -130,14 +129,7 @@ export function formatPythonSource(
     (sql, formatterOptions) => formatProtectedSql(sql, formatterOptions.options),
     logger,
   );
-  const edits = result.edits.map((edit) => ({
-    ...edit,
-    replacementText: collapseReplacement(
-      text.slice(edit.sourceSpan.start, edit.sourceSpan.end),
-      edit.replacementText,
-    ),
-  }));
-  return combinedSource(text, edits);
+  return combinedSource(text, result.edits);
 }
 
 export function runCli(argv: string[]): number {

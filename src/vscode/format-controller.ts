@@ -15,7 +15,6 @@ import type {
 } from "../protocol.js";
 import { allocateNonce, formatDocument, MAX_DOCUMENT_BYTES } from "../python-analysis/engine.js";
 import { PositionMappingError } from "../python-analysis/positions.js";
-import { collapseReplacement } from "../replacement.js";
 import { formatProtectedSql } from "../sql-formatter.js";
 import { readFormatOptions } from "./configuration.js";
 import {
@@ -164,14 +163,11 @@ function formatText(
     logger,
   );
   return {
-    edits: result.edits.map((edit) => {
-      const literalText = text.slice(edit.sourceSpan.start, edit.sourceSpan.end);
-      return {
-        range: result.sourceMap.vscodeRange(edit.sourceSpan),
-        expectedText: literalText,
-        newText: collapseReplacement(literalText, edit.replacementText),
-      };
-    }),
+    edits: result.edits.map((edit) => ({
+      range: result.sourceMap.vscodeRange(edit.sourceSpan),
+      expectedText: edit.expectedText,
+      newText: edit.replacementText,
+    })),
     summary: result.summary,
     skipReasons: [...result.skipReasons],
   };

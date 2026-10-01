@@ -360,14 +360,26 @@ function formatOnce(
   formatted = breakTrailingDistributeLines(formatted);
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
+  if (literal.delimiter.length !== 3) {
+    return literalText(
+      literal,
+      singleLineContent(analysis.sourceMap.slice(literal.contentSpan), resolved),
+    );
+  }
   const baseIndent = baseIndentOf(analysis, literal);
-  const indented = applyBaseIndent(
-    resolved,
-    baseIndent,
-    " ".repeat(options.indentWidth),
-    literal.delimiter.length === 3,
-  );
+  const indented = applyBaseIndent(resolved, baseIndent, " ".repeat(options.indentWidth), true);
   return literalText(literal, normalizeFrame(indented, literal, analysis, baseIndent));
+}
+
+/**
+ * Join single-quoted output onto one line and keep the source's leading and
+ * trailing spaces: the literal may be glued to other text at runtime
+ * (`+=`, `"".join`, interpolation), where a dropped edge space breaks SQL.
+ */
+function singleLineContent(sourceContent: string, formatted: string): string {
+  const leading = /^[ \t]*/.exec(sourceContent)?.[0] ?? "";
+  const trailing = /[ \t]*$/.exec(sourceContent)?.[0] ?? "";
+  return `${leading}${formatted.replace(/\s*\n\s*/g, " ").trim()}${trailing}`;
 }
 
 /** Replace one half-open source span while preserving all surrounding text. */

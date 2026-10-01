@@ -40,7 +40,7 @@ describe("formatCandidate", () => {
     expect(result).toEqual({
       sourceSpan: literal.span,
       expectedText: '"select 1"',
-      replacementText: '"SELECT\n  1"',
+      replacementText: '"SELECT 1"',
     });
   });
 

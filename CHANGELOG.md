@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.0 - 2026-10-01
+
+- Changed: `inlineSql.format.replaceOrdinals` now defaults to `false`, since it
+  rewrites the query rather than its layout. GROUP BY ordinals are replaced by
+  the copied expression (never an alias); ordinals at or after `*`, after
+  UNION / EXCEPT / INTERSECT, with SELECT modifiers, or naming volatile calls
+  are kept. The CLI gains `--ordinals`.
+- Fixed: keyword-only candidates need a SQL statement shape and a single-case
+  keyword, so prose such as "Update available" is no longer formatted.
+- Fixed: comment-, continuation- and `+ name +`-joined literals are treated as
+  concatenation (unsupported) instead of standalone SQL; single-quoted literals
+  keep their edge spaces.
+- Fixed: documents with an unterminated string, and f-strings that reuse their
+  own quote, are skipped.
+- Safety: every candidate whose SQL tokens (strings, identifiers, numbers,
+  symbols, comments) would change is skipped as `FORMATTER_FAILED`. DISTRIBUTE
+  splitting and f-string field markers no longer touch strings or comments.
+- Fixed: UTF-16 positions on lines with emoji; SQL marker matched in any case;
+  SQL-language notebook cells are no longer formatted as Python.
+- Fixed: notebook Format All re-checks cells, cancellation and trust before
+  one WorkspaceEdit; size limits report `RESOURCE_LIMIT_EXCEEDED`.
+- CLI: skipped candidates are reported on stderr (`-q` suppresses).
+- Performance: each candidate is formatted on its own text; Code Action scans
+  are cached per document version.
+
 ## 0.4.14 - 2026-09-25
 
 - Changed: `inlineSql.format.commaPosition: "before"` emits the moved comma

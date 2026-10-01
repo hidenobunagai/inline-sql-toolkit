@@ -231,7 +231,10 @@ or non-literal SQL, and SQL-language cells. Concatenation covers adjacent
 literals even across comments or `\` line continuations, and any literal joined
 with `+` or `+=`, whatever the other operand is. A candidate that cannot be
 restored without changing Python source is reported as unsafe and is not
-edited.
+edited. Before any edit, the formatted SQL is lexed again and compared with
+the original: apart from whitespace and keyword case, every string, quoted
+identifier, number, operator, and comment must be unchanged and in the same
+order, or the candidate is skipped (`FORMATTER_FAILED`).
 
 A single-quoted literal stays on one line and keeps its leading and trailing
 spaces, because the string may be joined to other text at runtime.

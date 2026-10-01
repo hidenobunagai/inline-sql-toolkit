@@ -433,3 +433,51 @@ GROUP BY
     ).toBe(true);
   });
 });
+
+describe("SQL token gate", () => {
+  const source = 'query = """--sql\nSELECT a, \'x y\' FROM t -- note\nWHERE b = 1\n"""';
+
+  function withFormatter(
+    rewrite: (formatted: string) => string,
+  ): ReturnType<typeof formatCandidate> {
+    const { analysis, literal, detection } = analyzeOne(source);
+    const changing: SqlFormatter = (sql, context) => rewrite(formatter(sql, context));
+    return formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, changing);
+  }
+
+  it("accepts output that only moves whitespace and changes keyword case", () => {
+    const result = withFormatter((formatted) =>
+      formatted.replace("SELECT", "select").replace("WHERE", "where").replace(/\n/g, "\n "),
+    );
+    expect("replacementText" in result).toBe(true);
+  });
+
+  it.each([
+    ["a string literal changes", (text: string) => text.replace("'x y'", "'x  y'")],
+    ["a token disappears", (text: string) => text.replace("b = 1", "b =")],
+    ["a symbol changes", (text: string) => text.replace("b = 1", "b <> 1")],
+    ["code falls into a comment", (text: string) => text.replace(/-- note\s*\n\s*/, "-- note ")],
+    ["a comment changes", (text: string) => text.replace("-- note", "-- notes")],
+  ])("skips the candidate when %s", (_label, rewrite) => {
+    expect(withFormatter(rewrite)).toEqual({
+      sourceSpan: analyzeOne(source).literal.span,
+      reason: "FORMATTER_FAILED",
+    });
+  });
+
+  it("keeps an f-string field inside a trailing comment in the comment", () => {
+    const fstring = 'query = f"""--sql\nSELECT a FROM t -- note {x}\n"""';
+    const { analysis, literal, detection } = analyzeOne(fstring);
+    const result = formatCandidate(
+      fstring,
+      analysis,
+      literal,
+      detection,
+      OPTIONS,
+      NONCE,
+      formatter,
+    );
+    expect("replacementText" in result).toBe(true);
+    if ("replacementText" in result) expect(result.replacementText).toContain("-- note {x}\n");
+  });
+});

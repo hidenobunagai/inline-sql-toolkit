@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lexSql } from "../../src/python-analysis/sql-lexer.js";
+import { lexSql, sqlTokenDifference } from "../../src/python-analysis/sql-lexer.js";
 
 function kinds(text: string, dialect: Parameters<typeof lexSql>[1] = "postgresql"): string[] {
   return lexSql(text, dialect)
@@ -63,5 +63,21 @@ describe("lexSql", () => {
   it("runs an unterminated string or comment to the end", () => {
     expect(kinds("a 'open")).toEqual(["word:a", "string:'open"]);
     expect(kinds("a /* open")).toEqual(["word:a", "block_comment:/* open"]);
+  });
+});
+
+describe("sqlTokenDifference", () => {
+  it("allows whitespace, keyword case, and a comma moving across a comment", () => {
+    expect(
+      sqlTokenDifference("select a -- c\n, b from t", "SELECT\n  a, -- c\n  b\nFROM t", "sql"),
+    ).toBeUndefined();
+  });
+
+  it("reports changed strings, dropped tokens, and code swallowed by a comment", () => {
+    expect(sqlTokenDifference("select 'a b'", "select 'a  b'", "sql")).toContain("code token 1");
+    expect(sqlTokenDifference("select a, b", "select a b", "sql")).toContain("code token 2");
+    expect(
+      sqlTokenDifference("select a -- c\nfrom t", "select a -- c from t", "sql"),
+    ).toBeDefined();
   });
 });

@@ -132,3 +132,47 @@ export function lexSql(text: string, dialect: FormatOptions["dialect"]): readonl
   }
   return tokens;
 }
+
+/** Fold a comment's whitespace, which the formatter may re-indent. */
+function commentText(token: SqlLexToken): string {
+  return token.text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Describe the first difference between the SQL tokens of *before* and
+ * *after*, or return undefined when formatting kept them. Whitespace and the
+ * case of words (keyword casing) may change; every string, quoted identifier,
+ * number, and symbol must survive verbatim and in order. Comments are compared
+ * as their own sequence, so a comma may move across one, but comment text can
+ * neither change nor swallow code.
+ */
+export function sqlTokenDifference(
+  before: string,
+  after: string,
+  dialect: FormatOptions["dialect"],
+): string | undefined {
+  const signature = (text: string): { code: string[]; comments: string[] } => {
+    const code: string[] = [];
+    const comments: string[] = [];
+    for (const token of lexSql(text, dialect)) {
+      if (token.kind === "space") continue;
+      if (token.kind === "line_comment" || token.kind === "block_comment") {
+        comments.push(commentText(token));
+      } else {
+        code.push(`${token.kind}:${token.kind === "word" ? token.text.toLowerCase() : token.text}`);
+      }
+    }
+    return { code, comments };
+  };
+  const left = signature(before);
+  const right = signature(after);
+  for (const part of ["code", "comments"] as const) {
+    const length = Math.max(left[part].length, right[part].length);
+    for (let index = 0; index < length; index += 1) {
+      if (left[part][index] !== right[part][index]) {
+        return `${part} token ${index} (${left[part].length} before, ${right[part].length} after)`;
+      }
+    }
+  }
+  return undefined;
+}

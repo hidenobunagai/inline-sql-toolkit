@@ -5,7 +5,7 @@ import { analyzeDocument, type DocumentAnalysis } from "./literals.js";
 import { replaceOrdinals } from "./ordinals.js";
 import { SourceSpan } from "./positions.js";
 import { buildProtectionPlan, restoreProtected, UnsafeRestore } from "./protection.js";
-import { lexSql } from "./sql-lexer.js";
+import { lexSql, sqlTokenDifference } from "./sql-lexer.js";
 import type { SupportedLiteral } from "./tokenizer.js";
 
 export type ReasonCode = (typeof REASON_CODES)[number];
@@ -127,12 +127,19 @@ function normalizeFrame(
   return `${normalized}${baseIndent}`;
 }
 
-/** Move a field marker that ends the formatted SQL onto its own line. */
-function breakTrailingFieldMarkers(text: string): string {
+/**
+ * Move a field marker that ends the formatted SQL onto its own line. A marker
+ * inside a trailing comment stays put: on the next line it would become code.
+ */
+function breakTrailingFieldMarkers(text: string, dialect: FormatOptions["dialect"]): string {
   const markerPattern = /(__INLINE_SQL_[0-9a-f]{32}_[A-Z_]+_[0-9]+__)\s*$/;
   const match = markerPattern.exec(text);
   if (match === null || match[1] === undefined) return text;
   const markerStart = match.index;
+  const token = lexSql(text, dialect).find(
+    (candidate) => candidate.start <= markerStart && markerStart < candidate.end,
+  );
+  if (token?.kind !== "word") return text;
   const lineStart = text.lastIndexOf("\n", markerStart - 1) + 1;
   const before = text.slice(lineStart, markerStart);
   if (before.trim() === "") return text;
@@ -367,7 +374,7 @@ function formatOnce(
       formatted = formatted.replace(fragment.marker + lineEnding, fragment.marker);
     }
   }
-  formatted = breakTrailingFieldMarkers(formatted);
+  formatted = breakTrailingFieldMarkers(formatted, options.dialect);
   formatted = moveCommasBeforeLineComments(formatted);
   if (options.keepFunctionsInline) {
     formatted = rejoinFunctionCalls(formatted);
@@ -376,6 +383,12 @@ function formatOnce(
     formatted = moveCommasToLineStarts(formatted);
   }
   formatted = breakTrailingDistributeLines(formatted, options.dialect);
+  // Final gate: the formatter and every post-pass may only move whitespace
+  // and change keyword case. Anything else would change what the SQL means.
+  const difference = sqlTokenDifference(plan.protectedSql, formatted, options.dialect);
+  if (difference !== undefined) {
+    throw new CandidateFailure("FORMATTER_FAILED", `formatting changed the SQL: ${difference}`);
+  }
   const restored = restoreProtected(formatted, plan);
   const resolved = options.replaceOrdinals ? replaceOrdinals(restored) : restored;
   if (literal.delimiter.length !== 3) {

@@ -1,0 +1,6 @@
+# braces is a dev-only transitive dependency (@vscode/vsce -> secretlint -> globby -> fast-glob -> micromatch).
+# No fixed version is published yet; revisit when ignoreUntil expires.
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-11-05
+reason = "Dev-only transitive dependency via @vscode/vsce; no fixed braces release available yet."

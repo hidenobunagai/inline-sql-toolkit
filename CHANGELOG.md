@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: with `inlineSql.format.commaPosition: "before"`, the rest of a
+  multi-line item (`CASE … END`, a subquery, a wrapped function call) now
+  moves right with its leading `, `, so `END` and the closing `)` no longer
+  line up with the comma. Only lines up to the `)` / `]` / `END` that closes
+  the item move; a following `JOIN` or statement stays put. Nested items add
+  up; lines that continue a string or block comment are left untouched.
+
 ## 0.5.1 - 2026-10-02
 
 - Security: pins patched versions of OSV-flagged transitive dependencies

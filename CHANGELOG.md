@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.2 - 2026-10-09
 
 - Fixed: with `inlineSql.format.commaPosition: "before"`, the rest of a
   multi-line item (`CASE … END`, a subquery, a wrapped function call) now

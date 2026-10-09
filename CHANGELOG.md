@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.3 - 2026-10-10
 
 - Feature: a "# inline-sql: skip" comment excludes a specific SQL literal from formatting (as a trailing comment on the closing quote line or on a dedicated line directly preceding the literal).
 

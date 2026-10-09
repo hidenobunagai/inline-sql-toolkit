@@ -38,6 +38,89 @@ describe("discover", () => {
     const units = discover(analysis);
     expect(units).toHaveLength(1);
   });
+
+  it("skips single-line literal with trailing skip pragma", () => {
+    const analysis = analyzeDocument('q = "select a,b from t"  # inline-sql: skip');
+    expect(discover(analysis)).toHaveLength(0);
+  });
+
+  it("skips triple-quoted literal with trailing pragma on closing quote line", () => {
+    const code = [
+      'q = """--sql',
+      "select   a,",
+      "         b",
+      "from t",
+      '"""  # inline-sql: skip',
+    ].join("\n");
+    const analysis = analyzeDocument(code);
+    expect(discover(analysis)).toHaveLength(0);
+  });
+
+  it("skips literal when dedicated own-line pragma is immediately above", () => {
+    const code = ["# inline-sql: skip", 'q = """--sql', "select 1", '"""'].join("\n");
+    const analysis = analyzeDocument(code);
+    expect(discover(analysis)).toHaveLength(0);
+  });
+
+  it("skips literal inside parentheses when dedicated pragma is 1 line above", () => {
+    const code = ["query = (", "    # inline-sql: skip", '    """--sql select 1"""', ")"].join(
+      "\n",
+    );
+    const analysis = analyzeDocument(code);
+    expect(discover(analysis)).toHaveLength(0);
+  });
+
+  it("does not skip subsequent line literal when preceding statement has trailing pragma", () => {
+    const code = ['a = "select 1"  # inline-sql: skip', 'b = "select 2"'].join("\n");
+    const analysis = analyzeDocument(code);
+    const units = discover(analysis);
+    expect(units).toHaveLength(1);
+    const firstUnit = units[0];
+    if (firstUnit === undefined) throw new Error("expected unit");
+    expect(analysis.sourceMap.slice(firstUnit.literal.span)).toBe('"select 2"');
+  });
+
+  it("does not skip when an empty line exists between own-line pragma and literal", () => {
+    const code = ["# inline-sql: skip", "", 'q = "select 1"'].join("\n");
+    const analysis = analyzeDocument(code);
+    expect(discover(analysis)).toHaveLength(1);
+  });
+
+  it("skips when pragma is co-located with other pragmas and case varies", () => {
+    const code = 'q = "select 1"  # noqa: E501  # INLINE-SQL: Skip';
+    const analysis = analyzeDocument(code);
+    expect(discover(analysis)).toHaveLength(0);
+  });
+
+  it("does not skip when pragma has word boundary suffixes like skip-file or skipped", () => {
+    const code1 = 'q = "select 1"  # inline-sql: skip-file';
+    expect(discover(analyzeDocument(code1))).toHaveLength(1);
+
+    const code2 = 'q = "select 1"  # inline-sql: skipped';
+    expect(discover(analyzeDocument(code2))).toHaveLength(1);
+  });
+
+  it("does not skip when pragma is inside string body", () => {
+    const code = 'q = """--sql\nselect 1 # inline-sql: skip\n"""';
+    expect(discover(analyzeDocument(code))).toHaveLength(1);
+  });
+
+  it("handles CRLF documents for pragma skipping identically", () => {
+    const trailingCrlf = 'q = "select 1"  # inline-sql: skip\r\n';
+    expect(discover(analyzeDocument(trailingCrlf))).toHaveLength(0);
+
+    const ownLineCrlf = '# inline-sql: skip\r\nq = "select 1"\r\n';
+    expect(discover(analyzeDocument(ownLineCrlf))).toHaveLength(0);
+  });
+
+  it("omits skipped literals from summary.discovered and skipReasons in formatDocument", () => {
+    const code = ['q1 = "select 1"  # inline-sql: skip', 'q2 = "select 2"'].join("\n");
+    const result = formatDocument(code, OPTIONS, ALL, NONCE, formatter);
+    expect(result.summary.discovered).toBe(1);
+    expect(result.summary.skipped).toBe(0);
+    expect(result.skipReasons).toEqual([]);
+    expect(result.summary.changed).toBe(1);
+  });
 });
 
 describe("selectUnits", () => {

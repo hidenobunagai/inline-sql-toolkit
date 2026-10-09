@@ -72,9 +72,10 @@ function stringSurfaceAt(source: string, index: number): StringSurface | undefin
   };
 }
 
-/** Every string surface, and whether some quote never closed. */
+/** Every string surface, comments, and whether some quote never closed. */
 export interface SourceScan {
   readonly surfaces: readonly StringSurface[];
+  readonly comments: readonly SourceSpan[];
   /** An unterminated string makes every later code/string boundary a guess. */
   readonly unterminated: boolean;
 }
@@ -87,6 +88,7 @@ export function scanStringSurfaces(source: string): readonly StringSurface[] {
 /** Scan string surfaces and note an unterminated string. */
 export function scanSource(source: string): SourceScan {
   const surfaces: StringSurface[] = [];
+  const comments: SourceSpan[] = [];
   let unterminated = false;
   let index = 0;
   while (index < source.length) {
@@ -97,6 +99,7 @@ export function scanSource(source: string): SourceScan {
     }
     if (char === "#") {
       const end = source.indexOf("\n", index);
+      comments.push(new SourceSpan(index, end === -1 ? source.length : end));
       index = end === -1 ? source.length : end;
       continue;
     }
@@ -117,7 +120,7 @@ export function scanSource(source: string): SourceScan {
     }
     index++;
   }
-  return { surfaces, unterminated };
+  return { surfaces, comments, unterminated };
 }
 
 /**

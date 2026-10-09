@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Feature: a "# inline-sql: skip" comment excludes a specific SQL literal from formatting (as a trailing comment on the closing quote line or on a dedicated line directly preceding the literal).
+
 ## 0.5.2 - 2026-10-09
 
 - Fixed: with `inlineSql.format.commaPosition: "before"`, the rest of a

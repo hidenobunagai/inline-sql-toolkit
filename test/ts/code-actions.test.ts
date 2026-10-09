@@ -175,6 +175,33 @@ describe("InlineSqlCodeActionProvider", () => {
       ),
     ).toEqual([]);
   });
+
+  it("does not offer Code Action for a pragma-skipped literal while offering for an unskipped one", () => {
+    const text = ['q1 = "SELECT 1"  # inline-sql: skip', 'q2 = "SELECT 2"'].join("\n");
+    const doc = document(text);
+    const provider = providerFor();
+
+    // Line 0 (skipped)
+    const skippedRange = new vscode.Range(0, 7, 0, 13);
+    const skippedActions = provider.provideCodeActions(
+      doc,
+      skippedRange,
+      {} as vscode.CodeActionContext,
+      new vscode.CancellationTokenSource().token,
+    );
+    expect(skippedActions).toEqual([]);
+
+    // Line 1 (unskipped)
+    const unskippedRange = new vscode.Range(1, 7, 1, 13);
+    const unskippedActions = provider.provideCodeActions(
+      doc,
+      unskippedRange,
+      {} as vscode.CodeActionContext,
+      new vscode.CancellationTokenSource().token,
+    );
+    expect(unskippedActions).toHaveLength(1);
+    expect(unskippedActions[0]?.command?.command).toBe(COMMANDS.selection);
+  });
 });
 
 describe("extension activation lifecycle", () => {

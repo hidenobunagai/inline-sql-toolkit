@@ -4,6 +4,7 @@ import { SourceSpan } from "../../src/python-analysis/positions.js";
 import {
   fstringKind,
   scanFstringFieldSpans,
+  scanSource,
   scanStringSurfaces,
 } from "../../src/python-analysis/tokenizer.js";
 
@@ -113,5 +114,36 @@ describe("SourceSpan bounds", () => {
   it("rejects invalid spans", () => {
     expect(() => new SourceSpan(-1, 0)).toThrow(Error);
     expect(() => new SourceSpan(2, 1)).toThrow(Error);
+  });
+});
+
+describe("scanSource comments", () => {
+  it("records comments and ignores '#' inside string literals", () => {
+    const source = 'x = 1  # c\ny = "a # not comment"';
+    const scan = scanSource(source);
+    expect(scan.comments).toHaveLength(1);
+    const commentSpan = scan.comments[0];
+    if (commentSpan === undefined) throw new Error("expected comment");
+    expect(source.slice(commentSpan.start, commentSpan.end)).toBe("# c");
+  });
+
+  it("handles CRLF newlines and missing trailing newline", () => {
+    const crlfSource = "x = 1  # c1\r\ny = 2  # c2";
+    const crlfScan = scanSource(crlfSource);
+    expect(crlfScan.comments).toHaveLength(2);
+    const firstCrlf = crlfScan.comments[0];
+    const secondCrlf = crlfScan.comments[1];
+    if (firstCrlf === undefined || secondCrlf === undefined) {
+      throw new Error("expected two comments");
+    }
+    expect(crlfSource.slice(firstCrlf.start, firstCrlf.end)).toBe("# c1\r");
+    expect(crlfSource.slice(secondCrlf.start, secondCrlf.end)).toBe("# c2");
+
+    const noNewlineSource = "x = 1  # c-eof";
+    const noNewlineScan = scanSource(noNewlineSource);
+    expect(noNewlineScan.comments).toHaveLength(1);
+    const eofComment = noNewlineScan.comments[0];
+    if (eofComment === undefined) throw new Error("expected comment");
+    expect(noNewlineSource.slice(eofComment.start, eofComment.end)).toBe("# c-eof");
   });
 });

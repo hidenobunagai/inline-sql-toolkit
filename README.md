@@ -246,6 +246,41 @@ order, or the candidate is skipped (`FORMATTER_FAILED`).
 A single-quoted literal stays on one line and keeps its leading and trailing
 spaces, because the string may be joined to other text at runtime.
 
+### Skipping a literal
+
+To exclude a specific SQL literal from formatting, add an `# inline-sql: skip` pragma comment (case-insensitive, matched with `/\binline-sql:\s*skip(?![\w-])/i`). Other comments such as `# noqa: E501` or `# type: ignore` may share the same comment line.
+
+You can place the pragma in either of two ways:
+
+1. **Trailing comment on the closing line**: on the line where the literal ends (the closing quote line).
+   ```python
+   q = "select a,b from t"  # inline-sql: skip
+   q = """--sql
+   select   a,
+            b
+   from t
+   """  # inline-sql: skip
+   ```
+2. **Dedicated comment line immediately preceding the literal**: on the line directly above where the literal starts, containing only whitespace followed by the `# inline-sql: skip` comment.
+   ```python
+   # inline-sql: skip
+   q = """--sql
+   ...
+   """
+   query = (
+       # inline-sql: skip
+       """--sql ..."""
+   )
+   ```
+
+Notes on skipping behavior:
+
+- On triple-quoted strings, any text after the opening quotes (such as `"""--sql # inline-sql: skip`) is part of the string body, not a Python comment, so a pragma placed there has no effect.
+- A trailing comment on a preceding statement (e.g. `a = "select 1"  # inline-sql: skip`) does not affect a literal starting on the next line (`b = "select 2"`). Dedicated comment lines must consist only of whitespace and the comment.
+- Syntax highlighting is powered by TextMate grammar and is not affected by `# inline-sql: skip`. Only formatting excludes the literal.
+- When running **Format at Cursor** on a skipped literal, the command reports `NO_SQL_CANDIDATE`.
+- Both CLI `--check` and `--write` honor `# inline-sql: skip` with the exact same rules: skipped literals are never formatted, never reported on stderr as skipped candidates, and do not cause `--check` to fail.
+
 ## Trust, privacy, and offline behavior
 
 In an untrusted workspace the extension provides highlighting only. The three
@@ -268,7 +303,8 @@ over the network, passed to a shell/database, or executed. The bundled
   `INVALID_CONFIGURATION`, or `PROCESS_FAILED`).
 - **SQL looks different than expected:** formatting does not validate SQL or
   infer a dialect. Adjust the settings above and review the source-level
-  candidate before applying the one-step edit.
+  candidate before applying the one-step edit, or exclude the literal with
+  `# inline-sql: skip`.
 
 For security reporting, see [SECURITY.md](SECURITY.md). For source-free bug
 reports and diagnostic reason codes, see [SUPPORT.md](SUPPORT.md). Licensing and

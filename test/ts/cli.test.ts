@@ -322,6 +322,31 @@ describe("CLI inline-sql-toolkit", () => {
     expect(readFileSync(file1, "utf8")).toBe(original1);
   });
 
+  it("exits 0 with empty stderr when unformatted SQL has skip pragma under --check", () => {
+    const unformattedWithPragma = 'query = "select a,b from t"  # inline-sql: skip\n';
+    const res = runCli(["--check"], { input: unformattedWithPragma });
+    expect(res.status).toBe(0);
+    expect(res.stderr).toBe("");
+  });
+
+  it("formats only unskipped SQL and leaves pragma-skipped SQL byte-identical with --write", () => {
+    const filePath = join(tempDir, "write-skip.py");
+    const originalContent = [
+      'skipped = "select a,b from t"  # inline-sql: skip',
+      'formatted = "select a,b from t"',
+      "",
+    ].join("\n");
+    writeFileSync(filePath, originalContent, "utf8");
+
+    const res = runCli(["--write", filePath]);
+    expect(res.status).toBe(0);
+
+    const updatedContent = readFileSync(filePath, "utf8");
+    const lines = updatedContent.split("\n");
+    expect(lines[0]).toBe('skipped = "select a,b from t"  # inline-sql: skip');
+    expect(lines[1]).toBe('formatted = "SELECT a, b FROM t"');
+  });
+
   it("runs from the packed npm tarball", () => {
     // The published artifact is the tarball, not the working tree. 0.4.7 shipped
     // without dist/package.json (excluded by .npmignore), so Node loaded the CJS

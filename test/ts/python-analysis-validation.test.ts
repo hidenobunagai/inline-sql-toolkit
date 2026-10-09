@@ -319,6 +319,36 @@ GROUP BY
     }
   });
 
+  it("keeps a multi-line item aligned under its leading comma", () => {
+    const source =
+      'query = """--sql\nSELECT a, CASE WHEN x = 1 THEN 1 ELSE 0 END AS c, b FROM t\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const options = { ...OPTIONS, commaPosition: "before" as const };
+    const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    a\n    , CASE\n        WHEN x = 1 THEN 1\n        ELSE 0\n      END AS c\n    , b\n  FROM\n    t\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
+  it("does not shift a clause that follows a leading-comma item", () => {
+    const source =
+      'query = """--sql\nSELECT a FROM t, u INNER JOIN v ON v.k = u.k WHERE 1 = 1\n"""';
+    const { analysis, literal, detection } = analyzeOne(source);
+    const options = { ...OPTIONS, commaPosition: "before" as const };
+    const result = formatCandidate(source, analysis, literal, detection, options, NONCE, formatter);
+    if ("replacementText" in result) {
+      expect(result.replacementText).toBe(
+        '"""--sql\n  SELECT\n    a\n  FROM\n    t\n    , u\n    INNER JOIN v ON v.k = u.k\n  WHERE\n    1 = 1\n"""',
+      );
+    } else {
+      throw new Error("expected a changed candidate");
+    }
+  });
+
   it("keeps trailing comments with their column when commaPosition is before", () => {
     const source = 'query = """--sql\nSELECT order_id -- c\n, order_date -- c\n, amount\n"""';
     const { analysis, literal, detection } = analyzeOne(source);

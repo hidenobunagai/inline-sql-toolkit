@@ -211,8 +211,9 @@ function wrappingComma(line: string): number {
 }
 
 /** Move every wrapping separator comma to the front of the next line. */
-function moveCommasToLineStarts(text: string): string {
+function moveCommasToLineStarts(text: string, dialect: FormatOptions["dialect"]): string {
   const lines = text.split("\n");
+  const inserts = new Map<number, number>(); // line index -> item column
   for (let index = 0; index + 1 < lines.length; index++) {
     const line = lines[index] ?? "";
     const next = lines[index + 1] ?? "";
@@ -225,8 +226,57 @@ function moveCommasToLineStarts(text: string): string {
     const content = nextParts?.[2] ?? "";
     lines[index] = `${line.slice(0, comma)}${line.slice(comma + 1)}`.trimEnd();
     lines[index + 1] = `${indent}, ${content}`;
+    inserts.set(index + 1, indent.length);
   }
-  return lines.join("\n");
+  if (inserts.size === 0) return text;
+  return shiftMovedItems(lines, inserts, dialect).join("\n");
+}
+
+/**
+ * The ", " pushes an item's first line two columns right; push the rest of the
+ * item (`WHEN …`, `END`, a closing `)`) with it so it stays aligned. An item
+ * runs over the lines indented past it plus the `)` / `]` / `END` that closes
+ * it at its own column; any other line at or left of its column (the next
+ * item, a comment, `JOIN`, the next statement) ends it. Nested items add up. A
+ * line that continues a string, dollar quote, or block comment is text and
+ * never moves.
+ */
+function shiftMovedItems(
+  lines: string[],
+  inserts: ReadonlyMap<number, number>,
+  dialect: FormatOptions["dialect"],
+): string[] {
+  const starts: number[] = [];
+  let offset = 0;
+  for (const line of lines) {
+    starts.push(offset);
+    offset += line.length + 1;
+  }
+  const tokens = lexSql(lines.join("\n"), dialect);
+  const textLines = new Set<number>();
+  for (const token of tokens) {
+    if (token.kind === "space" || !token.text.includes("\n")) continue;
+    starts.forEach((start, line) => {
+      if (start > token.start && start < token.end) textLines.add(line);
+    });
+  }
+  const shifts = new Array<number>(lines.length).fill(0);
+  for (const [target, column] of inserts) {
+    for (let index = target + 1; index < lines.length; index++) {
+      const line = lines[index] ?? "";
+      const indent = line.length - line.trimStart().length;
+      if (indent === line.length || textLines.has(index)) continue;
+      if (indent < column) break;
+      if (indent === column && !/^(?:[)\]]|END\b)/i.test(line.slice(indent))) break;
+      shifts[index] = (shifts[index] ?? 0) + 2;
+    }
+  }
+  return lines.map((line, index) => {
+    const shift = shifts[index] ?? 0;
+    if (shift === 0) return line;
+    const indent = line.length - line.trimStart().length;
+    return `${line.slice(0, indent)}${" ".repeat(shift)}${line.slice(indent)}`;
+  });
 }
 
 const DOLLAR_QUOTE = /\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$/y;
@@ -379,7 +429,7 @@ function formatOnce(
     formatted = rejoinFunctionCalls(formatted);
   }
   if (options.commaPosition === "before") {
-    formatted = moveCommasToLineStarts(formatted);
+    formatted = moveCommasToLineStarts(formatted, options.dialect);
   }
   formatted = breakTrailingDistributeLines(formatted, options.dialect);
   // Final gate: the formatter and every post-pass may only move whitespace

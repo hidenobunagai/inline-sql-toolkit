@@ -8,6 +8,8 @@ import {
   type UnsupportedLiteral,
 } from "./tokenizer.js";
 
+export const SKIP_PRAGMA = /\binline-sql:\s*skip(?![\w-])/i;
+
 /** Parsed document and its source-ordered literal classifications. */
 export interface DocumentAnalysis {
   readonly sourceMap: SourceMap;
@@ -15,6 +17,10 @@ export interface DocumentAnalysis {
   readonly unterminated: boolean;
   readonly supported: readonly SupportedLiteral[];
   readonly unsupported: readonly UnsupportedLiteral[];
+  readonly skipPragmaLines: {
+    readonly trailing: ReadonlySet<number>;
+    readonly ownLine: ReadonlySet<number>;
+  };
 }
 
 function onlyWhitespace(text: string): boolean {
@@ -56,7 +62,25 @@ function isConcatenated(
 /** Parse one complete document and collect plain-string syntax units. */
 export function analyzeDocument(source: string): DocumentAnalysis {
   const sourceMap = SourceMap.fromText(source);
-  const { surfaces, unterminated } = scanSource(source);
+  const { surfaces, comments, unterminated } = scanSource(source);
+  const trailingPragmas = new Set<number>();
+  const ownLinePragmas = new Set<number>();
+  for (const span of comments) {
+    const commentText = source.slice(span.start, span.end);
+    if (!SKIP_PRAGMA.test(commentText)) continue;
+    const line = sourceMap.vscodeFromOffset(span.start).line;
+    const lineStartOffset = sourceMap.offsetFromVscode(line, 0);
+    const prefix = source.slice(lineStartOffset, span.start);
+    if (/^[ \t]*$/.test(prefix)) {
+      ownLinePragmas.add(line);
+    } else {
+      trailingPragmas.add(line);
+    }
+  }
+  const skipPragmaLines = {
+    trailing: trailingPragmas,
+    ownLine: ownLinePragmas,
+  };
   const supported: SupportedLiteral[] = [];
   const unsupported: UnsupportedLiteral[] = [];
   surfaces.forEach((surface, index) => {
@@ -121,6 +145,7 @@ export function analyzeDocument(source: string): DocumentAnalysis {
     unterminated,
     supported: [...supported].sort((left, right) => left.span.start - right.span.start),
     unsupported: [...unsupported].sort((left, right) => left.span.start - right.span.start),
+    skipPragmaLines,
   };
 }
 

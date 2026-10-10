@@ -210,6 +210,7 @@ describe("extension manifest", () => {
       "privacy",
       "offline",
       "troubleshoot",
+      "inline-sql: skip",
     ]) {
       expect(readme.toLowerCase()).toContain(assertion.toLowerCase());
     }

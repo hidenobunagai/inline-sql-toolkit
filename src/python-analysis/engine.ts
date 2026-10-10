@@ -40,6 +40,16 @@ export interface EngineResult {
   };
 }
 
+function isSkippedByPragma(
+  literal: SupportedLiteral | UnsupportedLiteral,
+  analysis: DocumentAnalysis,
+): boolean {
+  const startLine = analysis.sourceMap.vscodeFromOffset(literal.span.start).line;
+  const endLine = analysis.sourceMap.vscodeFromOffset(literal.span.end).line;
+  const { trailing, ownLine } = analysis.skipPragmaLines;
+  return ownLine.has(startLine - 1) || trailing.has(endLine) || ownLine.has(endLine);
+}
+
 /** Discover SQL-looking literals in source order. */
 export function discover(analysis: DocumentAnalysis): readonly DetectedUnit[] {
   const literals: readonly (SupportedLiteral | UnsupportedLiteral)[] = [
@@ -51,7 +61,7 @@ export function discover(analysis: DocumentAnalysis): readonly DetectedUnit[] {
       literal,
       detection: detectSql(literal, analysis.sourceMap),
     }))
-    .filter((unit) => unit.detection.matched);
+    .filter((unit) => unit.detection.matched && !isSkippedByPragma(unit.literal, analysis));
   return [...units].sort((left, right) => left.literal.span.start - right.literal.span.start);
 }
 

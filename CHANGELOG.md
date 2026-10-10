@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4 - 2026-10-10
+
+- Docs: a skip pragma applies to every literal on its line (README).
+- Internal: drop an unreachable check in skip pragma matching.
+- Dependencies: bump the dev-only transitive `source-map-js` to 1.2.2 (GHSA-68fv-2mgg-jv7q).
+
 ## 0.5.3 - 2026-10-10
 
 - Feature: a "# inline-sql: skip" comment excludes a specific SQL literal from formatting (as a trailing comment on the closing quote line or on a dedicated line directly preceding the literal).

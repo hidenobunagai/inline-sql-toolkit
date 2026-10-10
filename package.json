@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/hidenobunagai/inline-sql-toolkit/issues"
   },
-  "version": "0.5.3",
+  "version": "0.5.4",
   "icon": "icon.png",
   "type": "module",
   "bin": {

@@ -47,7 +47,7 @@ function isSkippedByPragma(
   const startLine = analysis.sourceMap.vscodeFromOffset(literal.span.start).line;
   const endLine = analysis.sourceMap.vscodeFromOffset(literal.span.end).line;
   const { trailing, ownLine } = analysis.skipPragmaLines;
-  return ownLine.has(startLine - 1) || trailing.has(endLine) || ownLine.has(endLine);
+  return ownLine.has(startLine - 1) || trailing.has(endLine);
 }
 
 /** Discover SQL-looking literals in source order. */

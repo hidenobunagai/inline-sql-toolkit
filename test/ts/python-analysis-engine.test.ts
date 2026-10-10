@@ -113,6 +113,14 @@ describe("discover", () => {
     expect(discover(analyzeDocument(ownLineCrlf))).toHaveLength(0);
   });
 
+  it("skips every literal on the pragma line, not just one", () => {
+    const trailing = 'a, b = "select 1", "select 2"  # inline-sql: skip';
+    expect(discover(analyzeDocument(trailing))).toHaveLength(0);
+
+    const ownLine = ["# inline-sql: skip", 'a, b = "select 1", "select 2"'].join("\n");
+    expect(discover(analyzeDocument(ownLine))).toHaveLength(0);
+  });
+
   it("omits skipped literals from summary.discovered and skipReasons in formatDocument", () => {
     const code = ['q1 = "select 1"  # inline-sql: skip', 'q2 = "select 2"'].join("\n");
     const result = formatDocument(code, OPTIONS, ALL, NONCE, formatter);

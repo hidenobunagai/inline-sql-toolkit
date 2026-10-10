@@ -277,6 +277,7 @@ Notes on skipping behavior:
 
 - On triple-quoted strings, any text after the opening quotes (such as `"""--sql # inline-sql: skip`) is part of the string body, not a Python comment, so a pragma placed there has no effect.
 - A trailing comment on a preceding statement (e.g. `a = "select 1"  # inline-sql: skip`) does not affect a literal starting on the next line (`b = "select 2"`). Dedicated comment lines must consist only of whitespace and the comment.
+- A pragma applies per line, not per literal: a trailing pragma skips every literal that ends on that line, and a dedicated pragma line skips every literal that starts on the next line. For example, `a, b = "select 1", "select 2"  # inline-sql: skip` skips both literals; put them on separate lines to skip only one.
 - Syntax highlighting is powered by TextMate grammar and is not affected by `# inline-sql: skip`. Only formatting excludes the literal.
 - When running **Format at Cursor** on a skipped literal, the command reports `NO_SQL_CANDIDATE`.
 - Both CLI `--check` and `--write` honor `# inline-sql: skip` with the exact same rules: skipped literals are never formatted, never reported on stderr as skipped candidates, and do not cause `--check` to fail.

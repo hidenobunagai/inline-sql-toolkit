@@ -54,6 +54,10 @@ uv.lock
 .pre-commit-config.yaml
 .prettierignore
 
+.formatignore
+.oxfmtrc.json
+scripts/**
+
 # Keep the packaged runtime roots explicitly (vsce uses negated patterns).
 !dist/extension.js
 !syntaxes/**

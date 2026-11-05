@@ -143,10 +143,10 @@ The `inline-sql-toolkit` command-line tool formats Python files or standard inpu
 Run directly via `npx` or install with `bun add -d inline-sql-toolkit` (or `npm install -D inline-sql-toolkit`):
 
 ```bash
-npx inline-sql-toolkit [options] [files...]
+npx inline-sql-toolkit [options] [files-or-directories...]
 ```
 
-When run without file arguments, the CLI reads Python source from standard input and prints the formatted result to standard output. Notebook files (`.ipynb`) are not supported by the CLI; use the VS Code extension for Jupyter and marimo notebook cell formatting. The CLI supports standard Python source files (`.py`, `.mo.py`) and stdin.
+When run without file arguments, the CLI reads Python source from standard input and prints the formatted result to standard output. Explicit file arguments are processed regardless of their extension. Directory arguments are scanned recursively for `.py` and `.mo.py` files, in path order; scans skip all dot-prefixed directories (including `.git` and `.jj`), `node_modules`, `.venv`, and `__pycache__`. Notebook files (`.ipynb`) are not supported by the CLI; use the VS Code extension for Jupyter and marimo notebook cell formatting. The CLI supports standard Python source files (`.py`, `.mo.py`) and stdin.
 
 ### CLI Options
 

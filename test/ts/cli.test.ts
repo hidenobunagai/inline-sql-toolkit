@@ -7,11 +7,12 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -133,6 +134,133 @@ describe("CLI inline-sql-toolkit", () => {
     const formattedRes = runCli(["--check", filePath]);
     expect(formattedRes.status).toBe(0);
     expect(formattedRes.stderr).toBe("");
+  });
+
+  it("checks Python files recursively when given a directory", () => {
+    const rootDir = join(tempDir, "directory_check_test");
+    const nestedDir = join(rootDir, "nested", "deeper");
+    mkdirSync(nestedDir, { recursive: true });
+    const filePath = join(nestedDir, "query.py");
+    writeFileSync(filePath, 'query = "select id from users"\n', "utf8");
+
+    const unformattedRes = runCli(["--check", rootDir]);
+    expect(unformattedRes.status).toBe(1);
+    expect(unformattedRes.stderr).toContain(filePath);
+
+    const writeRes = runCli(["--write", rootDir]);
+    expect(writeRes.status).toBe(0);
+    expect(readFileSync(filePath, "utf8")).toBe('query = "SELECT id FROM users"\n');
+
+    const formattedRes = runCli(["--check", rootDir]);
+    expect(formattedRes.status).toBe(0);
+    expect(formattedRes.stderr).toBe("");
+  });
+
+  it("writes .py and .mo.py files from a directory and leaves other files byte-identical", () => {
+    const rootDir = join(tempDir, "directory_write_test");
+    const nestedDir = join(rootDir, "nested");
+    mkdirSync(nestedDir, { recursive: true });
+    const pythonFile = join(rootDir, "query.py");
+    const marimoFile = join(nestedDir, "notebook.mo.py");
+    const textFile = join(rootDir, "notes.txt");
+    const textBytes = Buffer.from([0, 255, 10, 13, 128, 65]);
+    writeFileSync(pythonFile, 'query = "select id from users"\n', "utf8");
+    writeFileSync(marimoFile, 'query = "select name from users"\n', "utf8");
+    writeFileSync(textFile, textBytes);
+
+    const res = runCli(["--write", rootDir]);
+    expect(res.status).toBe(0);
+    expect(readFileSync(pythonFile, "utf8")).toBe('query = "SELECT id FROM users"\n');
+    expect(readFileSync(marimoFile, "utf8")).toBe('query = "SELECT name FROM users"\n');
+    expect(readFileSync(textFile).equals(textBytes)).toBe(true);
+
+    const stdoutRes = runCli([rootDir]);
+    expect(stdoutRes.status).toBe(0);
+    expect(stdoutRes.stdout).toBe(
+      ['query = "SELECT name FROM users"', 'query = "SELECT id FROM users"', ""].join("\n"),
+    );
+  });
+
+  it("keeps processing explicitly named files regardless of extension", () => {
+    const filePath = join(tempDir, "explicit_extension_test.txt");
+    writeFileSync(filePath, 'query = "select id from users"\n', "utf8");
+
+    const res = runCli([filePath]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toBe('query = "SELECT id FROM users"\n');
+  });
+
+  it("skips dependency, environment, cache, and dot-directories during directory scans", () => {
+    const rootDir = join(tempDir, "directory_exclusion_test");
+    const excludedDirectories = ["node_modules", ".venv", "__pycache__", ".git", ".jj", ".hidden"];
+    mkdirSync(rootDir, { recursive: true });
+    const rootFile = join(rootDir, "included.py");
+    const excludedFiles = excludedDirectories.map((directory) => {
+      const directoryPath = join(rootDir, directory);
+      mkdirSync(directoryPath, { recursive: true });
+      const filePath = join(directoryPath, "ignored.py");
+      writeFileSync(filePath, 'query = "select id from users"\n', "utf8");
+      return filePath;
+    });
+    writeFileSync(rootFile, 'query = "select id from users"\n', "utf8");
+
+    const res = runCli(["--write", rootDir]);
+    expect(res.status).toBe(0);
+    expect(readFileSync(rootFile, "utf8")).toBe('query = "SELECT id FROM users"\n');
+    for (const filePath of excludedFiles) {
+      expect(readFileSync(filePath, "utf8")).toBe('query = "select id from users"\n');
+    }
+  });
+
+  it("does not follow symbolic-link directories while scanning", () => {
+    const rootDir = join(tempDir, "directory_symlink_test");
+    const linkedTargetDir = join(tempDir, "directory_symlink_target");
+    mkdirSync(rootDir, { recursive: true });
+    mkdirSync(linkedTargetDir, { recursive: true });
+    const includedFile = join(rootDir, "included.py");
+    const linkedFile = join(linkedTargetDir, "linked.py");
+    writeFileSync(includedFile, 'query = "select id from users"\n', "utf8");
+    writeFileSync(linkedFile, 'query = "select name from users"\n', "utf8");
+    symlinkSync(linkedTargetDir, join(rootDir, "linked"), "dir");
+
+    const res = runCli(["--write", rootDir]);
+    expect(res.status).toBe(0);
+    expect(readFileSync(includedFile, "utf8")).toBe('query = "SELECT id FROM users"\n');
+    expect(readFileSync(linkedFile, "utf8")).toBe('query = "select name from users"\n');
+
+    const linkArgument = join(tempDir, "directory_symlink_argument");
+    symlinkSync(linkedTargetDir, linkArgument, "dir");
+    const linkedDirectoryRes = runCli(["--check", `${linkArgument}${sep}`]);
+    expect(linkedDirectoryRes.status).toBe(2);
+    expect(linkedDirectoryRes.stderr).toContain(linkArgument);
+  });
+
+  it("processes a file only once when it is named directly and found in a directory", () => {
+    const rootDir = join(tempDir, "directory_dedup_test");
+    mkdirSync(rootDir, { recursive: true });
+    const filePath = join(rootDir, "query.py");
+    const original = 'query = "select id from users"\n';
+    const formatted = 'query = "SELECT id FROM users"\n';
+    writeFileSync(filePath, original, "utf8");
+
+    const stdoutRes = runCli([rootDir, filePath]);
+    expect(stdoutRes.status).toBe(0);
+    expect(stdoutRes.stdout).toBe(formatted);
+
+    const writeRes = runCli(["--write", rootDir, filePath]);
+    expect(writeRes.status).toBe(0);
+    expect(readFileSync(filePath, "utf8")).toBe(formatted);
+  });
+
+  it("exits 2 and names a directory with no Python files", () => {
+    const emptyDir = join(tempDir, "directory_without_python_test");
+    mkdirSync(emptyDir, { recursive: true });
+    writeFileSync(join(emptyDir, "notes.txt"), "not Python\n", "utf8");
+
+    const res = runCli(["--check", emptyDir]);
+    expect(res.status).toBe(2);
+    expect(res.stderr).toContain(emptyDir);
+    expect(res.stderr).toContain("no .py or .mo.py files found in directory");
   });
 
   it("finds and applies .inline-sql.json from parent directory", () => {
@@ -300,13 +428,16 @@ describe("CLI inline-sql-toolkit", () => {
   it("displays help text on --help and -h", () => {
     const res = runCli(["--help"]);
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain("Usage: inline-sql-toolkit [options] [files...]");
+    expect(res.stdout).toContain("Usage: inline-sql-toolkit [options] [files-or-directories...]");
     expect(res.stdout).toContain("-w, --write");
     expect(res.stdout).toContain("--check");
+    expect(res.stdout).toContain("Directories are scanned recursively for .py and .mo.py files");
 
     const resShort = runCli(["-h"]);
     expect(resShort.status).toBe(0);
-    expect(resShort.stdout).toContain("Usage: inline-sql-toolkit [options] [files...]");
+    expect(resShort.stdout).toContain(
+      "Usage: inline-sql-toolkit [options] [files-or-directories...]",
+    );
   });
 
   it("does not partially write files if an error occurs during multi-file processing", () => {

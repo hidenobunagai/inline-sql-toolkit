@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, lstatSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, parse, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 import { type RawFormatOptions, resolveFormatOptions } from "./format-options.js";
@@ -8,7 +8,7 @@ import type { FormatOptions } from "./protocol.js";
 import { allocateNonce, combinedSource, formatDocument } from "./python-analysis/engine.js";
 import { formatProtectedSql } from "./sql-formatter.js";
 
-export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
+export const USAGE = `Usage: inline-sql-toolkit [options] [files-or-directories...]
 
   -w, --write                      rewrite files in place
       --check                      exit 1 if any file would change
@@ -23,7 +23,131 @@ export const USAGE = `Usage: inline-sql-toolkit [options] [files...]
       --keep-functions-inline      keep SUM(...) / COUNT(CASE ...) on one line
   -c, --config <file>              config JSON (default: nearest .inline-sql.json)
   -q, --quiet                      do not report skipped candidates on stderr
-  -h, --help / --version`;
+  -h, --help / --version
+
+  Directories are scanned recursively for .py and .mo.py files. Scans skip
+  dot-directories (including .git and .jj), node_modules, .venv, and __pycache__.`;
+
+const EXCLUDED_DIRECTORY_NAMES = new Set([".git", ".jj", "node_modules", ".venv", "__pycache__"]);
+
+function isPythonSourceFile(file: string): boolean {
+  return file.endsWith(".py") || file.endsWith(".mo.py");
+}
+
+function isExcludedDirectory(name: string): boolean {
+  return name.startsWith(".") || EXCLUDED_DIRECTORY_NAMES.has(name);
+}
+
+function trimTrailingSeparators(path: string): string {
+  let trimmedPath = path;
+  const rootLength = parse(resolve(path)).root.length;
+  while (
+    trimmedPath.length > rootLength &&
+    (trimmedPath.endsWith(sep) || (sep !== "/" && trimmedPath.endsWith("/")))
+  ) {
+    trimmedPath = trimmedPath.slice(0, -1);
+  }
+  return trimmedPath;
+}
+
+function collectPythonFiles(directory: string): string[] {
+  const pendingDirectories = [directory];
+  const pythonFiles: string[] = [];
+
+  while (pendingDirectories.length > 0) {
+    const currentDirectory = pendingDirectories.pop();
+    if (currentDirectory === undefined) continue;
+
+    for (const entry of readdirSync(currentDirectory, { withFileTypes: true })) {
+      const entryPath = join(currentDirectory, entry.name);
+      if (entry.isDirectory()) {
+        if (!isExcludedDirectory(entry.name)) pendingDirectories.push(entryPath);
+        continue;
+      }
+
+      if (entry.isFile() && isPythonSourceFile(entryPath)) {
+        pythonFiles.push(entryPath);
+        continue;
+      }
+
+      if (entry.isSymbolicLink() && isPythonSourceFile(entryPath)) {
+        if (existsSync(entryPath) && statSync(entryPath).isFile()) pythonFiles.push(entryPath);
+      }
+    }
+  }
+
+  return pythonFiles.sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+}
+
+type ExpandedFiles =
+  | { readonly ok: true; readonly files: string[] }
+  | { readonly ok: false; readonly message: string };
+
+function expandFileArguments(positionals: string[]): ExpandedFiles {
+  const files: string[] = [];
+  const seenAbsolutePaths = new Set<string>();
+
+  function addFile(file: string): void {
+    const absolutePath = resolve(file);
+    if (seenAbsolutePaths.has(absolutePath)) return;
+    seenAbsolutePaths.add(absolutePath);
+    files.push(file);
+  }
+
+  for (const positional of positionals) {
+    let fileInfo;
+    try {
+      fileInfo = lstatSync(trimTrailingSeparators(positional));
+    } catch (err) {
+      return {
+        ok: false,
+        message: `inline-sql-toolkit: cannot read file: ${positional}: ${(err as Error).message}`,
+      };
+    }
+
+    let isDirectory = fileInfo.isDirectory();
+    if (fileInfo.isSymbolicLink()) {
+      try {
+        isDirectory = statSync(positional).isDirectory();
+      } catch {
+        // Let the file read below report the same I/O error as an explicit file argument.
+      }
+    }
+
+    if (!isDirectory) {
+      addFile(positional);
+      continue;
+    }
+
+    if (fileInfo.isSymbolicLink()) {
+      return {
+        ok: false,
+        message: `inline-sql-toolkit: no .py or .mo.py files found in directory: ${positional}`,
+      };
+    }
+
+    let discoveredFiles: string[];
+    try {
+      discoveredFiles = collectPythonFiles(positional);
+    } catch (err) {
+      return {
+        ok: false,
+        message: `inline-sql-toolkit: cannot read directory: ${positional}: ${(err as Error).message}`,
+      };
+    }
+
+    if (discoveredFiles.length === 0) {
+      return {
+        ok: false,
+        message: `inline-sql-toolkit: no .py or .mo.py files found in directory: ${positional}`,
+      };
+    }
+
+    for (const file of discoveredFiles) addFile(file);
+  }
+
+  return { ok: true, files };
+}
 
 function printError(message: string): void {
   process.stderr.write(`${message}\n`);
@@ -276,6 +400,12 @@ export function runCli(argv: string[]): number {
     return 0;
   }
 
+  const expanded = expandFileArguments(positionals);
+  if (!expanded.ok) {
+    printError(expanded.message);
+    return 2;
+  }
+
   interface FileTask {
     file: string;
     input: string;
@@ -283,7 +413,7 @@ export function runCli(argv: string[]): number {
   }
   const tasks: FileTask[] = [];
 
-  for (const file of positionals) {
+  for (const file of expanded.files) {
     let input: string;
     try {
       input = readFileSync(file, "utf8");

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 - 2026-11-06
+
+- Feature: the CLI accepts directory arguments and processes every `.py` / `.mo.py` file below them recursively, in path order. Scans skip dot-prefixed directories, `node_modules`, `.venv`, and `__pycache__`, and never follow symbolic-link directories; a file named directly and also found in a directory is processed once. A directory with no Python files in it exits with code 2. Files named explicitly are still processed whatever their extension.
+
 ## 0.5.4 - 2026-10-10
 
 - Docs: a skip pragma applies to every literal on its line (README).

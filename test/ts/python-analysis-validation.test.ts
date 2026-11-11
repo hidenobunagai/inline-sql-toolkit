@@ -370,7 +370,7 @@ GROUP BY
     const result = formatCandidate(source, analysis, literal, detection, OPTIONS, NONCE, formatter);
     if ("replacementText" in result) {
       expect(result.replacementText).toBe(
-        'f"""--sql\n  SELECT\n    ci.{parameter} /* テキスト */,\n    amount\n  FROM\n    t\n  GROUP BY\n    1,\n    amount\n"""',
+        'f"""--sql\n  SELECT\n    ci.{parameter} /* テキスト */,\n    amount\n  FROM\n    t\n  GROUP BY\n    1,\n    2\n"""',
       );
     } else {
       throw new Error("expected a changed candidate");

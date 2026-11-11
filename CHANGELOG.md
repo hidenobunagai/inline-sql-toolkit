@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 - 2026-11-11
+
+- Fixed: ordinal replacement (`--ordinals` / `replaceOrdinals: true`) no longer miscounts a select item that holds an interpolation outside parentheses (`{dims}`, `%s`, `%(name)s`). Such an item may expand to several columns at runtime, so it is now treated like a `*` column: its ordinal and every later ordinal are kept, while ordinals before it still resolve. An interpolation inside parentheses (`SUM({col})`) remains one column. Previously `SELECT {dims}, cal_yr_mo_cd, … GROUP BY 1, 2, 3 ORDER BY 1, 2` could be rewritten to group and sort by `cal_yr_mo_cd` where the original ordinal `2` meant the second expanded column — silently changing ORDER BY ordering.
+
 ## 0.6.1 - 2026-11-06
 
 - Security: pin the dev-only transitive `minimatch` to 11.0.1 via package overrides, resolving CVE-2026-118764 (GHSA-g3hv-75wg-m249) reported by the OSV scanner.

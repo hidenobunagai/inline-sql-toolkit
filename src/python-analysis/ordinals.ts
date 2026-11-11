@@ -14,6 +14,13 @@ interface SelectColumn {
   readonly aggregate: boolean;
   /** `*` or `t.*`: it expands to an unknown number of columns. */
   readonly star: boolean;
+  /**
+   * An interpolation at the item's own level (a bare `{dims}` field, `%s`,
+   * or `%(name)s`): its value may contain commas, so like `*` it expands to
+   * an unknown number of columns. An interpolation inside parentheses
+   * (`SUM({col})`) stays part of one column and does not set this.
+   */
+  readonly expands: boolean;
   /** Normalized output column name: the alias, or a simple column's last part. */
   readonly outputName: string | undefined;
   /** Normalized names referenced by the expression. */
@@ -228,7 +235,12 @@ function normalizeName(text: string): string {
 }
 
 /** Extract alias, output name, and safety flags from one select-list item. */
-function columnOf(tokens: readonly SqlToken[], start: number, end: number): SelectColumn {
+function columnOf(
+  sql: string,
+  tokens: readonly SqlToken[],
+  start: number,
+  end: number,
+): SelectColumn {
   const visible = tokens.slice(start, end).filter((token) => !isCommentToken(token));
   const first = visible[0];
   const last = visible[visible.length - 1];
@@ -239,10 +251,28 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
       alias: undefined,
       aggregate: false,
       star: false,
+      expands: false,
       outputName: undefined,
       names: [],
     };
   }
+  // An interpolation expands the item only at the item's own parenthesis
+  // depth: inside a call (`SUM({col})`, `upper({col}) AS u`) it is one
+  // column's argument. The tokenizer splits a %-placeholder into `%`, `(`
+  // name `)`, `s` tokens, so depth alone misses `%(name)s`: a `%` at the
+  // item's depth whose next source character is `s` or `(` is a placeholder,
+  // while the modulo operator (`a % 2`, `a % s`) is followed by neither.
+  const expands = visible.some((token) => {
+    if (token.depth !== first.depth) return false;
+    if (token.text.startsWith("{")) return true;
+    if (!/^[+\-*/%<>=!~|&^:]+$/.test(token.text)) return false;
+    for (let offset = 0; offset < token.text.length; offset += 1) {
+      if (token.text[offset] !== "%") continue;
+      const next = sql[token.start + offset + 1];
+      if (next === "s" || next === "(") return true;
+    }
+    return false;
+  });
   const secondLast = visible[visible.length - 2];
   const simpleColumn =
     visible.length % 2 === 1 &&
@@ -285,6 +315,7 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
     alias,
     aggregate,
     star,
+    expands,
     outputName,
     names,
   };
@@ -294,7 +325,9 @@ function columnOf(tokens: readonly SqlToken[], start: number, end: number): Sele
  * Choose the text that may replace ordinal *ordinal* in a GROUP BY or ORDER
  * BY clause without changing what the query means, or undefined to keep it.
  *
- * - A `*` / `t.*` column at or before the ordinal makes its position unknown.
+ * - A `*` / `t.*` column, or an item holding a top-level interpolation
+ *   (`{dims}`, `%s`, `%(name)s`) whose value may expand to several columns,
+ *   at or before the ordinal makes its position unknown.
  * - GROUP BY never uses an alias: PostgreSQL, MySQL, and SQLite resolve a
  *   GROUP BY name to an input column first, so `upper(name) AS name` would
  *   group by the raw column. The expression is copied instead.
@@ -313,7 +346,9 @@ function ordinalReplacement(
 ): string | undefined {
   const column = scope.columns[ordinal - 1];
   if (column === undefined) return undefined;
-  if (scope.columns.slice(0, ordinal).some((candidate) => candidate.star)) return undefined;
+  if (scope.columns.slice(0, ordinal).some((candidate) => candidate.star || candidate.expands)) {
+    return undefined;
+  }
   if (clause === "order" && scope.setOperand) return undefined;
   const others = scope.columns.filter((candidate) => candidate !== column);
   const otherNames = new Set(others.map((candidate) => candidate.outputName));
@@ -463,12 +498,12 @@ export function replaceOrdinals(sql: string): string {
     if (scope.phase === "select") {
       if (isKeyword(token, "from")) {
         if (scope.columnStart < index) {
-          scope.columns.push(columnOf(tokens, scope.columnStart, index));
+          scope.columns.push(columnOf(sql, tokens, scope.columnStart, index));
         }
         scope.phase = "from";
       } else if (token.text === ",") {
         if (scope.columnStart < index) {
-          scope.columns.push(columnOf(tokens, scope.columnStart, index));
+          scope.columns.push(columnOf(sql, tokens, scope.columnStart, index));
         }
         scope.columnStart = index + 1;
       }

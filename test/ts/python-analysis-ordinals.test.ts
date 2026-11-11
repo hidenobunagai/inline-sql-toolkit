@@ -160,15 +160,56 @@ describe("replaceOrdinals", () => {
     );
   });
 
-  it("keeps ordinals whose column expression contains an f-string field", () => {
+  it("keeps ordinals at or after an f-string field, whose width is unknown", () => {
     expect(
       replaceOrdinals("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, 2"),
-    ).toBe("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, amount");
+    ).toBe("SELECT ci.{parameter} /* テキスト */, amount FROM t GROUP BY 1, 2");
     expect(replaceOrdinals("SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, 2")).toBe(
-      "SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, amount",
+      "SELECT ci.{parameter} AS p, amount FROM t GROUP BY 1, 2",
     );
     expect(replaceOrdinals("SELECT ci.{parameter} AS p, amount FROM t ORDER BY 1, 2")).toBe(
-      "SELECT ci.{parameter} AS p, amount FROM t ORDER BY p, amount",
+      "SELECT ci.{parameter} AS p, amount FROM t ORDER BY 1, 2",
+    );
+  });
+
+  it("treats a top-level interpolation like a star column, whose width is unknown", () => {
+    // {dims} may expand to two columns at runtime, so ordinal 2 below is
+    // ntwk_local_nm, not cal_yr_mo_cd: every ordinal must stay.
+    const select = "SELECT {dims}, cal_yr_mo_cd, SUM(amt) AS amt FROM osfn";
+    expect(replaceOrdinals(`${select} GROUP BY 1, 2, 3 ORDER BY 1, 2`)).toBe(
+      `${select} GROUP BY 1, 2, 3 ORDER BY 1, 2`,
+    );
+    // Ordinals before the interpolation still resolve.
+    expect(replaceOrdinals("SELECT a, {dims}, b FROM t GROUP BY 1, 3")).toBe(
+      "SELECT a, {dims}, b FROM t GROUP BY a, 3",
+    );
+    // A comma may lead the interpolated value (`b {extra}`).
+    expect(replaceOrdinals("SELECT a, b {extra}, c FROM t GROUP BY 1, 2, 3")).toBe(
+      "SELECT a, b {extra}, c FROM t GROUP BY a, 2, 3",
+    );
+    expect(replaceOrdinals("SELECT a, %s, b FROM t GROUP BY 1, 3")).toBe(
+      "SELECT a, %s, b FROM t GROUP BY a, 3",
+    );
+    expect(replaceOrdinals("SELECT a, %(dims)s, b FROM t GROUP BY 1, 3")).toBe(
+      "SELECT a, %(dims)s, b FROM t GROUP BY a, 3",
+    );
+  });
+
+  it("keeps resolving ordinals after an interpolation inside parentheses", () => {
+    expect(replaceOrdinals("SELECT SUM({col}), amount FROM t GROUP BY 2")).toBe(
+      "SELECT SUM({col}), amount FROM t GROUP BY amount",
+    );
+    expect(replaceOrdinals("SELECT upper({col}) AS u, amount FROM t ORDER BY 1, 2")).toBe(
+      "SELECT upper({col}) AS u, amount FROM t ORDER BY u, amount",
+    );
+  });
+
+  it("does not mistake the modulo operator for a %-placeholder", () => {
+    expect(replaceOrdinals("SELECT a % 2 AS m, b FROM t GROUP BY 2")).toBe(
+      "SELECT a % 2 AS m, b FROM t GROUP BY b",
+    );
+    expect(replaceOrdinals("SELECT a % b AS m, c FROM t GROUP BY 2")).toBe(
+      "SELECT a % b AS m, c FROM t GROUP BY c",
     );
   });
 
